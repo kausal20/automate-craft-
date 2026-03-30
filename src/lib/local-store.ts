@@ -68,6 +68,23 @@ type LocalDatabase = {
 const STORAGE_DIR = path.join(process.cwd(), "data");
 const STORAGE_FILE = path.join(STORAGE_DIR, "automatecraft-local.json");
 
+/**
+ * Vercel and other serverless runtimes use a read-only filesystem.
+ * The local file-based store cannot work in those environments.
+ * Supabase environment variables must be configured for production use.
+ */
+function assertWritableRuntime() {
+  // /var/task is the Vercel serverless function root — it is read-only.
+  if (process.cwd().startsWith("/var/task")) {
+    throw new Error(
+      "AutomateCraft is running on a serverless platform (e.g. Vercel) where the " +
+        "local file-based database is not supported. " +
+        "Please configure your NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, " +
+        "and SUPABASE_SERVICE_ROLE_KEY environment variables in your Vercel project settings."
+    );
+  }
+}
+
 const emptyDatabase: LocalDatabase = {
   users: [],
   automations: [],
@@ -146,6 +163,7 @@ function normalizeLocalDatabase(
 
 async function ensureStorage() {
   log.debug("Ensuring local storage exists.");
+  assertWritableRuntime();
   await mkdir(STORAGE_DIR, { recursive: true });
 
   try {
