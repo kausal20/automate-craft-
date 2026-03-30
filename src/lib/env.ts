@@ -17,6 +17,13 @@ export function isSupabaseMode() {
   );
 }
 
+/** Enterprise SSO (Supabase SAML). Set NEXT_PUBLIC_ENABLE_SSO=false to hide until SAML is configured. */
+export function isSsoEnabled() {
+  return (
+    isSupabaseMode() && process.env.NEXT_PUBLIC_ENABLE_SSO !== "false"
+  );
+}
+
 export function hasOpenAIKey() {
   return Boolean(env.openaiApiKey);
 }

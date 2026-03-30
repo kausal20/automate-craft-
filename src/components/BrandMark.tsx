@@ -3,18 +3,20 @@ import Link from "next/link";
 type BrandMarkProps = {
   compact?: boolean;
   href?: string;
+  white?: boolean;
 };
 
 export default function BrandMark({
   compact = false,
   href = "/",
+  white = false,
 }: BrandMarkProps) {
   const content = (
     <div className="flex items-center gap-3">
       <svg
         viewBox="0 0 88 52"
         aria-hidden="true"
-        className={`${compact ? "h-10 w-16" : "h-11 w-18"} text-foreground`}
+        className={`${compact ? "h-10 w-16" : "h-11 w-18"} ${white ? "text-white" : "text-foreground"}`}
         fill="none"
       >
         <path
@@ -51,11 +53,11 @@ export default function BrandMark({
       </svg>
 
       <div className={`${compact ? "hidden sm:block" : ""}`}>
-        <div className="text-[1.7rem] font-bold tracking-[-0.05em] text-foreground">
+        <div className={`text-[1.7rem] font-bold tracking-[-0.05em] ${white ? "text-white" : "text-foreground"}`}>
           AutomateCraft
         </div>
         {!compact ? (
-          <div className="text-sm text-foreground/60">AI Automation Agency</div>
+          <div className={`text-sm ${white ? "text-white/60" : "text-foreground/60"}`}>AI Automation Agency</div>
         ) : null}
       </div>
     </div>

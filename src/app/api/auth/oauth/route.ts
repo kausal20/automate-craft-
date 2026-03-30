@@ -4,7 +4,7 @@ import { isSupabaseMode } from "@/lib/env";
 import { sanitizeNextPath } from "@/lib/navigation";
 import { createSupabaseRouteClient } from "@/lib/supabase";
 
-const providerSchema = z.enum(["google", "apple"]);
+const providerSchema = z.literal("google");
 
 export async function GET(request: NextRequest) {
   const providerResult = providerSchema.safeParse(
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   if (!providerResult.success) {
     return NextResponse.redirect(
-      new URL("/login?error=Unsupported%20provider.", request.url),
+      new URL("/login?error=Google%20sign-in%20is%20the%20only%20supported%20social%20provider.", request.url),
     );
   }
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   callbackUrl.searchParams.set("next", nextPath);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: providerResult.data,
+    provider: "google",
     options: {
       redirectTo: callbackUrl.toString(),
     },

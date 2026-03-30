@@ -1,13 +1,12 @@
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { runAutomationForUser } from "@/lib/execution-engine";
-import { jsonError } from "@/lib/api";
+import { getAutomationByIdForUser } from "@/lib/automation-store";
+import { deductCredits } from "@/lib/credit-store";
+import { handleRouteError } from "@/lib/api";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-This route starts a manual automation run from the dashboard. The route now
-logs the request lifecycle so you can see if the click reached the server, if
-the automation id was valid, and whether execution started.
-*/
+const log = createLogger("api/run-automation");
 
 const runSchema = z.object({
   automationId: z.string().min(1),
@@ -15,32 +14,55 @@ const runSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  console.log("[api/run-automation] Request received.");
+  log.info("Request received.");
   const user = await getCurrentUser();
 
   if (!user) {
-    console.log("[api/run-automation] No authenticated user found.");
-    return jsonError("Authentication required.", 401);
+    log.warn("No authenticated user found.");
+    return handleRouteError(new Error("Authentication required."), "Authentication required.", 401);
   }
 
   try {
-    console.log("[api/run-automation] Authenticated user:", user.id);
+    log.debug("Authenticated user:", user.id);
     const body = runSchema.parse(await request.json());
-    console.log("[api/run-automation] Payload validated for automation:", body.automationId);
+    log.debug("Running automation:", body.automationId);
+
+    const automation = await getAutomationByIdForUser(user.id, body.automationId);
+    if (!automation) {
+      return handleRouteError(new Error("Automation not found."), "Automation not found.", 404);
+    }
+
+    const hasWhatsapp = automation.workflow.integrations.includes("whatsapp");
+    const hasEmail = automation.workflow.integrations.includes("email");
+    
+    let creditsToDeduct = 1; // Base execution cost
+    if (hasWhatsapp) creditsToDeduct += 2;
+    if (hasEmail) creditsToDeduct += 1;
+    // CRM would similarly be +1 here if/when formally integrated into the types 
+    // We can assume +1 for any generic generic webhook out?
+    // User specified: WhatsApp -> +2, Email -> +1, CRM -> +1.
+    if (automation.workflow.steps.some(s => s.name.toLowerCase().includes("crm"))) {
+      creditsToDeduct += 1;
+    }
+
+    const actionDesc = "Executed Automation";
+
+    const success = await deductCredits(user.id, creditsToDeduct, actionDesc);
+    if (!success) {
+      return handleRouteError(new Error("Not enough credits."), "Not enough credits.", 402);
+    }
+
     const run = await runAutomationForUser({
       userId: user.id,
       automationId: body.automationId,
       payload: body.payload,
       triggerSource: "manual",
     });
-    console.log("[api/run-automation] Automation run created:", run.id);
+    log.info("Automation run created:", run.id);
 
     return Response.json({ run });
   } catch (error) {
-    console.error("[api/run-automation] Request failed.", error);
-    return jsonError(
-      error instanceof Error ? error.message : "Could not run automation.",
-      400,
-    );
+    log.error("Request failed.", error);
+    return handleRouteError(error, "Could not run automation.");
   }
 }

@@ -403,7 +403,7 @@ export default function AutomationDetailPage() {
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            className="mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-foreground px-6 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-70"
+            className="btn-dark mt-8 inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save Changes"}
@@ -467,13 +467,7 @@ export default function AutomationDetailPage() {
                 )}
               </button>
 
-              <Link
-                href="/dashboard/logs"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
-              >
-                <ScrollText className="h-4 w-4" />
-                View Logs
-              </Link>
+
 
               <button
                 onClick={() => void handleDelete()}

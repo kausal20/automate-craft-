@@ -45,6 +45,7 @@ type HomeAutomationPreviewProps = {
   result: WorkflowResponse | null;
   user: AuthenticatedUser | null;
   socialAuthEnabled: boolean;
+  ssoEnabled: boolean;
   integrationStatus: Record<string, ConnectionStatus>;
   connectionLoading: string | null;
   fieldValues: Record<string, string>;
@@ -122,6 +123,7 @@ export default function HomeAutomationPreview({
   result,
   user,
   socialAuthEnabled,
+  ssoEnabled,
   integrationStatus,
   connectionLoading,
   fieldValues,
@@ -270,7 +272,7 @@ export default function HomeAutomationPreview({
                                   className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all ${
                                     isConnected
                                       ? "bg-green-50 text-green-700"
-                                      : "bg-foreground text-white hover:bg-black/85"
+                                      : "btn-dark hover:bg-[#2a2a2a]"
                                   } disabled:cursor-not-allowed disabled:opacity-55`}
                                 >
                                   {connectionLoading === integration
@@ -341,7 +343,7 @@ export default function HomeAutomationPreview({
                           <div className="mt-5 flex flex-col gap-3">
                             <Link
                               href={`/signup?next=${encodeURIComponent(resumePath)}`}
-                              className="inline-flex h-12 items-center justify-center rounded-full bg-foreground px-6 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-black/85"
+                              className="btn-dark inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold transition-all hover:-translate-y-0.5"
                             >
                               Create Account
                             </Link>
@@ -357,6 +359,7 @@ export default function HomeAutomationPreview({
                               <SocialMiniButtons
                                 resumePath={resumePath}
                                 socialAuthEnabled={socialAuthEnabled}
+                                ssoEnabled={ssoEnabled}
                               />
                             </div>
                           </div>
@@ -375,17 +378,28 @@ export default function HomeAutomationPreview({
                             </div>
                           ) : null}
 
+                          <div className="mb-4 rounded-xl border border-[#3B82F6]/10 bg-[#3B82F6]/[0.02] py-3 px-4 text-center">
+                            <p className="text-xs font-semibold text-[#6B7280]">
+                              Estimated usage: <span className="text-[#111111]">5 credits</span> to create • ~<span className="text-[#111111]">{
+                                1 +
+                                (result?.workflow.integrations.includes("whatsapp") ? 2 : 0) +
+                                (result?.workflow.integrations.includes("email") ? 1 : 0) +
+                                ((result?.workflow.steps || []).some(s => s.name.toLowerCase().includes("crm")) ? 1 : 0)
+                              } credits</span> per run
+                            </p>
+                          </div>
+
                           <button
                             onClick={onActivate}
                             disabled={isSaving || !allIntegrationsConnected}
-                            className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-[1.2rem] bg-foreground px-8 text-base font-semibold text-white shadow-[0_14px_32px_rgba(28,28,28,0.14)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="btn-dark inline-flex h-14 w-full items-center justify-center gap-3 rounded-[1.2rem] px-8 text-base font-semibold shadow-[0_14px_32px_rgba(28,28,28,0.14)] transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CheckCircle2 className="h-5 w-5" />
                             {isSaving ? "Activating..." : "Activate Automation"}
                           </button>
 
                           {!allIntegrationsConnected ? (
-                            <p className="text-center text-xs text-foreground/48">
+                            <p className="mt-3 text-center text-xs text-foreground/48">
                               Connect each required integration before activation.
                             </p>
                           ) : null}

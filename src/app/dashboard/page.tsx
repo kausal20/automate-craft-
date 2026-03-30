@@ -11,12 +11,7 @@ import {
   Trash2,
   Zap,
 } from "lucide-react";
-
-/* LOGIC EXPLAINED:
-This page reads the automation list and triggers run, pause, resume, and delete
-actions. The fix adds logs around every request so you can see which dashboard
-button fired, what the API returned, and whether the UI refreshed correctly.
-*/
+import { UpgradeModal } from "@/components/dashboard/UpgradeModal";
 
 type AutomationSummary = {
   id: string;
@@ -44,9 +39,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const loadAutomations = async () => {
-    console.log("[DashboardPage] Loading automations.");
     setLoading(true);
     setError(null);
 
@@ -56,16 +51,13 @@ export default function DashboardPage() {
         automations?: AutomationSummary[];
         error?: string;
       };
-      console.log("[DashboardPage] Automations response received.", json);
 
       if (!response.ok) {
         throw new Error(json.error || "Could not load automations.");
       }
 
       setAutomations(json.automations ?? []);
-      console.log("[DashboardPage] Automations stored in state.");
     } catch (requestError) {
-      console.error("[DashboardPage] Failed to load automations.", requestError);
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -105,9 +97,15 @@ export default function DashboardPage() {
     automationId: string,
     status: "active" | "paused",
   ) => {
-    console.log("[DashboardPage] Updating status.", { automationId, status });
     setPendingId(automationId);
     setError(null);
+
+    // Optimistic update
+    setAutomations((current) =>
+      current.map((a) =>
+        a.id === automationId ? { ...a, status } : a,
+      ),
+    );
 
     try {
       const response = await fetch(`/api/automations/${automationId}`, {
@@ -118,15 +116,22 @@ export default function DashboardPage() {
         body: JSON.stringify({ status }),
       });
       const json = (await response.json()) as { error?: string };
-      console.log("[DashboardPage] Status response received.", json);
 
       if (!response.ok) {
         throw new Error(json.error || "Could not update automation.");
       }
 
-      await loadAutomations();
+      // Background re-fetch for full consistency
+      void loadAutomations();
     } catch (requestError) {
-      console.error("[DashboardPage] Failed to update status.", requestError);
+      // Revert optimistic update on failure
+      setAutomations((current) =>
+        current.map((a) =>
+          a.id === automationId
+            ? { ...a, status: status === "active" ? "paused" : "active" }
+            : a,
+        ),
+      );
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -138,9 +143,20 @@ export default function DashboardPage() {
   };
 
   const handleDelete = async (automationId: string) => {
-    console.log("[DashboardPage] Deleting automation.", automationId);
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this automation? This action cannot be undone.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     setPendingId(automationId);
     setError(null);
+
+    // Optimistic removal
+    const previousAutomations = automations;
+    setAutomations((current) => current.filter((a) => a.id !== automationId));
 
     try {
       const response = await fetch(`/api/automations/${automationId}`, {
@@ -149,15 +165,13 @@ export default function DashboardPage() {
       const json = response.status === 204
         ? {}
         : ((await response.json()) as { error?: string });
-      console.log("[DashboardPage] Delete response received.", json);
 
       if (!response.ok) {
         throw new Error(json.error || "Could not delete automation.");
       }
-
-      await loadAutomations();
     } catch (requestError) {
-      console.error("[DashboardPage] Failed to delete automation.", requestError);
+      // Revert on failure
+      setAutomations(previousAutomations);
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -169,7 +183,6 @@ export default function DashboardPage() {
   };
 
   const handleRun = async (automationId: string) => {
-    console.log("[DashboardPage] Running automation.", automationId);
     setPendingId(automationId);
     setError(null);
 
@@ -181,8 +194,13 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({ automationId }),
       });
+
+      if (response.status === 402) {
+        setShowUpgradeModal(true);
+        return;
+      }
+
       const json = (await response.json()) as { error?: string };
-      console.log("[DashboardPage] Run response received.", json);
 
       if (!response.ok) {
         throw new Error(json.error || "Could not run automation.");
@@ -190,7 +208,6 @@ export default function DashboardPage() {
 
       await loadAutomations();
     } catch (requestError) {
-      console.error("[DashboardPage] Failed to run automation.", requestError);
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -213,47 +230,68 @@ export default function DashboardPage() {
             execution from one place.
           </p>
         </div>
-
-        <div className="rounded-full border border-black/8 bg-white px-4 py-2 text-sm font-medium text-foreground/62">
-          Create new automations from the homepage prompt.
-        </div>
       </div>
 
-      <div className="mb-8 grid gap-6 md:grid-cols-3">
-        <div className="card-surface rounded-[1.75rem] p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-            <Activity className="h-5 w-5" />
+      <div className="mb-10 grid gap-6 md:grid-cols-3">
+        {/* Active Automations */}
+        <div className="group relative flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0A0A0A] p-8 ring-1 ring-white/10 shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:ring-white/20">
+          <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-blue-500/10 blur-[3rem] transition-all duration-500 group-hover:bg-blue-500/20" />
+          <div className="relative z-10 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
+              Active Automations
+            </span>
+            <Activity className="h-5 w-5 text-white/30 transition-colors duration-300 group-hover:text-white" />
           </div>
-          <p className="mt-5 text-sm font-medium text-foreground/56">
-            Active automations
-          </p>
-          <p className="mt-2 text-3xl font-bold text-foreground">
-            {stats.activeCount}
-          </p>
+          <div className="relative z-10 mt-12 flex items-baseline gap-3">
+            <span className="font-mono text-[3.5rem] font-medium leading-none tracking-tighter text-white">
+              {stats.activeCount}
+            </span>
+            <span className="mb-1.5 text-sm font-medium text-white/30 truncate">workflows</span>
+          </div>
         </div>
 
-        <div className="card-surface rounded-[1.75rem] p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-            <Zap className="h-5 w-5" />
+        {/* Total Runs */}
+        <div className="group relative flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0A0A0A] p-8 ring-1 ring-white/10 shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:ring-white/20">
+          <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-emerald-500/10 blur-[3rem] transition-all duration-500 group-hover:bg-emerald-500/20" />
+          <div className="relative z-10 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
+              Total Executions
+            </span>
+            <Zap className="h-5 w-5 text-white/30 transition-colors duration-300 group-hover:text-white" />
           </div>
-          <p className="mt-5 text-sm font-medium text-foreground/56">
-            Total runs
-          </p>
-          <p className="mt-2 text-3xl font-bold text-foreground">
-            {stats.totalRuns}
-          </p>
+          <div className="relative z-10 mt-12 flex items-baseline gap-3">
+            <span className="font-mono text-[3.5rem] font-medium leading-none tracking-tighter text-white">
+              {stats.totalRuns}
+            </span>
+            <span className="mb-1.5 text-sm font-medium text-white/30 truncate">tasks</span>
+          </div>
         </div>
 
-        <div className="card-surface rounded-[1.75rem] p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-            <ScrollText className="h-5 w-5" />
+        {/* Latest Execution */}
+        <div className="group relative flex flex-col justify-between overflow-hidden rounded-[2rem] bg-[#0A0A0A] p-8 ring-1 ring-white/10 shadow-2xl transition-all duration-300 hover:-translate-y-1 hover:ring-white/20">
+          <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-purple-500/10 blur-[3rem] transition-all duration-500 group-hover:bg-purple-500/20" />
+          <div className="relative z-10 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">
+              Latest Execution
+            </span>
+            <ScrollText className="h-5 w-5 text-white/30 transition-colors duration-300 group-hover:text-white" />
           </div>
-          <p className="mt-5 text-sm font-medium text-foreground/56">
-            Latest execution
-          </p>
-          <p className="mt-2 text-lg font-semibold text-foreground">
-            {formatTimestamp(stats.latestRun)}
-          </p>
+          <div className="relative z-10 mt-12 flex flex-col justify-end min-h-[56px]">
+            {stats.latestRun ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="font-mono text-[2.25rem] font-medium leading-none tracking-tighter text-white">
+                  {new Date(stats.latestRun).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </span>
+                <span className="text-sm font-medium text-white/40">
+                  at {new Date(stats.latestRun).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                </span>
+              </div>
+            ) : (
+              <span className="font-mono text-[2.25rem] font-medium leading-none tracking-tighter text-white/30">
+                Never
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -275,7 +313,7 @@ export default function DashboardPage() {
           </p>
           <Link
             href="/"
-            className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-foreground px-6 text-sm font-semibold text-white"
+            className="btn-dark mt-6 inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold"
           >
             Open Homepage
           </Link>
@@ -328,7 +366,7 @@ export default function DashboardPage() {
 
                   <button
                     onClick={() => handleRun(automation.id)}
-                    disabled={pendingId === automation.id || automation.status !== "active"}
+                    disabled={pendingId !== null || automation.status !== "active"}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Play className="h-4 w-4" />
@@ -342,7 +380,7 @@ export default function DashboardPage() {
                         automation.status === "active" ? "paused" : "active",
                       )
                     }
-                    disabled={pendingId === automation.id}
+                    disabled={pendingId !== null}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {automation.status === "active" ? (
@@ -358,17 +396,11 @@ export default function DashboardPage() {
                     )}
                   </button>
 
-                  <Link
-                    href="/dashboard/logs"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
-                  >
-                    <ScrollText className="h-4 w-4" />
-                    View Logs
-                  </Link>
+
 
                   <button
                     onClick={() => handleDelete(automation.id)}
-                    disabled={pendingId === automation.id}
+                    disabled={pendingId !== null}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-red-100 bg-red-50 px-5 text-sm font-semibold text-red-600 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -380,6 +412,11 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

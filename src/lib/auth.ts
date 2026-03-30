@@ -10,13 +10,9 @@ import {
   createSupabaseRouteClient,
   createSupabaseServerComponentClient,
 } from "@/lib/supabase";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-Authentication is the first gate in the app, so when it fails the rest of the
-data flow breaks too. The old code threw useful errors, but it did not clearly
-show which auth path was running. These logs make it obvious whether the app is
-using local auth or Supabase auth and where the failure happens.
-*/
+const log = createLogger("auth");
 
 const LOCAL_SESSION_COOKIE = "ac_local_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
@@ -37,7 +33,7 @@ async function setLocalSessionCookie(user: {
   email: string;
   name: string | null;
 }) {
-  console.log("[auth] Setting local session cookie for user:", user.email);
+  log.info("Setting local session cookie for user:", user.email);
   const cookieStore = await cookies();
   const token = await new SignJWT({
     email: user.email,
@@ -60,18 +56,18 @@ async function setLocalSessionCookie(user: {
 }
 
 async function clearLocalSessionCookie() {
-  console.log("[auth] Clearing local session cookie.");
+  log.debug("Clearing local session cookie.");
   const cookieStore = await cookies();
   cookieStore.delete(LOCAL_SESSION_COOKIE);
 }
 
 async function getLocalUserFromCookie(): Promise<AuthenticatedUser | null> {
-  console.log("[auth] Reading local user from cookie.");
+  log.debug("Reading local user from cookie.");
   const cookieStore = await cookies();
   const token = cookieStore.get(LOCAL_SESSION_COOKIE)?.value;
 
   if (!token) {
-    console.log("[auth] No local session cookie found.");
+    log.debug("No local session cookie found.");
     return null;
   }
 
@@ -81,11 +77,11 @@ async function getLocalUserFromCookie(): Promise<AuthenticatedUser | null> {
     const user = database.users.find((entry) => entry.id === verified.payload.sub);
 
     if (!user) {
-      console.log("[auth] Local session exists but user record was not found.");
+      log.warn("Local session exists but user record was not found.");
       return null;
     }
 
-    console.log("[auth] Local user loaded successfully:", user.email);
+    log.debug("Local user loaded successfully:", user.email);
     return {
       id: user.id,
       email: user.email,
@@ -93,7 +89,7 @@ async function getLocalUserFromCookie(): Promise<AuthenticatedUser | null> {
       mode: "local",
     };
   } catch {
-    console.error("[auth] Failed to verify local session cookie.");
+    log.error("Failed to verify local session cookie.");
     return null;
   }
 }
@@ -107,7 +103,7 @@ async function ensureSupabaseProfile(user: {
     return;
   }
 
-  console.log("[auth] Ensuring Supabase profile exists for:", user.email);
+  log.debug("Ensuring Supabase profile exists for:", user.email);
   const supabaseAdmin = createSupabaseAdminClient();
 
   await supabaseAdmin.from("profiles").upsert(
@@ -122,16 +118,16 @@ async function ensureSupabaseProfile(user: {
 
 export async function syncSupabaseProfileFromCurrentSession() {
   if (!isSupabaseMode()) {
-    console.log("[auth] Supabase mode is off. Skipping session profile sync.");
+    log.debug("Supabase mode is off. Skipping session profile sync.");
     return null;
   }
 
-  console.log("[auth] Syncing Supabase profile from current session.");
+  log.debug("Syncing Supabase profile from current session.");
   const supabase = await createSupabaseRouteClient();
   const { data, error } = await supabase.auth.getUser();
 
   if (error || !data.user?.id || !data.user.email) {
-    console.error("[auth] Could not load current Supabase session for profile sync.", error);
+    log.error("Could not load current Supabase session for profile sync.", error);
     return null;
   }
 
@@ -157,12 +153,12 @@ export async function syncSupabaseProfileFromCurrentSession() {
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   if (isSupabaseMode()) {
-    console.log("[auth] Loading current user in Supabase mode.");
+    log.debug("Loading current user in Supabase mode.");
     const supabase = await createSupabaseServerComponentClient();
     const { data, error } = await supabase.auth.getUser();
 
     if (error || !data.user) {
-      console.error("[auth] Supabase getUser failed or returned no user.", error);
+      log.error("Supabase getUser failed or returned no user.", error);
       return null;
     }
 
@@ -181,16 +177,15 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
     };
   }
 
-  console.log("[auth] Loading current user in local mode.");
+  log.debug("Loading current user in local mode.");
   return getLocalUserFromCookie();
 }
 
 export async function requireUser() {
-  console.log("[auth] requireUser called.");
   const user = await getCurrentUser();
 
   if (!user) {
-    console.log("[auth] No user found. Redirecting to /login.");
+    log.info("No user found. Redirecting to /login.");
     redirect("/login");
   }
 
@@ -202,9 +197,8 @@ export async function signUpWithCredentials(input: {
   email: string;
   password: string;
 }) {
-  console.log("[auth] Starting sign up flow for:", input.email);
+  log.info("Starting sign up flow for:", input.email);
   if (isSupabaseMode()) {
-    console.log("[auth] Sign up is using Supabase mode.");
     const supabase = await createSupabaseRouteClient();
     const normalizedEmail = input.email.trim().toLowerCase();
     const signUpResult = await supabase.auth.signUp({
@@ -218,7 +212,7 @@ export async function signUpWithCredentials(input: {
     });
 
     if (signUpResult.error) {
-      console.error("[auth] Supabase sign up failed.", signUpResult.error);
+      log.error("Supabase sign up failed.", signUpResult.error);
       throw new Error(signUpResult.error.message);
     }
 
@@ -229,7 +223,7 @@ export async function signUpWithCredentials(input: {
       });
 
       if (signInResult.error) {
-        console.error("[auth] Supabase auto sign in after sign up failed.", signInResult.error);
+        log.error("Supabase auto sign in after sign up failed.", signInResult.error);
         throw new Error(signInResult.error.message);
       }
     }
@@ -255,7 +249,7 @@ export async function signUpWithCredentials(input: {
   }
 
   const normalizedEmail = input.email.trim().toLowerCase();
-  console.log("[auth] Sign up is using local mode.");
+  log.info("Sign up is using local mode.");
 
   const user = await updateLocalDatabase(async (database) => {
     const existingUser = database.users.find(
@@ -272,6 +266,8 @@ export async function signUpWithCredentials(input: {
       name: input.name,
       passwordHash: await bcrypt.hash(input.password, 10),
       createdAt: new Date().toISOString(),
+      planCredits: 500,
+      extraCredits: 0,
     };
 
     database.users.push(createdUser);
@@ -294,9 +290,8 @@ export async function signInWithCredentials(input: {
   email: string;
   password: string;
 }) {
-  console.log("[auth] Starting sign in flow for:", input.email);
+  log.info("Starting sign in flow for:", input.email);
   if (isSupabaseMode()) {
-    console.log("[auth] Sign in is using Supabase mode.");
     const supabase = await createSupabaseRouteClient();
     const normalizedEmail = input.email.trim().toLowerCase();
     const signInResult = await supabase.auth.signInWithPassword({
@@ -305,7 +300,7 @@ export async function signInWithCredentials(input: {
     });
 
     if (signInResult.error || !signInResult.data.user) {
-      console.error("[auth] Supabase sign in failed.", signInResult.error);
+      log.error("Supabase sign in failed.", signInResult.error);
       throw new Error(signInResult.error?.message || "Invalid login.");
     }
 
@@ -333,7 +328,7 @@ export async function signInWithCredentials(input: {
   }
 
   const normalizedEmail = input.email.trim().toLowerCase();
-  console.log("[auth] Sign in is using local mode.");
+  log.info("Sign in is using local mode.");
   const database = await readLocalDatabase();
   const user = database.users.find((entry) => entry.email === normalizedEmail);
 
@@ -360,20 +355,18 @@ export async function signInWithCredentials(input: {
 }
 
 export async function signOutCurrentUser() {
-  console.log("[auth] Starting sign out flow.");
+  log.info("Starting sign out flow.");
   if (isSupabaseMode()) {
-    console.log("[auth] Sign out is using Supabase mode.");
     const supabase = await createSupabaseRouteClient();
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      console.error("[auth] Supabase sign out failed.", error);
+      log.error("Supabase sign out failed.", error);
       throw new Error(error.message);
     }
 
     return;
   }
 
-  console.log("[auth] Sign out is using local mode.");
   await clearLocalSessionCookie();
 }

@@ -17,12 +17,13 @@ export default function AppChrome({
     pathname.startsWith("/dashboard") ||
     pathname === "/login" ||
     pathname === "/signup";
+  const hideFooter = hideChrome || pathname === "/";
 
   return (
     <div className="flex min-h-screen flex-col">
       {hideChrome ? null : navbar}
       <div className="flex-1">{children}</div>
-      {hideChrome ? null : footer}
+      {hideFooter ? null : footer}
     </div>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
+
 type SocialMiniButtonsProps = {
   resumePath: string;
   socialAuthEnabled: boolean;
+  ssoEnabled: boolean;
 };
 
 function GoogleIcon() {
@@ -28,24 +31,21 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
-      <path d="M16.7 12.6c0-2.16 1.76-3.2 1.84-3.24-1-.47-2.56-.54-3.49-.03-.99.52-1.94.54-2.87 0-.94-.55-2.39-.49-3.43.02-1.46.71-2.49 2.42-2.49 4.19 0 1.2.44 2.45.98 3.38.74 1.26 1.62 2.66 2.78 2.61 1.1-.05 1.51-.7 2.84-.7 1.33 0 1.7.7 2.85.67 1.18-.02 1.93-1.25 2.67-2.51.43-.74.6-1.1.94-1.93-2.68-1.02-2.62-3.83-2.62-4.46Zm-2.44-7.5c.61-.74 1.02-1.76.91-2.79-.88.04-1.95.59-2.58 1.33-.57.66-1.07 1.71-.93 2.72.98.08 1.98-.5 2.6-1.26Z" />
-    </svg>
-  );
-}
-
 export default function SocialMiniButtons({
   resumePath,
   socialAuthEnabled,
+  ssoEnabled,
 }: SocialMiniButtonsProps) {
   if (!socialAuthEnabled) {
     return null;
   }
 
+  const loginSsoHref = `/login?next=${encodeURIComponent(resumePath)}&focus=sso`;
+
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div
+      className={`grid gap-3 ${ssoEnabled ? "sm:grid-cols-2" : "grid-cols-1"}`}
+    >
       <a
         href={`/api/auth/oauth?provider=google&next=${encodeURIComponent(
           resumePath,
@@ -56,15 +56,14 @@ export default function SocialMiniButtons({
         Google
       </a>
 
-      <a
-        href={`/api/auth/oauth?provider=apple&next=${encodeURIComponent(
-          resumePath,
-        )}`}
-        className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
-      >
-        <AppleIcon />
-        Apple
-      </a>
+      {ssoEnabled ? (
+        <Link
+          href={loginSsoHref}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-4 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
+        >
+          Enterprise SSO
+        </Link>
+      ) : null}
     </div>
   );
 }

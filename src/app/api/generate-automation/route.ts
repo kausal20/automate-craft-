@@ -1,14 +1,12 @@
 import { z } from "zod";
 import { getWorkflowFieldDefinitions } from "@/lib/automation";
-import { jsonError } from "@/lib/api";
+import { handleRouteError } from "@/lib/api";
 import { generateWorkflowFromPrompt } from "@/lib/openai";
+import { getCurrentUser } from "@/lib/auth";
+import { deductCredits } from "@/lib/credit-store";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-The homepage sends a prompt here and expects a workflow plus dynamic form
-fields back. The old route worked, but it was hard to see whether the request
-arrived, whether validation passed, or whether AI generation failed. These logs
-show each step clearly.
-*/
+const log = createLogger("api/generate-automation");
 
 const promptSchema = z.object({
   prompt: z.string().min(5).max(500),
@@ -16,12 +14,25 @@ const promptSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    console.log("[api/generate-automation] Request received.");
+    log.info("Request received.");
+    const user = await getCurrentUser();
+
+    if (!user) {
+      log.warn("No authenticated user found.");
+      return handleRouteError(new Error("Authentication required."), "Authentication required.", 401);
+    }
+
     const { prompt } = promptSchema.parse(await request.json());
-    console.log("[api/generate-automation] Prompt validated.");
+    log.debug("Prompt validated.");
+
+    const success = await deductCredits(user.id, 5, "Generated Automation");
+    if (!success) {
+      log.warn("Not enough credits.");
+      return handleRouteError(new Error("Not enough credits."), "Not enough credits.", 402);
+    }
     const generated = await generateWorkflowFromPrompt(prompt);
     const fieldDefinitions = getWorkflowFieldDefinitions(generated.workflow);
-    console.log("[api/generate-automation] Workflow generated successfully.");
+    log.info("Workflow generated successfully.");
 
     return Response.json({
       workflow: generated.workflow,
@@ -29,14 +40,7 @@ export async function POST(request: Request) {
       source: generated.source,
     });
   } catch (error) {
-    console.error("[api/generate-automation] Request failed.", error);
-    const message =
-      error instanceof z.ZodError
-        ? error.issues[0]?.message || "Invalid prompt."
-        : error instanceof Error
-          ? error.message
-          : "Could not generate automation.";
-
-    return jsonError(message, 400);
+    log.error("Request failed.", error);
+    return handleRouteError(error, "Could not generate automation.");
   }
 }

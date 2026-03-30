@@ -1,10 +1,11 @@
 import AuthScreen from "@/components/auth/AuthScreen";
-import { isSupabaseMode } from "@/lib/env";
+import { isSsoEnabled, isSupabaseMode } from "@/lib/env";
 import { sanitizeNextPath } from "@/lib/navigation";
 
 type SearchParams = Promise<{
   next?: string | string[];
   error?: string | string[];
+  focus?: string | string[];
 }>;
 
 function pickFirst(value?: string | string[]) {
@@ -24,6 +25,8 @@ export default async function LoginPage({
       nextPath={sanitizeNextPath(pickFirst(params.next))}
       initialError={pickFirst(params.error) || null}
       socialAuthEnabled={isSupabaseMode()}
+      ssoEnabled={isSsoEnabled()}
+      focusSso={pickFirst(params.focus) === "sso"}
     />
   );
 }

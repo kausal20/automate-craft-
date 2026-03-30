@@ -18,14 +18,9 @@ import {
 import { isSupabaseMode } from "@/lib/env";
 import { readLocalDatabase, updateLocalDatabase } from "@/lib/local-store";
 import { createSupabaseAdminClient } from "@/lib/supabase";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-This file is the bridge between the API routes and the database layer.
-The earlier version stored and loaded data correctly, but when something failed
-it was hard to tell whether the request reached Supabase, the local JSON store,
-or neither. These logs show which storage path is being used and what operation
-is happening.
-*/
+const log = createLogger("automation-store");
 
 type CreateAutomationInput = {
   userId: string;
@@ -71,7 +66,7 @@ function mapRunRow(row: Record<string, unknown>): AutomationRunRecord {
     userId: String(row.user_id),
     status: runStatusSchema.parse(row.status),
     logs: Array.isArray(row.logs)
-      ? row.logs.map((log) => executionLogSchema.parse(log))
+      ? row.logs.map((entry) => executionLogSchema.parse(entry))
       : [],
     triggerSource:
       row.trigger_source === "webhook" ? "webhook" : "manual",
@@ -103,9 +98,9 @@ function mapConnectionRow(row: Record<string, unknown>): IntegrationConnectionRe
 }
 
 export async function createAutomation(input: CreateAutomationInput) {
-  console.log("[automation-store] Creating automation for user:", input.userId);
+  log.info("Creating automation for user:", input.userId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to create automation.");
+    log.debug("Using Supabase to create automation.");
     const supabase = createSupabaseAdminClient();
     const now = new Date().toISOString();
     const inserted = await supabase
@@ -134,7 +129,7 @@ export async function createAutomation(input: CreateAutomationInput) {
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to create automation.");
+    log.debug("Using local database to create automation.");
     const now = new Date().toISOString();
     const created: AutomationRecord = {
       id: crypto.randomUUID(),
@@ -155,9 +150,8 @@ export async function createAutomation(input: CreateAutomationInput) {
 }
 
 export async function listAutomationsForUser(userId: string) {
-  console.log("[automation-store] Listing automations for user:", userId);
+  log.info("Listing automations for user:", userId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to list automations.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automations")
@@ -177,16 +171,42 @@ export async function listAutomationsForUser(userId: string) {
   }
 
   const database = await readLocalDatabase();
-  console.log("[automation-store] Using local database to list automations.");
   return database.automations
     .filter((entry) => entry.userId === userId)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
+/**
+ * Direct single-row lookup instead of listing all automations first.
+ */
 export async function getAutomationByIdForUser(userId: string, automationId: string) {
-  console.log("[automation-store] Getting automation by id:", automationId);
-  const automations = await listAutomationsForUser(userId);
-  return automations.find((entry) => entry.id === automationId) ?? null;
+  log.info("Getting automation by id:", automationId);
+  if (isSupabaseMode()) {
+    const supabase = createSupabaseAdminClient();
+    const response = await supabase
+      .from("automations")
+      .select(
+        "id,user_id,name,workflow,form_inputs,integration_status,webhook_id,status,created_at,updated_at",
+      )
+      .eq("id", automationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (response.error) {
+      throw new Error(response.error.message);
+    }
+
+    return response.data
+      ? mapAutomationRow(response.data as Record<string, unknown>)
+      : null;
+  }
+
+  const database = await readLocalDatabase();
+  return (
+    database.automations.find(
+      (entry) => entry.id === automationId && entry.userId === userId,
+    ) ?? null
+  );
 }
 
 export async function updateAutomationForUser(input: {
@@ -199,7 +219,7 @@ export async function updateAutomationForUser(input: {
     integrationStatus?: Record<string, ConnectionStatus>;
   };
 }) {
-  console.log("[automation-store] Updating automation:", input.automationId);
+  log.info("Updating automation:", input.automationId);
   const existing = await getAutomationByIdForUser(input.userId, input.automationId);
 
   if (!existing) {
@@ -212,7 +232,6 @@ export async function updateAutomationForUser(input: {
     : existing.workflow;
 
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to update automation.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automations")
@@ -242,7 +261,6 @@ export async function updateAutomationForUser(input: {
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to update automation.");
     const automation = database.automations.find(
       (entry) =>
         entry.id === input.automationId && entry.userId === input.userId,
@@ -278,9 +296,8 @@ export async function updateAutomationForUser(input: {
 }
 
 export async function findAutomationByWebhookId(webhookId: string) {
-  console.log("[automation-store] Looking up automation by webhook id:", webhookId);
+  log.info("Looking up automation by webhook id:", webhookId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to find webhook automation.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automations")
@@ -300,7 +317,6 @@ export async function findAutomationByWebhookId(webhookId: string) {
   }
 
   const database = await readLocalDatabase();
-  console.log("[automation-store] Using local database to find webhook automation.");
   return (
     database.automations.find((entry) => entry.webhookId === webhookId) ?? null
   );
@@ -311,9 +327,8 @@ export async function updateAutomationStatusForUser(input: {
   automationId: string;
   status: AutomationStatus;
 }) {
-  console.log("[automation-store] Updating automation status:", input.automationId);
+  log.info("Updating automation status:", input.automationId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to update automation status.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automations")
@@ -338,7 +353,6 @@ export async function updateAutomationStatusForUser(input: {
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to update automation status.");
     const automation = database.automations.find(
       (entry) =>
         entry.id === input.automationId && entry.userId === input.userId,
@@ -355,9 +369,8 @@ export async function updateAutomationStatusForUser(input: {
 }
 
 export async function deleteAutomationForUser(userId: string, automationId: string) {
-  console.log("[automation-store] Deleting automation:", automationId);
+  log.info("Deleting automation:", automationId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to delete automation.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automations")
@@ -376,7 +389,6 @@ export async function deleteAutomationForUser(userId: string, automationId: stri
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to delete automation.");
     const previousLength = database.automations.length;
     database.automations = database.automations.filter(
       (entry) => !(entry.id === automationId && entry.userId === userId),
@@ -389,9 +401,8 @@ export async function deleteAutomationForUser(userId: string, automationId: stri
 }
 
 export async function createAutomationRun(input: CreateRunInput) {
-  console.log("[automation-store] Creating automation run for automation:", input.automationId);
+  log.info("Creating automation run for automation:", input.automationId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to create automation run.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automation_runs")
@@ -420,7 +431,6 @@ export async function createAutomationRun(input: CreateRunInput) {
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to create automation run.");
     const created: AutomationRunRecord = {
       id: crypto.randomUUID(),
       automationId: input.automationId,
@@ -450,9 +460,8 @@ export async function updateAutomationRun(
     finishedAt?: string | null;
   },
 ) {
-  console.log("[automation-store] Updating automation run:", runId);
+  log.info("Updating automation run:", runId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to update automation run.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automation_runs")
@@ -477,7 +486,6 @@ export async function updateAutomationRun(
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to update automation run.");
     const run = database.automationRuns.find((entry) => entry.id === runId);
 
     if (!run) {
@@ -505,9 +513,8 @@ export async function updateAutomationRun(
 }
 
 export async function listRunsForUser(userId: string) {
-  console.log("[automation-store] Listing runs for user:", userId);
+  log.info("Listing runs for user:", userId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to list runs.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("automation_runs")
@@ -527,7 +534,6 @@ export async function listRunsForUser(userId: string) {
   }
 
   const database = await readLocalDatabase();
-  console.log("[automation-store] Using local database to list runs.");
   return database.automationRuns
     .filter((entry) => entry.userId === userId)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
@@ -538,9 +544,8 @@ export async function upsertIntegrationConnection(input: {
   integration: SupportedIntegration;
   status: ConnectionStatus;
 }) {
-  console.log("[automation-store] Saving integration connection:", input.integration);
+  log.info("Saving integration connection:", input.integration);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to save integration connection.");
     const supabase = createSupabaseAdminClient();
     const now = new Date().toISOString();
     const response = await supabase
@@ -567,7 +572,6 @@ export async function upsertIntegrationConnection(input: {
   }
 
   return updateLocalDatabase((database) => {
-    console.log("[automation-store] Using local database to save integration connection.");
     const now = new Date().toISOString();
     const existing = database.connections.find(
       (entry) =>
@@ -595,9 +599,8 @@ export async function upsertIntegrationConnection(input: {
 }
 
 export async function listIntegrationConnectionsForUser(userId: string) {
-  console.log("[automation-store] Listing integration connections for user:", userId);
+  log.info("Listing integration connections for user:", userId);
   if (isSupabaseMode()) {
-    console.log("[automation-store] Using Supabase to list integration connections.");
     const supabase = createSupabaseAdminClient();
     const response = await supabase
       .from("connected_integrations")
@@ -615,7 +618,6 @@ export async function listIntegrationConnectionsForUser(userId: string) {
   }
 
   const database = await readLocalDatabase();
-  console.log("[automation-store] Using local database to list integration connections.");
   return database.connections
     .filter((entry) => entry.userId === userId)
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt));

@@ -8,16 +8,34 @@ import type {
   AutomationRunRecord,
   ExecutionLog,
 } from "@/lib/automation";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-This file runs an automation step by step. The earlier version worked, but it
-did not tell you clearly which step started, which step finished, or where the
-failure happened. These logs make the execution flow visible from start to end.
-*/
+const log = createLogger("execution-engine");
+
+const STEP_TIMEOUT_MS = 5_000;
+const TOTAL_RUN_TIMEOUT_MS = 30_000;
 
 function wait(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
+  });
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Step "${label}" timed out after ${ms}ms.`));
+    }, ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
   });
 }
 
@@ -39,7 +57,7 @@ async function simulateStep(
   step: AutomationRecord["workflow"]["steps"][number],
   formInputs: Record<string, string>,
 ) {
-  console.log("[execution-engine] Simulating step:", step.name);
+  log.debug("Simulating step:", step.name);
   const normalizedName = step.name.toLowerCase();
   const messages: string[] = [];
 
@@ -76,9 +94,7 @@ export async function runAutomation(input: {
   payload?: Record<string, unknown>;
   triggerSource: AutomationRunRecord["triggerSource"];
 }) {
-  console.log("[execution-engine] Starting automation run.");
-  console.log("[execution-engine] Automation:", input.automation.id);
-  console.log("[execution-engine] Trigger source:", input.triggerSource);
+  log.info("Starting automation run.", input.automation.id);
   const logs: ExecutionLog[] = [
     logMessage(
       `Execution started from ${input.triggerSource === "webhook" ? "webhook" : "manual"} trigger.`,
@@ -97,31 +113,74 @@ export async function runAutomation(input: {
     finishedAt: null,
   });
 
+  const runStart = Date.now();
+  let failedStepCount = 0;
+
   try {
     for (const step of input.automation.workflow.steps) {
-      console.log("[execution-engine] Running step:", step.name);
+      // Check total run timeout
+      if (Date.now() - runStart > TOTAL_RUN_TIMEOUT_MS) {
+        logs.push(logMessage("Total run timeout exceeded. Stopping execution.", "error"));
+        break;
+      }
+
+      log.debug("Running step:", step.name);
       logs.push(logMessage(`Starting step: ${step.name}`, "info", step.name));
 
-      const messages = await simulateStep(
-        input.automation,
-        step,
-        input.automation.formInputs,
-      );
+      try {
+        const messages = await withTimeout(
+          simulateStep(input.automation, step, input.automation.formInputs),
+          STEP_TIMEOUT_MS,
+          step.name,
+        );
 
-      messages.forEach((message) => {
-        logs.push(logMessage(message, "success", step.name));
+        messages.forEach((message) => {
+          logs.push(logMessage(message, "success", step.name));
+        });
+      } catch (stepError) {
+        failedStepCount++;
+        const stepMessage =
+          stepError instanceof Error ? stepError.message : "Unknown step error.";
+        log.warn("Step failed:", step.name, stepMessage);
+        logs.push(logMessage(`Step failed: ${stepMessage}`, "error", step.name));
+        // Continue to next step instead of aborting
+      }
+    }
+
+    const totalSteps = input.automation.workflow.steps.length;
+    const allFailed = failedStepCount === totalSteps;
+
+    if (allFailed) {
+      logs.push(logMessage("All steps failed.", "error"));
+      log.error("Automation completed with all steps failed.");
+      return updateAutomationRun(createdRun.id, {
+        status: "error",
+        logs,
+        errorMessage: "All steps failed.",
+        finishedAt: new Date().toISOString(),
       });
     }
 
-    logs.push(logMessage("Automation completed successfully.", "success"));
-    console.log("[execution-engine] Automation completed successfully.");
+    if (failedStepCount > 0) {
+      logs.push(
+        logMessage(
+          `Automation completed with ${failedStepCount}/${totalSteps} step(s) failed.`,
+          "info",
+        ),
+      );
+    } else {
+      logs.push(logMessage("Automation completed successfully.", "success"));
+    }
+
+    log.info("Automation completed.", { failedStepCount, totalSteps });
 
     return updateAutomationRun(createdRun.id, {
       status: "success",
       logs,
       result: {
         automationName: input.automation.name,
-        processedSteps: input.automation.workflow.steps.length,
+        processedSteps: totalSteps,
+        failedSteps: failedStepCount,
       },
       finishedAt: new Date().toISOString(),
     });
@@ -129,7 +188,7 @@ export async function runAutomation(input: {
     const message =
       error instanceof Error ? error.message : "Unknown execution error.";
 
-    console.error("[execution-engine] Automation failed.", error);
+    log.error("Automation failed unexpectedly.", error);
     logs.push(logMessage(message, "error"));
 
     return updateAutomationRun(createdRun.id, {
@@ -147,9 +206,7 @@ export async function runAutomationForUser(input: {
   payload?: Record<string, unknown>;
   triggerSource: AutomationRunRecord["triggerSource"];
 }) {
-  console.log("[execution-engine] Looking up automation for user run.");
-  console.log("[execution-engine] User:", input.userId);
-  console.log("[execution-engine] Automation:", input.automationId);
+  log.info("Looking up automation for user run.", input.automationId);
   const automation = await getAutomationByIdForUser(input.userId, input.automationId);
 
   if (!automation) {

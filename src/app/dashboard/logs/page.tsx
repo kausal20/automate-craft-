@@ -226,7 +226,7 @@ export default function LogsPage() {
                 onClick={() => setStatusFilter(option)}
                 className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all ${
                   statusFilter === option
-                    ? "bg-foreground text-white"
+                    ? "btn-dark"
                     : "border border-black/8 bg-white text-foreground/68 hover:-translate-y-0.5"
                 }`}
               >

@@ -305,7 +305,7 @@ export default function ConnectedAppsPage() {
                   className={`mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all ${
                     isConnected
                       ? "bg-green-50 text-green-700"
-                      : "bg-foreground text-white hover:-translate-y-0.5 hover:bg-black/85"
+                      : "btn-dark hover:-translate-y-0.5"
                   } disabled:cursor-not-allowed disabled:opacity-70`}
                 >
                   {connecting === entry.integration ? (

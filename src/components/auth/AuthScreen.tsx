@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArrowRight, CheckCircle2, LockKeyhole, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowRight,
+  Building2,
+} from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
 /* LOGIC EXPLAINED:
@@ -17,6 +20,8 @@ type AuthScreenProps = {
   nextPath: string;
   initialError?: string | null;
   socialAuthEnabled: boolean;
+  ssoEnabled: boolean;
+  focusSso?: boolean;
 };
 
 function GoogleIcon() {
@@ -42,27 +47,34 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current">
-      <path d="M16.7 12.6c0-2.16 1.76-3.2 1.84-3.24-1-.47-2.56-.54-3.49-.03-.99.52-1.94.54-2.87 0-.94-.55-2.39-.49-3.43.02-1.46.71-2.49 2.42-2.49 4.19 0 1.2.44 2.45.98 3.38.74 1.26 1.62 2.66 2.78 2.61 1.1-.05 1.51-.7 2.84-.7 1.33 0 1.7.7 2.85.67 1.18-.02 1.93-1.25 2.67-2.51.43-.74.6-1.1.94-1.93-2.68-1.02-2.62-3.83-2.62-4.46Zm-2.44-7.5c.61-.74 1.02-1.76.91-2.79-.88.04-1.95.59-2.58 1.33-.57.66-1.07 1.71-.93 2.72.98.08 1.98-.5 2.6-1.26Z" />
-    </svg>
-  );
-}
-
 export default function AuthScreen({
   mode,
   nextPath,
   initialError = null,
   socialAuthEnabled,
+  ssoEnabled,
+  focusSso = false,
 }: AuthScreenProps) {
   const router = useRouter();
   const isSignup = mode === "signup";
+  const ssoDomainRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
+
+  useEffect(() => {
+    if (!focusSso || !ssoEnabled) {
+      return;
+    }
+    const node = ssoDomainRef.current;
+    if (!node) {
+      return;
+    }
+    node.focus();
+    node.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusSso, ssoEnabled]);
 
   const title = isSignup ? "Create your workspace" : "Welcome back";
   const subtitle = isSignup
@@ -123,85 +135,33 @@ export default function AuthScreen({
   };
 
   const googleHref = `/api/auth/oauth?provider=google&next=${encodeURIComponent(nextPath)}`;
-  const appleHref = `/api/auth/oauth?provider=apple&next=${encodeURIComponent(nextPath)}`;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f8fafc]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(79,142,247,0.08),_transparent_32%),linear-gradient(180deg,#fbfdff_0%,#f8fafc_100%)]" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAFAFA] px-4 py-12 sm:px-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(0,0,0,0.015),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(79,142,247,0.03),_transparent_40%)]" />
 
-      <div className="relative mx-auto grid min-h-screen max-w-[1240px] items-center gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
-        <section className="hidden rounded-[2.5rem] border border-black/6 bg-white/85 p-8 shadow-[0_28px_80px_rgba(28,28,28,0.07)] backdrop-blur-xl lg:block">
-          <BrandMark />
+      <section className="relative w-full max-w-[480px] rounded-3xl border border-black/[0.05] bg-white p-8 sm:p-12 shadow-[0_8px_40px_rgba(0,0,0,0.03)]">
+        <div className="mb-10 flex items-center justify-between">
+          <BrandMark compact />
+          <Link
+            href="/"
+            className="text-sm font-medium text-foreground/56 transition-colors hover:text-accent"
+          >
+            Back to home
+          </Link>
+        </div>
 
-          <div className="mt-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-black/[0.02] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-              <Sparkles className="h-4 w-4" />
-              Automation control, refined
-            </div>
-
-            <h1 className="mt-7 max-w-lg text-5xl font-semibold tracking-[-0.06em] text-foreground">
-              Build once.
-              <br />
-              Operate with confidence.
-            </h1>
-
-            <p className="mt-5 max-w-xl text-base leading-8 text-foreground/62">
-              Generate workflows from the homepage, connect the right tools, and
-              keep every run visible through a clean operational dashboard.
-            </p>
-          </div>
-
-          <div className="mt-12 space-y-4">
-            {[
-              "Secure session handling for email/password and social sign-in",
-              "Structured AI workflow generation with dynamic setup forms",
-              "Execution logs, app connections, and settings in one workspace",
-            ].map((item) => (
-              <div
-                key={item}
-                className="flex items-start gap-3 rounded-[1.5rem] border border-black/6 bg-black/[0.02] px-4 py-4"
-              >
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-                <p className="text-sm leading-7 text-foreground/70">{item}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 rounded-[2rem] border border-black/6 bg-[#fcfdff] p-6">
-            <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.22em] text-foreground/42">
-              <LockKeyhole className="h-4 w-4 text-accent" />
-              Security posture
-            </div>
-            <p className="mt-4 text-sm leading-7 text-foreground/62">
-              Authentication uses secure cookie-based sessions. When Supabase is
-              configured, Google and Apple sign-in flow through the provider&apos;s
-              OAuth consent screens and return directly to your workspace.
-            </p>
-          </div>
-        </section>
-
-        <section className="card-surface rounded-[2.5rem] border border-white/60 p-6 sm:p-8 lg:p-10">
-          <div className="flex items-start justify-between gap-4">
-            <BrandMark compact />
-            <Link
-              href="/"
-              className="hidden text-sm font-medium text-foreground/56 transition-colors hover:text-accent sm:block"
-            >
-              Back to home
-            </Link>
-          </div>
-
-          <div className="mt-10">
-            <h1 className="text-4xl font-semibold tracking-[-0.055em] text-foreground">
+          <div className="mt-4 lg:mt-0">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2rem]">
               {title}
             </h1>
-            <p className="mt-4 max-w-lg text-base leading-7 text-foreground/60">
+            <p className="mt-3 text-[0.95rem] leading-relaxed text-foreground/50 sm:text-base">
               {subtitle}
             </p>
-            <p className="mt-4 text-sm text-foreground/58">
+            <p className="mt-5 text-[0.95rem] font-medium text-foreground/50">
               {authLabel}{" "}
               <Link
-                href={`${authHref}?next=${encodeURIComponent(nextPath)}`}
+                href={`${authHref}?next=${encodeURIComponent(nextPath)}${focusSso ? "&focus=sso" : ""}`}
                 className="font-semibold text-accent"
               >
                 {authLinkLabel}
@@ -209,59 +169,92 @@ export default function AuthScreen({
             </p>
           </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <div
+            className={`mt-8 grid gap-4 ${
+              socialAuthEnabled && ssoEnabled ? "sm:grid-cols-2" : ""
+            }`}
+          >
             <a
               href={socialAuthEnabled ? googleHref : undefined}
               aria-disabled={!socialAuthEnabled}
-              className={`inline-flex h-14 items-center justify-center gap-3 rounded-2xl border border-black/8 bg-white px-5 text-sm font-semibold text-foreground shadow-[0_10px_30px_rgba(28,28,28,0.04)] transition-all ${
+              className={`inline-flex h-[3.25rem] w-full items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white px-5 text-[0.95rem] font-medium text-foreground transition-all ${
                 socialAuthEnabled
-                  ? "hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(28,28,28,0.06)]"
-                  : "cursor-not-allowed opacity-55"
+                  ? "hover:bg-black/[0.02] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                  : "cursor-not-allowed opacity-50"
               }`}
             >
               <GoogleIcon />
               Continue with Google
             </a>
 
-            <a
-              href={socialAuthEnabled ? appleHref : undefined}
-              aria-disabled={!socialAuthEnabled}
-              className={`inline-flex h-14 items-center justify-center gap-3 rounded-2xl border border-black/8 bg-white px-5 text-sm font-semibold text-foreground shadow-[0_10px_30px_rgba(28,28,28,0.04)] transition-all ${
-                socialAuthEnabled
-                  ? "hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(28,28,28,0.06)]"
-                  : "cursor-not-allowed opacity-55"
-              }`}
-            >
-              <AppleIcon />
-              Continue with Apple
-            </a>
+            {socialAuthEnabled && ssoEnabled ? (
+              <form
+                method="GET"
+                action="/api/auth/sso"
+                id="enterprise-sso"
+                className="mt-4 sm:mt-0 relative"
+              >
+                <input type="hidden" name="next" value={nextPath} />
+                <input
+                  ref={ssoDomainRef}
+                  name="domain"
+                  type="text"
+                  required
+                  autoComplete="organization"
+                  placeholder="name@company.com"
+                  className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] pl-5 pr-[88px] text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
+                />
+                <button
+                  type="submit"
+                  className="absolute bottom-1.5 right-1.5 top-1.5 inline-flex items-center justify-center rounded-xl bg-foreground px-4 text-xs font-semibold text-white transition-colors hover:bg-black/85"
+                >
+                  <Building2 className="mr-1.5 h-3.5 w-3.5 opacity-70" aria-hidden />
+                  SSO
+                </button>
+              </form>
+            ) : null}
           </div>
 
           {!socialAuthEnabled ? (
             <p className="mt-4 text-xs leading-6 text-foreground/50">
-              Google and Apple sign-in become available when Supabase OAuth is
+              Google sign-in and enterprise SSO become available when Supabase is
               configured for this project.
+            </p>
+          ) : !ssoEnabled ? (
+            <p className="mt-4 text-xs leading-6 text-foreground/50">
+              Enterprise SSO is hidden. Set{" "}
+              <code className="rounded bg-black/[0.04] px-1 py-0.5 text-[0.7rem]">
+                NEXT_PUBLIC_ENABLE_SSO=true
+              </code>{" "}
+              (or remove{" "}
+              <code className="rounded bg-black/[0.04] px-1 py-0.5 text-[0.7rem]">
+                NEXT_PUBLIC_ENABLE_SSO=false
+              </code>
+              ) to enable SAML SSO after configuring it in Supabase.
             </p>
           ) : null}
 
-          <div className="my-8 flex items-center gap-4">
-            <div className="h-px flex-1 bg-black/8" />
-            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-foreground/38">
-              Or continue with email
-            </span>
-            <div className="h-px flex-1 bg-black/8" />
+          <div className="relative my-7">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+              <div className="w-full border-t border-black/[0.06]" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-4 text-xs font-medium uppercase tracking-widest text-foreground/40">
+                Or
+              </span>
+            </div>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             {error ? (
-              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[0.95rem] font-medium text-red-600">
                 {error}
               </div>
             ) : null}
 
             {isSignup ? (
               <div>
-                <label className="mb-2 block text-sm font-semibold text-foreground">
+                <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
                   Full name
                 </label>
                 <input
@@ -271,13 +264,13 @@ export default function AuthScreen({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Your full name"
                   autoComplete="name"
-                  className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                  className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
                 />
               </div>
             ) : null}
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-foreground">
+              <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
                 Email
               </label>
               <input
@@ -287,12 +280,12 @@ export default function AuthScreen({
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@company.com"
                 autoComplete="email"
-                className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-foreground">
+              <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
                 Password
               </label>
               <input
@@ -303,25 +296,24 @@ export default function AuthScreen({
                 minLength={8}
                 placeholder={isSignup ? "Minimum 8 characters" : "Your password"}
                 autoComplete={isSignup ? "new-password" : "current-password"}
-                className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-foreground px-8 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-70"
+              className="btn-dark mt-4 inline-flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-2xl px-8 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? pendingLabel : submitLabel}
               {!loading ? <ArrowRight className="h-4 w-4" /> : null}
             </button>
           </form>
 
-          <p className="mt-5 text-center text-xs leading-6 text-foreground/48">
+          <p className="mt-10 text-center text-[0.85rem] leading-6 text-foreground/45">
             By continuing, you agree to our Terms and Privacy Policy.
           </p>
         </section>
-      </div>
     </main>
   );
 }

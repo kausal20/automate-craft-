@@ -5,13 +5,9 @@ import {
   buildDeterministicWorkflow,
 } from "@/lib/automation";
 import { env, hasOpenAIKey } from "@/lib/env";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-The automation generator has two paths: OpenAI mode and local fallback mode.
-Before, it was hard to tell which path was running. These logs show whether the
-real model or the fallback builder handled the prompt, so debugging generation
-becomes much simpler.
-*/
+const log = createLogger("openai");
 
 let openaiClient: OpenAI | null = null;
 
@@ -48,11 +44,11 @@ Rules:
 `;
 
 export async function generateWorkflowFromPrompt(prompt: string) {
-  console.log("[openai] Starting workflow generation.");
-  console.log("[openai] Prompt received:", prompt);
+  log.info("Starting workflow generation.");
+  log.debug("Prompt received:", prompt);
 
   if (!hasOpenAIKey()) {
-    console.log("[openai] No OPENAI_API_KEY found. Using fallback generator.");
+    log.info("No OPENAI_API_KEY found. Using fallback generator.");
     return {
       workflow: buildDeterministicWorkflow(prompt),
       source: "fallback" as const,
@@ -60,7 +56,7 @@ export async function generateWorkflowFromPrompt(prompt: string) {
   }
 
   try {
-    console.log("[openai] OPENAI_API_KEY found. Using model:", env.openaiModel);
+    log.info("Using OpenAI model:", env.openaiModel);
     const openai = getOpenAIClient();
     const response = await openai.responses.parse({
       model: env.openaiModel,
@@ -81,14 +77,14 @@ export async function generateWorkflowFromPrompt(prompt: string) {
     });
 
     const workflow = automationWorkflowSchema.parse(response.output_parsed);
-    console.log("[openai] Workflow generation succeeded in OpenAI mode.");
+    log.info("Workflow generation succeeded in OpenAI mode.");
 
     return {
       workflow,
       source: "openai" as const,
     };
   } catch (error) {
-    console.error("[openai] Workflow generation failed.", error);
+    log.error("Workflow generation failed.", error);
     throw error;
   }
 }

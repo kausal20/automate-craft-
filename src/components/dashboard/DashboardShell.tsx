@@ -6,9 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Blocks,
   LayoutDashboard,
-  ListTodo,
+  Sparkles,
   LogOut,
   Settings,
+  CreditCard,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
@@ -21,8 +22,9 @@ the redirect back to login.
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Usage & Credits", href: "/dashboard/usage", icon: CreditCard },
   { name: "Connected Apps", href: "/dashboard/apps", icon: Blocks },
-  { name: "Logs", href: "/dashboard/logs", icon: ListTodo },
+  { name: "Make Automation", href: "/setup", icon: Sparkles },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -66,15 +68,7 @@ export default function DashboardShell({
           <BrandMark compact href="/" />
         </div>
 
-        <div className="px-6 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
-            Signed in as
-          </p>
-          <p className="mt-3 text-sm font-medium text-foreground/72">
-            {user.name || user.email}
-          </p>
-          <p className="mt-1 text-xs text-foreground/48">{user.email}</p>
-        </div>
+
 
         <nav className="flex-1 space-y-1.5 px-4 py-3">
           {navigation.map((item) => {
@@ -101,9 +95,19 @@ export default function DashboardShell({
         </nav>
 
         <div className="border-t border-black/6 p-4">
+          <div className="mb-4 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-foreground/40">
+              Account Details
+            </p>
+            <p className="mt-3 text-sm font-bold text-foreground/80 truncate">
+              {user.name || user.email}
+            </p>
+            <p className="mt-1 text-[11px] font-medium text-foreground/50 truncate">{user.email}</p>
+          </div>
+          
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-medium text-foreground/58 transition-colors hover:bg-red-50 hover:text-red-500"
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left font-semibold text-foreground/60 transition-colors hover:bg-red-50 hover:text-red-500"
           >
             <LogOut className="h-5 w-5" />
             Sign Out

@@ -5,13 +5,9 @@ import type {
   AutomationRunRecord,
   IntegrationConnectionRecord,
 } from "@/lib/automation";
+import { createLogger } from "@/lib/logger";
 
-/* LOGIC EXPLAINED:
-The app can run without Supabase, so this file becomes the local database.
-The main problem before was that reads and writes happened silently, which made
-it hard to tell whether data was actually saved. These logs make the local
-database flow visible step by step.
-*/
+const log = createLogger("local-store");
 
 export type LocalUserRecord = {
   id: string;
@@ -19,6 +15,33 @@ export type LocalUserRecord = {
   name: string | null;
   passwordHash: string;
   createdAt: string;
+  planCredits: number;
+  extraCredits: number;
+};
+
+export type UsageLogRecord = {
+  id: string;
+  userId: string;
+  action: string;
+  creditsUsed: number;
+  status: "Success" | "Failed";
+  createdAt: string;
+};
+
+export type PlanRecord = {
+  id: string;
+  name: string;
+  price: string;
+  credits: number;
+  features: string[];
+};
+
+export type UserSubscriptionRecord = {
+  id: string;
+  userId: string;
+  planId: string;
+  startDate: string;
+  status: "active" | "canceled";
 };
 
 export type ConsultationRequestRecord = {
@@ -37,6 +60,9 @@ type LocalDatabase = {
   automationRuns: AutomationRunRecord[];
   connections: IntegrationConnectionRecord[];
   consultationRequests: ConsultationRequestRecord[];
+  usageLogs: UsageLogRecord[];
+  plans: PlanRecord[];
+  subscriptions: UserSubscriptionRecord[];
 };
 
 const STORAGE_DIR = path.join(process.cwd(), "data");
@@ -48,6 +74,59 @@ const emptyDatabase: LocalDatabase = {
   automationRuns: [],
   connections: [],
   consultationRequests: [],
+  usageLogs: [],
+  plans: [
+    {
+      id: "plan_starter",
+      name: "Starter",
+      price: "₹999",
+      credits: 500,
+      features: ["500 Credits/month", "Basic automations", "Email support"],
+    },
+    {
+      id: "plan_starter_yearly",
+      name: "Starter (Yearly)",
+      price: "₹9990",
+      credits: 6000,
+      features: ["6000 Credits/year", "Basic automations", "Email support"],
+    },
+    {
+      id: "plan_plus",
+      name: "Plus",
+      price: "₹2000",
+      credits: 1500,
+      features: ["1500 Credits/month", "WhatsApp + Email + CRM", "Faster execution", "Priority support"],
+    },
+    {
+      id: "plan_plus_yearly",
+      name: "Plus (Yearly)",
+      price: "₹20000",
+      credits: 18000,
+      features: ["18000 Credits/year", "WhatsApp + Email + CRM", "Faster execution", "Priority support"],
+    },
+    {
+      id: "plan_pro",
+      name: "Pro",
+      price: "₹3500",
+      credits: 3000,
+      features: ["3000 Credits/month", "Advanced workflows", "Priority execution", "Advanced analytics", "Dedicated support"],
+    },
+    {
+      id: "plan_pro_yearly",
+      name: "Pro (Yearly)",
+      price: "₹35000",
+      credits: 36000,
+      features: ["36000 Credits/year", "Advanced workflows", "Priority execution", "Advanced analytics", "Dedicated support"],
+    },
+    {
+      id: "plan_enterprise",
+      name: "Enterprise",
+      price: "Let's Talk",
+      credits: 0,
+      features: ["Custom credits", "Unlimited workflows", "Dedicated infrastructure", "Custom integrations", "Account manager"],
+    },
+  ],
+  subscriptions: [],
 };
 
 function normalizeLocalDatabase(
@@ -59,46 +138,62 @@ function normalizeLocalDatabase(
     automationRuns: database?.automationRuns ?? [],
     connections: database?.connections ?? [],
     consultationRequests: database?.consultationRequests ?? [],
+    usageLogs: database?.usageLogs ?? [],
+    plans: database?.plans && database.plans.length > 0 ? database.plans : emptyDatabase.plans,
+    subscriptions: database?.subscriptions ?? [],
   };
 }
 
 async function ensureStorage() {
-  console.log("[local-store] Ensuring local storage exists.");
+  log.debug("Ensuring local storage exists.");
   await mkdir(STORAGE_DIR, { recursive: true });
 
   try {
     await readFile(STORAGE_FILE, "utf8");
-    console.log("[local-store] Local storage file found.");
   } catch {
-    console.log("[local-store] Local storage file missing. Creating a new one.");
+    log.info("Local storage file missing. Creating a new one.");
     await writeFile(STORAGE_FILE, JSON.stringify(emptyDatabase, null, 2), "utf8");
   }
 }
 
 export async function readLocalDatabase(): Promise<LocalDatabase> {
-  console.log("[local-store] Reading local database.");
+  log.debug("Reading local database.");
   await ensureStorage();
   const raw = await readFile(STORAGE_FILE, "utf8");
-  console.log("[local-store] Local database read complete.");
   return normalizeLocalDatabase(JSON.parse(raw) as Partial<LocalDatabase>);
 }
 
 export async function writeLocalDatabase(database: LocalDatabase) {
-  console.log("[local-store] Writing local database to disk.");
+  log.debug("Writing local database to disk.");
   await ensureStorage();
   await writeFile(STORAGE_FILE, JSON.stringify(database, null, 2), "utf8");
-  console.log("[local-store] Local database write complete.");
 }
+
+// --- Async mutex to serialize concurrent writes ---
+let writeLock: Promise<void> = Promise.resolve();
 
 export async function updateLocalDatabase<T>(
   updater: (database: LocalDatabase) => T | Promise<T>,
 ) {
-  console.log("[local-store] Starting local database update.");
-  const database = normalizeLocalDatabase(await readLocalDatabase());
-  const result = await updater(database);
-  await writeLocalDatabase(database);
-  console.log("[local-store] Local database update finished.");
-  return result;
+  let releaseLock!: () => void;
+  const previousLock = writeLock;
+  writeLock = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+
+  await previousLock;
+  log.debug("Write lock acquired.");
+
+  try {
+    const database = normalizeLocalDatabase(await readLocalDatabase());
+    const result = await updater(database);
+    await writeLocalDatabase(database);
+    log.debug("Database update committed.");
+    return result;
+  } finally {
+    releaseLock();
+    log.debug("Write lock released.");
+  }
 }
 
 export async function createConsultationRequest(input: {
@@ -108,7 +203,7 @@ export async function createConsultationRequest(input: {
   automationRequirement: string;
   budget: string;
 }) {
-  console.log("[local-store] Saving consultation request for:", input.email);
+  log.info("Saving consultation request for:", input.email);
 
   return updateLocalDatabase((database) => {
     const consultationRequest: ConsultationRequestRecord = {
@@ -122,7 +217,7 @@ export async function createConsultationRequest(input: {
     };
 
     database.consultationRequests.push(consultationRequest);
-    console.log("[local-store] Consultation request saved:", consultationRequest.id);
+    log.info("Consultation request saved:", consultationRequest.id);
     return consultationRequest;
   });
 }

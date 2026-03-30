@@ -5,12 +5,6 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import PageIntro from "@/components/PageIntro";
 import Reveal from "@/components/Reveal";
 
-/* LOGIC EXPLAINED:
-This form used to wait for one second and then pretend it had been submitted.
-The fix replaces that fake success flow with a real API request, readable form
-state, and clear error handling so the page behaves like a real product page.
-*/
-
 type ConsultationFormState = {
   name: string;
   email: string;
@@ -18,6 +12,8 @@ type ConsultationFormState = {
   automationRequirement: string;
   budget: string;
 };
+
+type FieldErrors = Partial<Record<keyof ConsultationFormState, string>>;
 
 const initialFormState: ConsultationFormState = {
   name: "",
@@ -27,15 +23,73 @@ const initialFormState: ConsultationFormState = {
   budget: "",
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateForm(form: ConsultationFormState): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (form.name.trim().length < 2) {
+    errors.name = "Name must be at least 2 characters.";
+  }
+
+  if (!form.email.trim()) {
+    errors.email = "Email is required.";
+  } else if (!EMAIL_REGEX.test(form.email.trim())) {
+    errors.email = "Enter a valid email address.";
+  }
+
+  if (form.automationRequirement.trim().length < 10) {
+    errors.automationRequirement =
+      "Please describe your requirement in at least 10 characters.";
+  }
+
+  if (!form.budget) {
+    errors.budget = "Select a budget range.";
+  }
+
+  return errors;
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) {
+    return null;
+  }
+
+  return (
+    <p className="mt-1.5 text-xs font-medium text-red-500">{message}</p>
+  );
+}
+
 export default function LetsTalkPage() {
   const [form, setForm] = useState<ConsultationFormState>(initialFormState);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Set<keyof ConsultationFormState>>(new Set());
+
+  const markTouched = (field: keyof ConsultationFormState) => {
+    setTouched((prev) => new Set(prev).add(field));
+  };
+
+  const handleBlur = (field: keyof ConsultationFormState) => {
+    markTouched(field);
+    const errors = validateForm(form);
+    setFieldErrors(errors);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log("[LetsTalkPage] Consultation submit started.", form);
+
+    // Validate all fields on submit
+    const errors = validateForm(form);
+    setFieldErrors(errors);
+    setTouched(new Set(Object.keys(form) as (keyof ConsultationFormState)[]));
+
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -52,7 +106,6 @@ export default function LetsTalkPage() {
         message?: string;
         error?: string;
       };
-      console.log("[LetsTalkPage] Consultation response received.", json);
 
       if (!response.ok) {
         throw new Error(json.error || "Could not submit consultation request.");
@@ -61,7 +114,6 @@ export default function LetsTalkPage() {
       setSubmitted(true);
       setForm(initialFormState);
     } catch (requestError) {
-      console.error("[LetsTalkPage] Consultation submit failed.", requestError);
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -72,31 +124,32 @@ export default function LetsTalkPage() {
     }
   };
 
+  const visibleError = (field: keyof ConsultationFormState) =>
+    touched.has(field) ? fieldErrors[field] : undefined;
+
   return (
     <main className="min-h-screen bg-white">
       <PageIntro
         eyebrow="Let's Talk"
         title="Talk through the workflow before you commit."
-        description="Tell us what you want to automate and we will help shape the right starting point for your business."
+        description="Share the process you want to automate and we will help shape the right starting point for your team."
       />
 
-      <section className="section-space bg-[#F9FAFB] pt-0">
+      <section className="section-space section-muted pt-0">
         <div className="site-container grid gap-12 lg:grid-cols-[0.95fr_1.05fr]">
           <Reveal>
-            <div className="card-surface h-full rounded-2xl p-6 md:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-                Consultation
-              </p>
+            <div className="card-surface h-full rounded-[24px] p-6 md:p-8">
+              <p className="eyebrow">Consultation</p>
               <h2 className="mt-6 text-[2.2rem] font-semibold leading-[0.98] tracking-[-0.05em] text-foreground md:text-[2.6rem]">
-                Best for high-value workflows and custom rollouts.
+                Best for high-value workflows and custom rollout planning.
               </h2>
-              <p className="mt-6 text-sm leading-8 text-subtle">
+              <p className="mt-7 text-[0.97rem] leading-8 text-subtle">
                 Use this form when you want help mapping a larger process, a
                 multi-step integration flow, or an automation strategy that needs
                 business context.
               </p>
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-10 space-y-3">
                 {[
                   "Share the process you want to automate",
                   "Add budget and company context",
@@ -113,7 +166,7 @@ export default function LetsTalkPage() {
 
           <Reveal delay={0.08}>
             {submitted ? (
-              <div className="card-surface rounded-2xl p-8 text-center">
+              <div className="card-surface rounded-[24px] p-8 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
                   <CheckCircle2 className="h-8 w-8" />
                 </div>
@@ -128,10 +181,11 @@ export default function LetsTalkPage() {
             ) : (
               <form
                 onSubmit={handleSubmit}
-                className="card-surface rounded-2xl p-6 md:p-8"
+                noValidate
+                className="card-surface rounded-[24px] p-6 md:p-8"
               >
                 {error ? (
-                  <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                  <div className="mb-6 rounded-[20px] border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
                     {error}
                   </div>
                 ) : null}
@@ -142,7 +196,6 @@ export default function LetsTalkPage() {
                       Name
                     </label>
                     <input
-                      required
                       type="text"
                       value={form.name}
                       onChange={(event) =>
@@ -151,16 +204,21 @@ export default function LetsTalkPage() {
                           name: event.target.value,
                         }))
                       }
+                      onBlur={() => handleBlur("name")}
                       placeholder="Your name"
-                      className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                      className={`w-full rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                        visibleError("name")
+                          ? "border-red-300"
+                          : "border-black/8"
+                      }`}
                     />
+                    <FieldError message={visibleError("name")} />
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-foreground">
                       Email
                     </label>
                     <input
-                      required
                       type="email"
                       value={form.email}
                       onChange={(event) =>
@@ -169,9 +227,15 @@ export default function LetsTalkPage() {
                           email: event.target.value,
                         }))
                       }
+                      onBlur={() => handleBlur("email")}
                       placeholder="you@company.com"
-                      className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                      className={`w-full rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                        visibleError("email")
+                          ? "border-red-300"
+                          : "border-black/8"
+                      }`}
                     />
+                    <FieldError message={visibleError("email")} />
                   </div>
                 </div>
 
@@ -189,7 +253,7 @@ export default function LetsTalkPage() {
                       }))
                     }
                     placeholder="Company name"
-                    className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    className="w-full rounded-[18px] border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
                   />
                 </div>
 
@@ -198,7 +262,6 @@ export default function LetsTalkPage() {
                     Automation requirement
                   </label>
                   <textarea
-                    required
                     rows={5}
                     value={form.automationRequirement}
                     onChange={(event) =>
@@ -207,9 +270,15 @@ export default function LetsTalkPage() {
                         automationRequirement: event.target.value,
                       }))
                     }
+                    onBlur={() => handleBlur("automationRequirement")}
                     placeholder="Describe the workflow you want to automate."
-                    className="w-full resize-none rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    className={`w-full resize-none rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                      visibleError("automationRequirement")
+                        ? "border-red-300"
+                        : "border-black/8"
+                    }`}
                   />
+                  <FieldError message={visibleError("automationRequirement")} />
                 </div>
 
                 <div className="mt-6">
@@ -217,7 +286,6 @@ export default function LetsTalkPage() {
                     Budget
                   </label>
                   <select
-                    required
                     value={form.budget}
                     onChange={(event) =>
                       setForm((current) => ({
@@ -225,7 +293,12 @@ export default function LetsTalkPage() {
                         budget: event.target.value,
                       }))
                     }
-                    className="w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    onBlur={() => handleBlur("budget")}
+                    className={`w-full rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                      visibleError("budget")
+                        ? "border-red-300"
+                        : "border-black/8"
+                    }`}
                   >
                     <option value="">Select a budget range</option>
                     <option>Under $50 / month</option>
@@ -233,12 +306,13 @@ export default function LetsTalkPage() {
                     <option>$150 to $500 / month</option>
                     <option>$500+ / month</option>
                   </select>
+                  <FieldError message={visibleError("budget")} />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="button-hover mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-7 text-sm font-semibold text-white transition-all duration-300 hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="btn-dark button-hover mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-7 text-sm font-semibold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {loading ? "Sending..." : "Book Free Automation Consultation"}
                   <ArrowRight className="h-4 w-4" />
