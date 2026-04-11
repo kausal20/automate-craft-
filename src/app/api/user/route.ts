@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { isSupabaseMode } from "@/lib/env";
 import { updateLocalDatabase } from "@/lib/local-store";
 import { cookies } from "next/headers";
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
     const user = await getCurrentUser();
 
@@ -34,7 +34,9 @@ export async function DELETE(request: NextRequest) {
           .map((a) => a.id);
           
         db.automations = db.automations.filter((a) => !userAutoIds.includes(a.id));
-        db.runs = db.runs.filter((r) => !userAutoIds.includes(r.automationId));
+        db.automationRuns = db.automationRuns.filter(
+          (run) => !userAutoIds.includes(run.automationId),
+        );
         return undefined;
       });
     }
@@ -44,8 +46,12 @@ export async function DELETE(request: NextRequest) {
     cookieStore.delete("automatecraft_local_session");
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     console.error("DELETE /api/user error:", err);
-    return NextResponse.json({ error: "Internal Server Error", message: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error", message },
+      { status: 500 },
+    );
   }
 }

@@ -7,6 +7,8 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   Building2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 
@@ -62,6 +64,7 @@ export default function AuthScreen({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
 
@@ -113,6 +116,7 @@ export default function AuthScreen({
 
       const json = (await response.json()) as {
         error?: string;
+        user?: { onboarded: boolean };
       };
       console.log("[AuthScreen] Submit response received.", json);
 
@@ -120,9 +124,14 @@ export default function AuthScreen({
         throw new Error(json.error || "Authentication failed.");
       }
 
-      router.push(nextPath);
+      let finalPath = nextPath;
+      if (json.user && json.user.onboarded === false) {
+        finalPath = "/onboarding";
+      }
+
+      router.push(finalPath);
       router.refresh();
-      console.log("[AuthScreen] Navigation to next path complete:", nextPath);
+      console.log("[AuthScreen] Navigation to next path complete:", finalPath);
     } catch (requestError) {
       console.error("[AuthScreen] Submit failed.", requestError);
       setError(
@@ -138,14 +147,14 @@ export default function AuthScreen({
   const googleHref = `/api/auth/oauth?provider=google&next=${encodeURIComponent(nextPath)}`;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAFAFA] px-4 py-12 sm:px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(0,0,0,0.015),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(79,142,247,0.03),_transparent_40%)]" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12 sm:px-6">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.015),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(79,142,247,0.03),_transparent_40%)]" />
 
       <motion.section 
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, type: "spring", bounce: 0.3 }}
-        className="relative w-full max-w-[480px] rounded-[1.5rem] border border-black/[0.05] bg-white p-8 sm:p-12 shadow-[0_24px_50px_rgba(0,0,0,0.06)] ring-1 ring-black/5"
+        className="card-surface relative w-full max-w-[480px] rounded-[1.5rem] p-8 sm:p-12 text-foreground"
       >
         <div className="mb-10 flex items-center justify-between">
           <BrandMark compact />
@@ -183,9 +192,9 @@ export default function AuthScreen({
             <a
               href={socialAuthEnabled ? googleHref : undefined}
               aria-disabled={!socialAuthEnabled}
-              className={`inline-flex h-[3.25rem] w-full items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white px-5 text-[0.95rem] font-medium text-foreground transition-all ${
+              className={`inline-flex h-[3.25rem] w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] font-medium text-foreground transition-all ${
                 socialAuthEnabled
-                  ? "hover:bg-black/[0.02] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                  ? "hover:bg-white/[0.04] hover:border-white/20 hover:shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
                   : "cursor-not-allowed opacity-50"
               }`}
             >
@@ -208,11 +217,11 @@ export default function AuthScreen({
                   required
                   autoComplete="organization"
                   placeholder="name@company.com"
-                  className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] pl-5 pr-[88px] text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
+                  className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] pl-5 pr-[88px] text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
                 />
                 <button
                   type="submit"
-                  className="absolute bottom-1.5 right-1.5 top-1.5 inline-flex items-center justify-center rounded-xl bg-foreground px-4 text-xs font-semibold text-white transition-colors hover:bg-black/85"
+                  className="absolute bottom-1.5 right-1.5 top-1.5 inline-flex items-center justify-center rounded-xl bg-white text-black px-4 text-xs font-semibold transition-colors hover:bg-white/80"
                 >
                   <Building2 className="mr-1.5 h-3.5 w-3.5 opacity-70" aria-hidden />
                   SSO
@@ -229,11 +238,11 @@ export default function AuthScreen({
           ) : !ssoEnabled ? (
             <p className="mt-4 text-xs leading-6 text-foreground/50">
               Enterprise SSO is hidden. Set{" "}
-              <code className="rounded bg-black/[0.04] px-1 py-0.5 text-[0.7rem]">
+              <code className="rounded bg-white/10 px-1 py-0.5 text-[0.7rem]">
                 NEXT_PUBLIC_ENABLE_SSO=true
               </code>{" "}
               (or remove{" "}
-              <code className="rounded bg-black/[0.04] px-1 py-0.5 text-[0.7rem]">
+              <code className="rounded bg-white/10 px-1 py-0.5 text-[0.7rem]">
                 NEXT_PUBLIC_ENABLE_SSO=false
               </code>
               ) to enable SAML SSO after configuring it in Supabase.
@@ -242,10 +251,10 @@ export default function AuthScreen({
 
           <div className="relative my-7">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-black/[0.06]" />
+              <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-white px-4 text-xs font-medium uppercase tracking-widest text-foreground/40">
+              <span className="bg-[#121212] px-4 text-xs font-medium uppercase tracking-widest text-foreground/40">
                 Or
               </span>
             </div>
@@ -253,7 +262,7 @@ export default function AuthScreen({
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             {error ? (
-              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-[0.95rem] font-medium text-red-600">
+              <div className="rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-3 text-[0.95rem] font-medium text-red-400">
                 {error}
               </div>
             ) : null}
@@ -270,7 +279,7 @@ export default function AuthScreen({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Your full name"
                   autoComplete="name"
-                  className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
+                  className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
                 />
               </div>
             ) : null}
@@ -286,7 +295,7 @@ export default function AuthScreen({
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@company.com"
                 autoComplete="email"
-                className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
+                className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
               />
             </div>
 
@@ -294,16 +303,30 @@ export default function AuthScreen({
               <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
                 Password
               </label>
-              <input
-                required
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                minLength={8}
-                placeholder={isSignup ? "Minimum 8 characters" : "Your password"}
-                autoComplete={isSignup ? "new-password" : "current-password"}
-                className="h-[3.25rem] w-full rounded-2xl border border-black/10 bg-black/[0.01] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-[3px] focus:ring-accent/15"
-              />
+              <div className="relative">
+                <input
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  minLength={8}
+                  placeholder={isSignup ? "Minimum 8 characters" : "Your password"}
+                  autoComplete={isSignup ? "new-password" : "current-password"}
+                  className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 pr-12 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button

@@ -101,8 +101,8 @@ export default function OnboardingFlow({ user }: { user: AuthenticatedUser }) {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[#fafafa] selection:bg-black/10 selection:text-black">
-      <div className="relative w-full max-w-[460px] rounded-[1.5rem] bg-white p-8 shadow-[0_24px_50px_rgba(0,0,0,0.06)] ring-1 ring-black/5 mx-4 overflow-hidden">
+    <div className="flex min-h-screen w-full flex-col items-center justify-center selection:bg-white/10 selection:text-white">
+      <div className="card-surface relative w-full max-w-[460px] rounded-[1.5rem] p-8 mx-4 overflow-hidden">
         
         <div className="mb-8 pl-1">
           <BrandMark compact />
@@ -140,13 +140,13 @@ export default function OnboardingFlow({ user }: { user: AuthenticatedUser }) {
                       value={formData.fullName}
                       onChange={(e) => setFormData(p => ({ ...p, fullName: e.target.value }))}
                       placeholder="Jane Doe"
-                      className="h-12 w-full rounded-[14px] border border-black/10 bg-black/[0.01] px-4 text-[15px] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/20"
+                      className="h-12 w-full rounded-[14px] border border-white/10 bg-white/[0.02] px-4 text-[15px] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-2 focus:ring-accent/20"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={!formData.fullName.trim()}
-                    className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-foreground px-4 py-3.5 text-[14px] font-semibold text-white shadow-[0_6px_18px_rgba(28,28,28,0.12)] transition-all hover:bg-black/85 disabled:opacity-50"
+                    className="btn-dark flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-3.5 text-[14px] font-semibold transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50"
                   >
                     Continue <ArrowRight className="h-4 w-4" />
                   </button>
@@ -179,7 +179,7 @@ export default function OnboardingFlow({ user }: { user: AuthenticatedUser }) {
                     <button
                       key={role.id}
                       onClick={() => handleRoleSelect(role.id)}
-                      className="group flex flex-col items-center justify-center gap-2.5 rounded-[14px] border border-black/5 bg-[#f8f9fb] p-4 transition-all hover:-translate-y-0.5 hover:border-black/10 hover:bg-white hover:shadow-sm"
+                      className="group flex flex-col items-center justify-center gap-2.5 rounded-[14px] border border-white/10 bg-white/5 p-4 transition-all hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/10 hover:shadow-sm"
                     >
                       <role.icon className="h-5 w-5 text-foreground/40 transition-colors group-hover:text-foreground" />
                       <span className="text-xs font-semibold text-foreground/70 group-hover:text-foreground">
@@ -218,10 +218,10 @@ export default function OnboardingFlow({ user }: { user: AuthenticatedUser }) {
                       disabled={isSubmitting}
                       onClick={() => handleCompanySizeSelect(size.id)}
                       className={`group flex w-full items-center gap-4 rounded-[14px] border p-4 transition-all outline-none 
-                      ${formData.companySize === size.id ? 'border-foreground bg-[#f8f9fb] ring-1 ring-foreground scale-[0.98]' : 'border-black/5 bg-white hover:bg-[#f8f9fb] hover:border-black/10'} 
+                      ${formData.companySize === size.id ? 'border-foreground bg-white/10 ring-1 ring-foreground scale-[0.98]' : 'border-white/5 bg-[#121212] hover:bg-white/5 hover:border-white/10'} 
                       ${isSubmitting && formData.companySize === size.id ? 'opacity-80' : ''}`}
                     >
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${formData.companySize === size.id ? 'bg-foreground text-white' : 'bg-[#f0f1f3] text-foreground/50 group-hover:bg-[#e4e5e8] group-hover:text-foreground/70'}`}>
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${formData.companySize === size.id ? 'bg-foreground text-background' : 'bg-white/5 text-foreground/50 group-hover:bg-white/10 group-hover:text-foreground/70'}`}>
                         {isSubmitting && formData.companySize === size.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <size.icon className="h-5 w-5" />}
                       </div>
                       <span className={`text-[15px] font-semibold ${formData.companySize === size.id ? 'text-foreground' : 'text-foreground/80'}`}>

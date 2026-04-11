@@ -128,7 +128,7 @@ export default function LetsTalkPage() {
     touched.has(field) ? fieldErrors[field] : undefined;
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen">
       <PageIntro
         eyebrow="Let's Talk"
         title="Talk through the workflow before you commit."
@@ -206,10 +206,10 @@ export default function LetsTalkPage() {
                       }
                       onBlur={() => handleBlur("name")}
                       placeholder="Your name"
-                      className={`w-full rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                      className={`w-full rounded-[18px] border bg-white/5 px-4 py-3.5 text-sm text-white outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
                         visibleError("name")
                           ? "border-red-300"
-                          : "border-black/8"
+                          : "border-white/10"
                       }`}
                     />
                     <FieldError message={visibleError("name")} />
@@ -229,10 +229,10 @@ export default function LetsTalkPage() {
                       }
                       onBlur={() => handleBlur("email")}
                       placeholder="you@company.com"
-                      className={`w-full rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                      className={`w-full rounded-[18px] border bg-white/5 px-4 py-3.5 text-sm text-white outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
                         visibleError("email")
                           ? "border-red-300"
-                          : "border-black/8"
+                          : "border-white/10"
                       }`}
                     />
                     <FieldError message={visibleError("email")} />
@@ -253,7 +253,7 @@ export default function LetsTalkPage() {
                       }))
                     }
                     placeholder="Company name"
-                    className="w-full rounded-[18px] border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    className="w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
                   />
                 </div>
 
@@ -272,10 +272,10 @@ export default function LetsTalkPage() {
                     }
                     onBlur={() => handleBlur("automationRequirement")}
                     placeholder="Describe the workflow you want to automate."
-                    className={`w-full resize-none rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                    className={`w-full resize-none rounded-[18px] border bg-white/5 px-4 py-3.5 text-sm text-white outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
                       visibleError("automationRequirement")
                         ? "border-red-300"
-                        : "border-black/8"
+                        : "border-white/10"
                     }`}
                   />
                   <FieldError message={visibleError("automationRequirement")} />
@@ -294,10 +294,10 @@ export default function LetsTalkPage() {
                       }))
                     }
                     onBlur={() => handleBlur("budget")}
-                    className={`w-full rounded-[18px] border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
+                    className={`w-full rounded-[18px] border bg-white/5 px-4 py-3.5 text-sm text-white outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 ${
                       visibleError("budget")
                         ? "border-red-300"
-                        : "border-black/8"
+                        : "border-white/10"
                     }`}
                   >
                     <option value="">Select a budget range</option>
@@ -312,7 +312,7 @@ export default function LetsTalkPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-dark button-hover mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-7 text-sm font-semibold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="button-hover mt-8 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-7 text-sm font-bold text-black transition-all duration-300 hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-70 shadow-[0_8px_20px_rgba(255,255,255,0.1)]"
                 >
                   {loading ? "Sending..." : "Book Free Automation Consultation"}
                   <ArrowRight className="h-4 w-4" />

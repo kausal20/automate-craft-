@@ -66,28 +66,28 @@ export function SubscriptionModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
             onClick={onClose}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-3xl overflow-hidden rounded-[2.5rem] bg-white p-6 sm:p-10 shadow-2xl ring-1 ring-black/5"
+            className="relative w-full max-w-3xl overflow-hidden rounded-[2.5rem] bg-[#121212] p-6 sm:p-10 shadow-[0_24px_50px_rgba(0,0,0,0.6)] ring-1 ring-white/10"
           >
             <button
               title="Close modal"
               onClick={onClose}
-              className="absolute right-6 top-6 rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 z-10"
+              className="absolute right-6 top-6 rounded-full p-2 text-white/40 transition hover:bg-white/5 hover:text-white z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="text-center mb-8">
-              <h3 className="text-3xl font-bold tracking-tight text-[#111111]">
+              <h3 className="text-3xl font-bold tracking-tight text-white">
                 Choose a Plan
               </h3>
-              <p className="mt-2 text-[#6B7280]">
+              <p className="mt-2 text-white/50">
                 Subscribe to a monthly plan to unlock recurring resources.
               </p>
             </div>
@@ -98,23 +98,23 @@ export function SubscriptionModal({
                   key={plan.id}
                   className={`relative flex flex-col justify-between rounded-2xl p-6 transition-all ${
                     plan.highlighted
-                      ? "border-[2px] border-[#111111] bg-white shadow-lg"
-                      : "border border-black/[0.08] bg-black/[0.02]"
+                      ? "border-[2px] border-white/20 bg-white/5 shadow-2xl"
+                      : "border border-white/10 bg-white/5"
                   }`}
                 >
                   {plan.highlighted && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#111111] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
                       Most Popular
                     </div>
                   )}
                   <div>
-                    <h4 className="font-bold text-[#111111]">{plan.name}</h4>
+                    <h4 className="font-bold text-white">{plan.name}</h4>
                     <div className="my-3">
-                      <span className="text-2xl font-bold text-[#111111]">{plan.price}</span>
-                      <span className="text-sm text-[#6B7280]">/mo</span>
+                      <span className="text-2xl font-bold text-white">{plan.price}</span>
+                      <span className="text-sm text-white/40">/mo</span>
                     </div>
-                    <div className="flex items-start gap-2 text-sm font-medium text-[#6B7280]">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#3B82F6]" />
+                    <div className="flex items-start gap-2 text-sm font-medium text-white/60">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                       <span>{plan.credits}</span>
                     </div>
                   </div>
@@ -123,8 +123,8 @@ export function SubscriptionModal({
                     disabled={subscribing !== null}
                     className={`mt-6 w-full rounded-full py-3 text-sm font-bold transition-all disabled:opacity-50 ${
                       plan.highlighted
-                        ? "bg-[#111111] text-white hover:bg-black/90 shadow-md"
-                        : "bg-white border border-[#111111] text-[#111111] hover:bg-black/[0.03]"
+                        ? "bg-white text-black hover:bg-white/90 shadow-md"
+                        : "bg-white/5 border border-white/10 text-white hover:bg-white/10"
                     }`}
                   >
                     {subscribing === plan.id ? "..." : "Subscribe"}
@@ -139,7 +139,7 @@ export function SubscriptionModal({
                   onClose();
                   router.push("/pricing");
                 }}
-                className="text-sm font-medium text-[#3B82F6] hover:underline"
+                className="text-sm font-medium text-accent hover:underline"
               >
                 View full plan details
               </button>

@@ -114,7 +114,7 @@ export default function HeroScene({ isPromptFocused = false }: HeroSceneProps) {
       mouse.x += (mouse.rx - mouse.x) * 0.08;
       mouse.y += (mouse.ry - mouse.y) * 0.08;
       
-      ctx.fillStyle = "#FFFFFF";
+      ctx.fillStyle = "#0a0a0a";
       ctx.fillRect(0, 0, width, height);
 
       const focused = isPromptFocusedRef.current;
@@ -150,14 +150,14 @@ export default function HeroScene({ isPromptFocused = false }: HeroSceneProps) {
         ctx.beginPath();
         if (ball.depth < 0.66) {
             const grad = ctx.createRadialGradient(targetX, targetY, 0, targetX, targetY, ball.radius);
-            grad.addColorStop(0, `rgba(10, 10, 10, ${ball.opacity})`);
-            grad.addColorStop(1, `rgba(10, 10, 10, 0)`);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${ball.opacity})`);
+            grad.addColorStop(1, `rgba(255, 255, 255, 0)`);
             ctx.fillStyle = grad;
             ctx.arc(targetX, targetY, ball.radius, 0, Math.PI * 2);
             ctx.fill();
         } else {
             ctx.arc(targetX, targetY, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(10, 10, 10, ${ball.opacity})`; 
+            ctx.fillStyle = `rgba(255, 255, 255, ${ball.opacity})`; 
             ctx.fill();
         }
       });
@@ -165,8 +165,8 @@ export default function HeroScene({ isPromptFocused = false }: HeroSceneProps) {
       const distFromCenter = Math.hypot(mouse.rx - width/2, mouse.ry - height/2);
       if (distFromCenter > 20 || focused) {
         const auraGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 180);
-        auraGrad.addColorStop(0, "rgba(0, 0, 0, 0.015)"); 
-        auraGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        auraGrad.addColorStop(0, "rgba(59, 130, 246, 0.08)"); 
+        auraGrad.addColorStop(1, "rgba(59, 130, 246, 0)");
         
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, 180, 0, Math.PI * 2);

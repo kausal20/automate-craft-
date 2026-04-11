@@ -61,15 +61,15 @@ export function LoginModal({ isOpen, onClose, nextUrl }: LoginModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
         onClick={onClose}
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-[420px] rounded-[1.5rem] bg-white p-8 shadow-[0_24px_50px_rgba(0,0,0,0.1)] ring-1 ring-black/5 mx-4 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-[420px] rounded-[1.5rem] bg-[#121212] p-8 shadow-[0_24px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10 mx-4 animate-in fade-in zoom-in-95 duration-200">
         <button 
           onClick={onClose}
-          className="absolute right-5 top-5 rounded-full p-1.5 text-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground"
+          className="absolute right-5 top-5 rounded-full p-1.5 text-white/40 transition-colors hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
         </button>
@@ -85,21 +85,21 @@ export function LoginModal({ isOpen, onClose, nextUrl }: LoginModalProps) {
         <div className="space-y-4">
           <button 
             onClick={() => window.location.href = `/api/auth/oauth?provider=google&next=${encodeURIComponent(targetNextUrl)}`}
-            className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-black/10 bg-white px-4 py-3 text-[14px] font-semibold text-foreground hover:bg-black/[0.02] shadow-sm transition-all"
+            className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-white/10 bg-white/5 px-4 py-3 text-[14px] font-semibold text-white hover:bg-white/10 shadow-sm transition-all"
           >
             <GoogleIcon />
             Continue with Google
           </button>
           
           <div className="flex items-center gap-4 py-2">
-             <div className="flex-1 h-px bg-black/5" />
-             <span className="text-xs font-semibold uppercase tracking-wider text-foreground/40">OR</span>
-             <div className="flex-1 h-px bg-black/5" />
+             <div className="flex-1 h-px bg-white/5" />
+             <span className="text-xs font-semibold uppercase tracking-wider text-white/40">OR</span>
+             <div className="flex-1 h-px bg-white/5" />
           </div>
 
           <button 
             onClick={() => window.location.href = `/login?next=${encodeURIComponent(targetNextUrl)}`}
-            className="flex w-full items-center justify-center rounded-[14px] bg-foreground px-4 py-3 text-[14px] font-semibold text-white shadow-[0_6px_18px_rgba(28,28,28,0.12)] transition-all hover:bg-black/90 hover:scale-[1.01]"
+            className="flex w-full items-center justify-center rounded-[14px] bg-white px-4 py-3 text-[14px] font-semibold text-black shadow-[0_6px_18px_rgba(255,255,255,0.1)] transition-all hover:bg-white/90 hover:scale-[1.01]"
           >
             Continue with email
           </button>

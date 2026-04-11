@@ -11,7 +11,7 @@ const principles = [
 
 export default function WhyUsPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen">
       <PageIntro
         eyebrow="Why Us"
         title="Automation should feel operational, not experimental."
@@ -46,7 +46,7 @@ export default function WhyUsPage() {
         </div>
       </section>
 
-      <section className="section-space bg-white">
+      <section className="section-space">
         <div className="site-container grid gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <Reveal>
             <article className="card-surface rounded-[24px] p-8 lg:min-h-[340px]">

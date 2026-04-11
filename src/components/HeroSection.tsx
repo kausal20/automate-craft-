@@ -103,7 +103,8 @@ export default function HeroSection({
       return;
     }
 
-    router.push(`/setup?prompt=${encodeURIComponent(prompt)}`);
+    const chatId = Math.random().toString(36).substring(7);
+    router.push(`/dashboard/chat/${chatId}?prompt=${encodeURIComponent(prompt)}`);
   };
 
   const toggleListening = (e: React.MouseEvent) => {
@@ -215,10 +216,10 @@ export default function HeroSection({
                   <div
                     className={`relative isolate overflow-hidden rounded-[16px] border px-4 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.1)] transition-all duration-300 ease-out sm:px-5 sm:py-4.5 ${
                       hasPrompt
-                        ? "border-accent/50 shadow-[0_0_0_4px_rgba(79,142,247,0.2),0_16px_34px_rgba(79,142,247,0.15)] scale-[1.015]"
+                        ? "border-accent/50 shadow-[0_0_0_4px_rgba(59,130,246,0.2),0_16px_34px_rgba(59,130,246,0.15)] scale-[1.015]"
                         : isPromptFocused
-                        ? "border-accent/40 shadow-[0_0_0_3px_rgba(79,142,247,0.1),0_16px_34px_rgba(0,0,0,0.14)] scale-[1.01]"
-                        : "border-white/10 group-hover:border-white/20 group-hover:shadow-[0_18px_42px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.06)]"
+                        ? "border-accent/40 shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_16px_34px_rgba(0,0,0,0.4)] scale-[1.01]"
+                        : "border-white/10 group-hover:border-white/20 group-hover:shadow-[0_18px_42px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.06)]"
                     }`}
                   >
                     <div className="pointer-events-none absolute inset-0 rounded-[16px] bg-[linear-gradient(180deg,#1c1c1c_0%,#0a0a0a_100%)]" />
@@ -228,8 +229,8 @@ export default function HeroSection({
                       className="pointer-events-none absolute inset-0 rounded-[16px] opacity-0 transition-opacity duration-300 group-hover:opacity-100" 
                       animate={{
                         background: hasPrompt 
-                          ? ["radial-gradient(circle at top, rgba(79,142,247,0.2), transparent 55%)"]
-                          : ["radial-gradient(circle at top, rgba(79,142,247,0.05), transparent 45%)", "radial-gradient(circle at top, rgba(79,142,247,0.15), transparent 50%)", "radial-gradient(circle at top, rgba(79,142,247,0.05), transparent 45%)"]
+                          ? ["radial-gradient(circle at top, rgba(59,130,246,0.2), transparent 55%)"]
+                          : ["radial-gradient(circle at top, rgba(59,130,246,0.05), transparent 45%)", "radial-gradient(circle at top, rgba(59,130,246,0.15), transparent 50%)", "radial-gradient(circle at top, rgba(59,130,246,0.05), transparent 45%)"]
                       }}
                       transition={hasPrompt ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     />
@@ -244,7 +245,7 @@ export default function HeroSection({
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                              className="absolute inset-0 text-accent/40"
+                              className="absolute inset-0 text-white/40"
                             >
                               {promptExamples[exampleIndex]}
                             </motion.div>
@@ -265,7 +266,7 @@ export default function HeroSection({
                             if (canSubmit) handleSubmit();
                           }
                         }}
-                        className="min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-accent outline-none sm:min-h-[78px] sm:text-[1.05rem]"
+                        className="min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-white outline-none sm:min-h-[78px] sm:text-[1.05rem]"
                       />
                     </div>
 
@@ -333,7 +334,7 @@ export default function HeroSection({
       <LoginModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
-        nextUrl={`/setup?prompt=${encodeURIComponent(prompt)}`} 
+        nextUrl={`/dashboard/chat/new?prompt=${encodeURIComponent(prompt)}`} 
       />
     </>
   );

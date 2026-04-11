@@ -3,20 +3,20 @@ import BrandMark from "@/components/BrandMark";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-[#E5E7EB] bg-[#F9FAFB]">
+    <footer className="border-t border-white/10 bg-[#0a0a0a]">
       <div className="site-container py-20">
         <div className="grid gap-14 md:grid-cols-[1.2fr_0.8fr]">
           <div className="max-w-sm">
             <BrandMark compact={false} />
             <p className="mt-4 text-sm leading-7 text-subtle">
-              AutomateCraft helps teams turn manual work into clear, dependable
+              Our platform helps teams turn manual work into clear, dependable
               AI automations.
             </p>
           </div>
 
           <div className="grid gap-12 sm:grid-cols-2">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
                 Pages
               </h4>
               <ul className="mt-4 space-y-2.5 text-sm text-foreground/70">
@@ -44,7 +44,7 @@ export default function Footer() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
                 Reach
               </h4>
               <ul className="mt-4 space-y-2.5 text-sm text-foreground/70">
@@ -81,7 +81,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-[#E5E7EB] pt-7 text-sm text-subtle sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-7 text-sm text-white/40 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} AutomateCraft. All rights reserved.</p>
           <p>Built for modern business workflows.</p>
         </div>

@@ -16,7 +16,7 @@ export default async function OnboardingPage() {
 
   // If already onboarded, send them to dashboard immediately
   if (user.onboarded) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return <OnboardingFlow user={user} />;

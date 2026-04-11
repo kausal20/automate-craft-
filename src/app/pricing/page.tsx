@@ -91,7 +91,7 @@ const plans: Plan[] = [
 
 export default function PricingPage() {
   const router = useRouter();
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [subscribing, setSubscribing] = useState<string | null>(null);
 
   const handleSubscribe = async (plan: Plan) => {
@@ -123,13 +123,13 @@ export default function PricingPage() {
   };
 
   return (
-    <main className="relative min-h-screen bg-white pt-6">
+    <main className="relative min-h-screen pt-6">
       {/* Close button aligned with content max-width */}
       <div className="mx-auto max-w-[1400px] px-6 relative h-0 flex justify-end">
         <div className="relative top-2 md:top-6 z-50">
           <Link
             href="/"
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black/5 text-[#111111] hover:bg-black/10 transition-colors"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white hover:bg-white/10 transition-colors"
             aria-label="Close pricing and return"
           >
             <X className="h-6 w-6" />
@@ -144,13 +144,13 @@ export default function PricingPage() {
       />
 
       <div className="flex justify-center mb-16">
-        <div className="flex items-center gap-3 p-1 rounded-full bg-black/[0.03] ring-1 ring-black/5">
+        <div className="flex items-center gap-3 p-1 rounded-full bg-white/5 ring-1 ring-white/10">
           <button
             onClick={() => setBillingCycle("monthly")}
             className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
               billingCycle === "monthly" 
-                ? "bg-white text-[#111111] shadow-[0_2px_8px_rgba(0,0,0,0.08)]" 
-                : "text-[#6B7280] hover:text-[#111111]"
+                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.1)]" 
+                : "text-white/40 hover:text-white"
             }`}
           >
             Monthly
@@ -159,12 +159,12 @@ export default function PricingPage() {
             onClick={() => setBillingCycle("yearly")}
             className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
               billingCycle === "yearly" 
-                ? "bg-white text-[#111111] shadow-[0_2px_8px_rgba(0,0,0,0.08)]" 
-                : "text-[#6B7280] hover:text-[#111111]"
+                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.1)]" 
+                : "text-white/40 hover:text-white"
             }`}
           >
             Yearly
-            <span className="px-2 py-0.5 rounded-md bg-[#3B82F6]/10 text-[#3B82F6] text-[0.65rem] uppercase tracking-wider font-bold">
+            <span className="px-2 py-0.5 rounded-md bg-accent/20 text-accent text-[0.65rem] uppercase tracking-wider font-bold">
               Save 20%
             </span>
           </button>
@@ -180,49 +180,49 @@ export default function PricingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1, ease: "easeOut" }}
               whileHover={{ y: -6 }}
-              className={`relative flex flex-col justify-between rounded-2xl bg-white p-8 transition-all duration-300 ${
+              className={`relative flex flex-col justify-between rounded-2xl bg-[#0f0f0f] p-8 transition-all duration-300 ${
                 plan.highlighted
-                  ? "border-[2px] border-[#111111] shadow-[0_12px_40px_rgb(0,0,0,0.08)]"
-                  : "border border-black/[0.08] shadow-[0_4px_24px_rgb(0,0,0,0.03)] hover:border-black/[0.15] hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)]"
+                  ? "border-[2px] border-white/20 shadow-[0_12px_40px_rgb(0,0,0,0.6)]"
+                  : "border border-white/5 shadow-[0_4px_24px_rgb(0,0,0,0.4)] hover:border-white/10 hover:shadow-[0_12px_40px_rgb(0,0,0,0.7)]"
               }`}
             >
               {plan.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#111111] px-4 py-1 text-xs font-bold uppercase tracking-wider text-white">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-4 py-1 text-xs font-bold uppercase tracking-wider text-black">
                   Most Popular
                 </div>
               )}
 
               <div>
-                <h3 className="text-xl font-bold tracking-tight text-[#111111]">
+                <h3 className="text-xl font-bold tracking-tight text-white">
                   {plan.name}
                 </h3>
-                <p className="mt-2 text-sm text-[#6B7280]">{plan.audience}</p>
+                <p className="mt-2 text-sm text-white/40">{plan.audience}</p>
                 <div className="mt-6 mb-2">
-                  <span className="text-[2.5rem] font-bold leading-none tracking-tight text-[#111111]">
+                  <span className="text-[2.5rem] font-bold leading-none tracking-tight text-white">
                     {billingCycle === "yearly" ? plan.priceYearly : plan.priceMonthly}
                   </span>
                   {plan.name !== "Enterprise" && (
-                    <span className="text-sm font-medium text-[#6B7280]">/month</span>
+                    <span className="text-sm font-medium text-white/40">/month</span>
                   )}
                 </div>
                 
                 <div className="h-5 mb-6">
                  {billingCycle === "yearly" && plan.name !== "Enterprise" && (
-                    <span className="text-xs font-semibold text-[#111111]/50">
+                    <span className="text-xs font-semibold text-white/30">
                       {plan.billedYearly}
                     </span>
                  )}
                 </div>
 
-                <p className="mb-8 text-sm leading-relaxed text-[#111111]">
+                <p className="mb-8 text-sm leading-relaxed text-white/70">
                   {plan.description}
                 </p>
 
                 <div className="space-y-4">
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-3">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#3B82F6]" />
-                      <span className="text-sm font-medium text-[#6B7280]">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                      <span className="text-sm font-medium text-white/60">
                          {/* Show 12x credits visually if yearly */}
                          {billingCycle === "yearly" && feature.includes("Credits") ? (
                            <>
@@ -243,11 +243,11 @@ export default function PricingPage() {
                   disabled={subscribing !== null}
                   className={`w-full rounded-full py-4 text-sm font-bold transition-all disabled:opacity-50 ${
                     plan.highlighted
-                      ? "bg-[#111111] text-white hover:bg-black/90 shadow-[0_4px_14px_0_rgb(0,0,0,0.2)] hover:-translate-y-0.5"
+                      ? "bg-white text-black hover:bg-white/90 shadow-[0_4px_14px_0_rgba(255,255,255,0.1)] hover:-translate-y-0.5"
                       : plan.name === "Enterprise"
-                        ? "bg-white border border-[#111111] text-[#111111] hover:bg-black/[0.03]"
-                        : "bg-[#111111] text-white hover:bg-black/90 shadow-[0_4px_14px_0_rgb(0,0,0,0.2)] hover:-translate-y-0.5"
-                  }`}
+                        ? "bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                        : "bg-white text-black hover:bg-white/90 shadow-[0_4px_14px_0_rgba(255,255,255,0.1)] hover:-translate-y-0.5"
+                  } shadow-md`}
                 >
                   {subscribing === plan.idBase ? "Processing..." : plan.cta}
                 </button>
@@ -256,24 +256,24 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <div className="mx-auto mt-24 max-w-3xl rounded-[2rem] bg-black/[0.02] p-10 ring-1 ring-black/[0.04]">
+        <div className="mx-auto mt-24 max-w-3xl rounded-[2rem] bg-white/5 p-10 ring-1 ring-white/10">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.04]">
-              <Sparkles className="h-6 w-6 text-[#3B82F6]" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/5 shadow-sm ring-1 ring-white/10">
+              <Sparkles className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold tracking-tight text-[#111111]">What are credits?</h3>
+              <h3 className="text-2xl font-bold tracking-tight text-white">What are credits?</h3>
               <div className="mt-4 grid gap-6 sm:grid-cols-2">
                 <div>
-                  <h4 className="font-bold text-[#111111]">Automation Creation</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
+                  <h4 className="font-bold text-white">Automation Creation</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-white/50">
                     Whenever you generate a new automation utilizing AI, it utilizes a one-time fixed cost.<br className="hidden sm:block" />
                     <strong>1 Automation Generate = 5 Credits</strong>
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-bold text-[#111111]">Automation Execution</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
+                  <h4 className="font-bold text-white">Automation Execution</h4>
+                  <p className="mt-2 text-sm leading-relaxed text-white/50">
                     Whenever an active automation successfully executes limits are consumed. Certain powerful integrations like WhatsApp cost more.<br className="hidden sm:block" />
                     <strong>Base Execution = 5 Credits</strong> (+2 WhatsApp, +1 Email, +1 CRM)
                   </p>

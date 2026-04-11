@@ -114,7 +114,7 @@ export default function NavbarClient({
     router.refresh();
   };
 
-  const ctaHref = "/dashboard";
+  const ctaHref = "/";
   const ctaLabel = isAuthenticated ? "Dashboard" : "Get Started";
 
   if (isAuthenticated && isHome) return null;
@@ -126,8 +126,8 @@ export default function NavbarClient({
           <div
             className={`mx-auto max-w-[1180px] rounded-2xl transition-all duration-300 ${
               scrolled
-                ? "glass-nav shadow-[0_10px_24px_rgba(28,28,28,0.07)]"
-                : "bg-white/82 shadow-[0_4px_18px_rgba(28,28,28,0.04)] backdrop-blur-sm"
+                ? "glass-nav shadow-[0_10px_24px_rgba(0,0,0,0.5)]"
+                : "bg-white/5 shadow-[0_4px_18px_rgba(0,0,0,0.2)] backdrop-blur-sm"
             }`}
           >
             <div className="flex items-center justify-between px-4 py-2 md:px-5">
@@ -152,36 +152,36 @@ export default function NavbarClient({
                   <div className="relative" ref={popoverRef}>
                     <button
                       onClick={() => setShowPopover(!showPopover)}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-4 text-sm font-bold text-[#111111] shadow-[0_4px_16px_rgba(28,28,28,0.05)] transition-all hover:bg-black/[0.02] hover:-translate-y-0.5"
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] transition-all hover:bg-white/10 hover:-translate-y-0.5"
                     >
                       <Coins className="h-4 w-4 text-[#F59E0B]" />
-                      {creditsData ? creditsData.totalCredits.toLocaleString() : <Loader2 className="h-3 w-3 animate-spin text-black/40" />}
-                      <ChevronDown className={`h-3 w-3 text-black/40 transition-transform duration-200 ${showPopover ? "rotate-180" : ""}`} />
+                      {creditsData ? creditsData.totalCredits.toLocaleString() : <Loader2 className="h-3 w-3 animate-spin text-white/40" />}
+                      <ChevronDown className={`h-3 w-3 text-white/40 transition-transform duration-200 ${showPopover ? "rotate-180" : ""}`} />
                     </button>
 
                     {showPopover && creditsData && (
-                      <div className="absolute right-0 top-[calc(100%+0.75rem)] w-[320px] rounded-[1.75rem] bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04] origin-top-right animate-in fade-in zoom-in-95 duration-200">
+                      <div className="absolute right-0 top-[calc(100%+0.75rem)] w-[320px] rounded-[1.75rem] bg-[#121212] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-white/10 origin-top-right animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between mb-5">
-                          <span className="text-xs font-bold uppercase tracking-wider text-[#6B7280]">Available Credits</span>
-                          <span className="rounded-full bg-black/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#111111]">
+                          <span className="text-xs font-bold uppercase tracking-wider text-white/40">Available Credits</span>
+                          <span className="rounded-full bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                             {creditsData.hasSubscription ? "Active Plan" : "Free Plan"}
                           </span>
                         </div>
                         <div className="flex items-center gap-3 mb-6">
                            <Coins className="h-8 w-8 text-[#F59E0B]" />
-                           <span className="text-[2.5rem] font-bold leading-none tracking-tight text-[#111111]">
+                           <span className="text-[2.5rem] font-bold leading-none tracking-tight text-white">
                              {creditsData.totalCredits.toLocaleString()}
                            </span>
                         </div>
 
-                        <div className="space-y-3.5 border-t border-black/5 pt-5 mb-6">
+                        <div className="space-y-3.5 border-t border-white/5 pt-5 mb-6">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-semibold text-[#6B7280]">Plan Credits (Monthly)</span>
-                            <span className="font-bold text-[#111111]">{creditsData.planCredits.toLocaleString()}</span>
+                            <span className="font-semibold text-white/50">Plan Credits (Monthly)</span>
+                            <span className="font-bold text-white">{creditsData.planCredits.toLocaleString()}</span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-semibold text-[#6B7280]">Top Up Credits</span>
-                            <span className="font-bold text-[#111111]">{creditsData.extraCredits.toLocaleString()}</span>
+                            <span className="font-semibold text-white/50">Top Up Credits</span>
+                            <span className="font-bold text-white">{creditsData.extraCredits.toLocaleString()}</span>
                           </div>
                         </div>
 
@@ -189,7 +189,7 @@ export default function NavbarClient({
                            <Link
                              href="/pricing"
                              onClick={() => setShowPopover(false)}
-                             className="flex w-full items-center justify-center rounded-2xl bg-black/5 py-3.5 text-sm font-bold text-[#111111] transition-colors hover:bg-black/10"
+                             className="flex w-full items-center justify-center rounded-2xl bg-white/5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-white/10"
                            >
                              Manage your Subscriptions
                            </Link>
@@ -202,7 +202,7 @@ export default function NavbarClient({
                                  setShowSubscriptionModal(true);
                                }
                              }}
-                             className="flex w-full items-center justify-center rounded-2xl bg-[#111111] py-3.5 text-sm font-bold text-white transition-all hover:bg-black/90 shadow-[0_4px_14px_rgba(0,0,0,0.2)] hover:-translate-y-0.5"
+                             className="flex w-full items-center justify-center rounded-2xl bg-white py-3.5 text-sm font-bold text-black transition-all hover:bg-white/90 shadow-[0_4px_14px_rgba(255,255,255,0.2)] hover:-translate-y-0.5"
                            >
                              Buy More Credits
                            </button>
@@ -231,7 +231,7 @@ export default function NavbarClient({
               <button
                 type="button"
                 onClick={() => setOpen((current) => !current)}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-foreground shadow-[0_4px_16px_rgba(28,28,28,0.05)] lg:hidden ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" ? "hidden" : ""}`}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] lg:hidden ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" ? "hidden" : ""}`}
                 aria-label={open ? "Close navigation menu" : "Open navigation menu"}
               >
                 {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -239,7 +239,7 @@ export default function NavbarClient({
             </div>
 
             {open ? (
-              <div className="border-t border-[#E5E7EB] px-4 pb-4 pt-3 lg:hidden">
+              <div className="border-t border-white/10 px-4 pb-4 pt-3 lg:hidden">
                 {!isHome ? (
                   <div className="space-y-2">
                     {navigation.map((item) => (
@@ -247,7 +247,7 @@ export default function NavbarClient({
                         key={item.href}
                         href={item.href}
                         onClick={() => setOpen(false)}
-                        className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-black/[0.03] hover:text-foreground ${
+                        className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5 hover:text-foreground ${
                           pathname === item.href ? "text-foreground" : "text-foreground/72"
                         }`}
                       >
@@ -280,10 +280,10 @@ export default function NavbarClient({
                   <button
                     onClick={handleBuyCreditsClick}
                     disabled={isCheckingPlan}
-                    className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-5 text-sm font-semibold text-foreground transition-all disabled:opacity-70"
+                    className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition-all disabled:opacity-70"
                   >
                     {isCheckingPlan ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-[#6B7280]" />
+                      <Loader2 className="h-4 w-4 animate-spin text-white/40" />
                     ) : (
                       "Buy Credits"
                     )}
@@ -309,7 +309,7 @@ export default function NavbarClient({
       <LoginModal 
         isOpen={showLoginModal} 
         onClose={() => setShowLoginModal(false)} 
-        nextUrl="/dashboard"
+        nextUrl="/"
       />
     </>
   );

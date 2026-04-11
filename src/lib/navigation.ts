@@ -12,24 +12,24 @@ const SAFE_PATH_PREFIXES = [
  */
 export function sanitizeNextPath(value: string | null | undefined) {
   if (!value) {
-    return "/dashboard";
+    return "/";
   }
 
   // Strip control characters and unicode direction overrides
   const cleaned = value.replace(/[\x00-\x1f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "");
 
   if (!cleaned.startsWith("/")) {
-    return "/dashboard";
+    return "/";
   }
 
   // Block protocol-relative URLs like //evil.com
   if (cleaned.startsWith("//")) {
-    return "/dashboard";
+    return "/";
   }
 
   // Block embedded backslash tricks (//evil.com via /\evil.com)
   if (cleaned.includes("\\")) {
-    return "/dashboard";
+    return "/";
   }
 
   // Ensure path starts with a known safe prefix
@@ -38,7 +38,7 @@ export function sanitizeNextPath(value: string | null | undefined) {
   );
 
   if (!isSafe) {
-    return "/dashboard";
+    return "/";
   }
 
   return cleaned;

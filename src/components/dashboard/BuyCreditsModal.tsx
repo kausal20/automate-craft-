@@ -53,31 +53,31 @@ export function BuyCreditsModal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
-          <motion.div
+            <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
             onClick={onClose}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-xl overflow-hidden rounded-[2.5rem] bg-white p-6 sm:p-8 shadow-2xl ring-1 ring-black/5 max-h-[90vh] overflow-y-auto"
+            className="relative w-full max-w-xl overflow-hidden rounded-[2.5rem] bg-[#121212] p-6 sm:p-8 shadow-[0_24px_50px_rgba(0,0,0,0.6)] ring-1 ring-white/10 max-h-[90vh] overflow-y-auto"
           >
             <button
               title="Close modal"
               onClick={onClose}
-              className="absolute right-6 top-6 rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 z-10"
+              className="absolute right-6 top-6 rounded-full p-2 text-white/40 transition hover:bg-white/5 hover:text-white z-10"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3 className="text-2xl font-bold tracking-tight text-[#111111]">
+            <h3 className="text-2xl font-bold tracking-tight text-white">
               Add More Credits
             </h3>
-            <p className="mt-2 text-[#6B7280]">
+            <p className="mt-2 text-white/50">
               Choose a top-up plan below to add credits instantly to your balance.
             </p>
 
@@ -88,24 +88,24 @@ export function BuyCreditsModal({
                   onClick={() => setSelectedPackage(pkg.id)}
                   className={`relative flex items-center justify-between outline-none rounded-2xl border-2 p-4 transition-all w-full text-left ${
                     selectedPackage === pkg.id
-                      ? "border-[#3B82F6] bg-blue-50/30"
-                      : "border-black/[0.08] hover:border-black/[0.15] bg-black/[0.01]"
+                      ? "border-[#3B82F6] bg-[#3B82F6]/10"
+                      : "border-[#3B82F6]/40 hover:border-[#3B82F6] bg-white/5"
                   }`}
                 >
                   {pkg.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#111111] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
                       Recommended
                     </span>
                   )}
 
                   <div className="flex w-full items-center justify-between px-2">
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-[#6B7280] font-bold uppercase tracking-wider">Credits</span>
-                      <span className="text-lg font-bold text-[#111111]">{pkg.credits.toLocaleString()}</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Credits</span>
+                      <span className="text-lg font-bold text-white">{pkg.credits.toLocaleString()}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                       <span className="text-[10px] text-[#6B7280] font-bold uppercase tracking-wider">Price</span>
-                       <span className="text-xl font-bold text-[#3B82F6]">{pkg.price}</span>
+                       <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Price</span>
+                       <span className="text-xl font-bold text-accent">{pkg.price}</span>
                     </div>
                   </div>
 
@@ -121,14 +121,14 @@ export function BuyCreditsModal({
                 onClick={() => setSelectedPackage("custom")}
                 className={`relative flex flex-col items-start outline-none rounded-2xl border-2 p-4 transition-all w-full text-left mt-2 ${
                   selectedPackage === "custom"
-                    ? "border-[#3B82F6] bg-blue-50/30"
-                    : "border-black/[0.08] hover:border-black/[0.15] bg-black/[0.01]"
+                    ? "border-[#3B82F6] bg-[#3B82F6]/10"
+                    : "border-[#3B82F6]/40 hover:border-[#3B82F6] bg-white/5"
                 }`}
               >
                 <div className="flex w-full items-center justify-between mb-3 px-2">
-                   <span className="text-sm font-bold text-[#111111]">Custom Amount</span>
+                   <span className="text-sm font-bold text-white">Custom Amount</span>
                    {selectedPackage === "custom" && customAmount && (
-                     <span className="text-xl font-bold text-[#3B82F6]">
+                     <span className="text-xl font-bold text-accent">
                        ₹{Math.round(parseInt(customAmount, 10) * 1.8).toLocaleString()}
                      </span>
                    )}
@@ -141,10 +141,10 @@ export function BuyCreditsModal({
                       value={customAmount}
                       onChange={(e) => setCustomAmount(e.target.value)}
                       placeholder="Enter credits needed..."
-                      className={`w-full rounded-xl border px-4 py-3 text-sm font-semibold text-[#111111] outline-none transition-all bg-white ${
+                      className={`w-full rounded-xl border px-4 py-3 text-sm font-semibold text-white outline-none transition-all bg-white/5 ${
                         customAmount && parseInt(customAmount, 10) < 600
-                          ? "border-red-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                          : "border-black/10 focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                          : "border-white/10 focus:border-accent focus:ring-2 focus:ring-accent/20"
                       }`}
                     />
                     {customAmount && parseInt(customAmount, 10) < 600 && (
@@ -162,7 +162,7 @@ export function BuyCreditsModal({
               </button>
             </div>
 
-            <div className="mt-8 pt-4 border-t border-black/[0.06]">
+            <div className="mt-8 pt-4 border-t border-white/5">
               <button
                 disabled={
                   !selectedPackage || 
@@ -170,7 +170,7 @@ export function BuyCreditsModal({
                   (selectedPackage === "custom" && (!customAmount || parseInt(customAmount, 10) < 600))
                 }
                 onClick={handleBuyCredits}
-                className="w-full rounded-full bg-[#111111] py-4 text-sm font-semibold text-white transition-all hover:bg-black/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-full bg-white py-4 text-sm font-bold text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50 shadow-[0_8px_20px_rgba(255,255,255,0.1)]"
               >
                 {buying ? "Processing..." : "Confirm Purchase"}
               </button>

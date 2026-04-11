@@ -206,35 +206,14 @@ export default function ConnectedAppsPage() {
 
   return (
     <div className="mx-auto max-w-7xl p-8">
-      <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-[-0.04em] text-foreground">
-            Connected Apps
-          </h1>
-          <p className="mt-2 text-foreground/58">
-            Manage the services your automations can use during generation and
-            execution.
-          </p>
-        </div>
-
-        <div className="rounded-full border border-black/8 bg-white px-4 py-2 text-sm font-medium text-foreground/62">
-          Connection states are saved per user for activation checks.
-        </div>
-      </div>
-
-      <div className="mb-8 grid gap-4 md:grid-cols-3">
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Connected</p>
-          <p className="mt-2 text-3xl font-bold text-foreground">{stats.connected}</p>
-        </div>
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Available</p>
-          <p className="mt-2 text-3xl font-bold text-foreground">{stats.available}</p>
-        </div>
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Still to connect</p>
-          <p className="mt-2 text-3xl font-bold text-accent">{stats.pending}</p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-[-0.04em] text-foreground">
+          Connected Apps
+        </h1>
+        <p className="mt-2 text-foreground/58">
+          Manage the services your automations can use during generation and
+          execution.
+        </p>
       </div>
 
       {error ? (
