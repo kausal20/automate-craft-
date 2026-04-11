@@ -1,4 +1,4 @@
-import SlideViewer from "@/components/SlideViewer";
+import SlideViewer from "../components/SlideViewer";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

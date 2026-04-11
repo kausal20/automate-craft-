@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { reportSlides } from "@/data/report-content";
+import { reportSlides } from "../data/report-content";
 import { ChevronLeft, ChevronRight, Download, FileText, Presentation } from "lucide-react";
-import { generateDocx } from "@/utils/generateDocx";
-import { generatePptx } from "@/utils/generatePptx";
+import { generateDocx } from "../utils/generateDocx";
+import { generatePptx } from "../utils/generatePptx";
 
 export default function SlideViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
