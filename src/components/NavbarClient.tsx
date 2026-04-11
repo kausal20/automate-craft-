@@ -7,6 +7,7 @@ import { Menu, X, Loader2, Coins, ChevronDown } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
 import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
+import { LoginModal } from "@/components/auth/LoginModal";
 
 const navigation = [
   { label: "Home", href: "/" },
@@ -41,6 +42,7 @@ export default function NavbarClient({
   const [isCheckingPlan, setIsCheckingPlan] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleScroll = useEffectEvent(() => {
     setScrolled(window.scrollY > 18);
@@ -112,8 +114,10 @@ export default function NavbarClient({
     router.refresh();
   };
 
-  const ctaHref = isAuthenticated ? "/dashboard" : "/signup";
+  const ctaHref = "/dashboard";
   const ctaLabel = isAuthenticated ? "Dashboard" : "Get Started";
+
+  if (isAuthenticated && isHome) return null;
 
   return (
     <>
@@ -129,7 +133,7 @@ export default function NavbarClient({
             <div className="flex items-center justify-between px-4 py-2 md:px-5">
               <BrandMark compact />
 
-              <div className={`hidden items-center gap-7 text-[0.95rem] font-medium text-foreground/72 lg:flex ${isHome ? "invisible pointer-events-none" : ""}`}>
+              <div className={`hidden items-center gap-7 text-[0.95rem] font-medium text-foreground/72 lg:flex ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" ? "invisible pointer-events-none" : ""}`}>
                 {navigation.map((item) => (
                   <Link
                     key={item.href}
@@ -143,7 +147,7 @@ export default function NavbarClient({
                 ))}
               </div>
 
-              <div className="hidden items-center gap-3 lg:flex">
+              <div className={`hidden items-center gap-3 lg:flex ${pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || (isAuthenticated && isHome) ? "invisible pointer-events-none" : ""}`}>
                 {isAuthenticated && (
                   <div className="relative" ref={popoverRef}>
                     <button
@@ -207,18 +211,27 @@ export default function NavbarClient({
                     )}
                   </div>
                 )}
-                <Link
-                  href={ctaHref}
-                  className="btn-dark button-hover inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] md:px-6"
-                >
-                  {ctaLabel}
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href={ctaHref}
+                    className="btn-dark button-hover inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] md:px-6"
+                  >
+                    {ctaLabel}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="btn-dark button-hover inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] md:px-6"
+                  >
+                    {ctaLabel}
+                  </button>
+                )}
               </div>
 
               <button
                 type="button"
                 onClick={() => setOpen((current) => !current)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-foreground shadow-[0_4px_16px_rgba(28,28,28,0.05)] lg:hidden"
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-foreground shadow-[0_4px_16px_rgba(28,28,28,0.05)] lg:hidden ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" ? "hidden" : ""}`}
                 aria-label={open ? "Close navigation menu" : "Open navigation menu"}
               >
                 {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -244,13 +257,25 @@ export default function NavbarClient({
                   </div>
                 ) : null}
 
-                <Link
-                  href={ctaHref}
-                  onClick={() => setOpen(false)}
-                  className="btn-dark button-hover mt-3 inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
-                >
-                  {ctaLabel}
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href={ctaHref}
+                    onClick={() => setOpen(false)}
+                    className="btn-dark button-hover mt-3 inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
+                  >
+                    {ctaLabel}
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      setShowLoginModal(true);
+                    }}
+                    className="btn-dark button-hover mt-3 inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
+                  >
+                    {ctaLabel}
+                  </button>
+                )}
                 {isAuthenticated && (
                   <button
                     onClick={handleBuyCreditsClick}
@@ -280,6 +305,11 @@ export default function NavbarClient({
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
         onSuccess={handleModalSuccess}
+      />
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+        nextUrl="/dashboard"
       />
     </>
   );

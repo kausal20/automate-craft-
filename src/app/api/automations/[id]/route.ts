@@ -22,6 +22,7 @@ const patchSchema = z
   .object({
     status: z.enum(["active", "paused"]).optional(),
     name: z.string().min(3).max(120).optional(),
+    touch: z.boolean().optional(),
     formInputs: automationConfigSchema.optional(),
     integrationStatus: z.record(z.string(), connectionStatusSchema).optional(),
   })

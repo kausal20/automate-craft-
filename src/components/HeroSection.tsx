@@ -9,9 +9,10 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { ArrowUp, Mic, X as XIcon } from "lucide-react";
+import { ArrowUp, Mic, X as XIcon, Paperclip } from "lucide-react";
 import HeroScene from "@/components/HeroScene";
 import SocialMiniButtons from "@/components/home/SocialMiniButtons";
+import { LoginModal } from "@/components/auth/LoginModal";
 import type { AuthenticatedUser } from "@/lib/automation";
 
 const promptExamples = [
@@ -39,6 +40,23 @@ export default function HeroSection({
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const heightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (text) {
+        const fileContent = `\n\n[Attached File: ${file.name}]\n${text}\n`;
+        setPrompt((prev) => prev + fileContent);
+      }
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  };
   
   const { scrollY } = useScroll();
   const heroYRaw = useTransform(scrollY, [0, 280, 700], [0, -16, -40]);
@@ -156,10 +174,14 @@ export default function HeroSection({
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="mx-auto max-w-4xl text-[3.3rem] font-semibold leading-[0.94] tracking-[-0.08em] text-foreground sm:text-[4.4rem] lg:text-[5.4rem]">
-                Build AI Automations Instantly
+                {user
+                  ? <>Ready to build Automation,<br /><span className="text-accent">{user.name || "there"}</span></>
+                  : "Build AI Automations Instantly"}
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-[1.02rem] leading-8 text-foreground/62 sm:text-lg">
-                Describe your workflow and get a ready-to-run automation.
+                {user
+                  ? "Describe what you need and we'll generate it for you."
+                  : "Describe your workflow and get a ready-to-run automation."}
               </p>
             </motion.div>
 
@@ -222,7 +244,7 @@ export default function HeroSection({
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: -15 }}
                               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                              className="absolute inset-0 text-white/40"
+                              className="absolute inset-0 text-accent/40"
                             >
                               {promptExamples[exampleIndex]}
                             </motion.div>
@@ -243,7 +265,7 @@ export default function HeroSection({
                             if (canSubmit) handleSubmit();
                           }
                         }}
-                        className="min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-white outline-none sm:min-h-[78px] sm:text-[1.05rem]"
+                        className="min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-accent outline-none sm:min-h-[78px] sm:text-[1.05rem]"
                       />
                     </div>
 
@@ -253,6 +275,23 @@ export default function HeroSection({
                       </p>
 
                       <div className="flex items-center gap-2.5 ml-auto">
+                        <input 
+                          type="file" 
+                          ref={fileInputRef} 
+                          onChange={handleFileUpload}
+                          className="hidden" 
+                          accept=".txt,.csv,.json,.md"
+                        />
+                        <motion.button
+                          onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                          type="button"
+                          aria-label="Attach file"
+                          whileTap={{ scale: 0.94 }}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                        </motion.button>
+
                         <motion.button
                           onClick={toggleListening}
                           type="button"
@@ -291,73 +330,11 @@ export default function HeroSection({
       </section>
 
       {/* Sign-in Modal for unauthenticated anonymous attempts */}
-      <AnimatePresence>
-        {showAuthModal ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-            onClick={() => setShowAuthModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-[420px] rounded-2xl border border-[#E5E7EB] bg-white p-8 shadow-[0_32px_80px_rgba(0,0,0,0.15)] text-center"
-            >
-              <button
-                type="button"
-                onClick={() => setShowAuthModal(false)}
-                className="absolute right-4 top-4 rounded-full p-1.5 text-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
-
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-foreground/5">
-                <svg className="h-7 w-7 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              </div>
-
-              <h3 className="text-xl font-semibold text-foreground tracking-[-0.02em]">
-                Sign in to continue
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/50">
-                Create a free account or sign in to generate and save your automations.
-              </p>
-
-              <div className="mt-7 flex flex-col gap-3">
-                <Link
-                  href={`/signup?next=${encodeURIComponent(`/setup?prompt=${encodeURIComponent(prompt)}`)}`}
-                  className="btn-dark button-hover inline-flex h-11 w-full items-center justify-center rounded-full px-6 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] transition-all"
-                >
-                  Create Free Account
-                </Link>
-                <Link
-                  href={`/login?next=${encodeURIComponent(`/setup?prompt=${encodeURIComponent(prompt)}`)}`}
-                  className="button-hover inline-flex h-11 w-full items-center justify-center rounded-full border border-[#E5E7EB] bg-white px-6 text-sm font-medium text-foreground transition-all hover:bg-black/[0.03]"
-                >
-                  Sign In
-                </Link>
-                
-                <SocialMiniButtons
-                  resumePath={`/setup?prompt=${encodeURIComponent(prompt)}`}
-                  socialAuthEnabled={socialAuthEnabled}
-                  ssoEnabled={ssoEnabled}
-                />
-              </div>
-
-              <p className="mt-5 text-[0.7rem] text-foreground/30">
-                No credit card required
-              </p>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      <LoginModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+        nextUrl={`/setup?prompt=${encodeURIComponent(prompt)}`} 
+      />
     </>
   );
 }

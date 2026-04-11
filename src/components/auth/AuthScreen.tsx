@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowRight,
   Building2,
@@ -140,7 +141,12 @@ export default function AuthScreen({
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAFAFA] px-4 py-12 sm:px-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(0,0,0,0.015),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(79,142,247,0.03),_transparent_40%)]" />
 
-      <section className="relative w-full max-w-[480px] rounded-3xl border border-black/[0.05] bg-white p-8 sm:p-12 shadow-[0_8px_40px_rgba(0,0,0,0.03)]">
+      <motion.section 
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, type: "spring", bounce: 0.3 }}
+        className="relative w-full max-w-[480px] rounded-[1.5rem] border border-black/[0.05] bg-white p-8 sm:p-12 shadow-[0_24px_50px_rgba(0,0,0,0.06)] ring-1 ring-black/5"
+      >
         <div className="mb-10 flex items-center justify-between">
           <BrandMark compact />
           <Link
@@ -313,7 +319,7 @@ export default function AuthScreen({
           <p className="mt-10 text-center text-[0.85rem] leading-6 text-foreground/45">
             By continuing, you agree to our Terms and Privacy Policy.
           </p>
-        </section>
+        </motion.section>
     </main>
   );
 }

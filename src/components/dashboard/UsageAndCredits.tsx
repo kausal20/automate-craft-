@@ -144,29 +144,17 @@ export function UsageAndCredits() {
           <div>
              <h4 className="font-bold text-red-900 text-lg">You're out of credits!</h4>
              <p className="font-medium text-red-800/80 mt-1">
-               Your automations have been paused. Please top up or upgrade to resume service.
+               Your automations have been paused.
              </p>
           </div>
-          <button 
-             onClick={() => setShowBuyModal(true)}
-             className="px-6 py-2.5 bg-red-600 text-white rounded-full font-bold text-sm hover:bg-red-700 transition"
-          >
-             Recharge Now
-          </button>
         </div>
       )}
 
       {isLowCredits && !isOutOfCredits && (
         <div className="mb-8 rounded-[1.5rem] bg-orange-50 p-5 ring-1 ring-orange-100 flex items-center justify-between">
           <p className="font-medium text-orange-800">
-            ⚠️ You’re running low on credits. Please recharge soon to avoid interruptions.
+            ⚠️ You’re running low on credits. Please contact support to recharge.
           </p>
-          <button 
-             onClick={() => setShowBuyModal(true)}
-             className="px-5 py-2 bg-orange-200 text-orange-900 rounded-full font-bold text-xs hover:bg-orange-300 transition uppercase tracking-wider"
-          >
-             Top Up
-          </button>
         </div>
       )}
 
@@ -174,21 +162,6 @@ export function UsageAndCredits() {
       <div className="flex flex-wrap gap-6">
         <UnifiedCreditCard />
         <UsageInsightPanel />
-      </div>
-
-      {/* Credit Actions */}
-      <div className="mt-8 flex flex-wrap gap-4">
-        <button
-          onClick={() => setShowBuyModal(true)}
-          className="group relative inline-flex h-12 min-w-[140px] items-center justify-center gap-2 overflow-hidden rounded-full bg-[#111111] px-6 text-sm font-semibold text-white shadow-[0_4px_14px_0_rgb(0,0,0,0.2)] transition-all hover:-translate-y-0.5"
-        >
-          <CreditCard className="h-4 w-4" />
-          Buy Credits
-        </button>
-        <button className="group relative inline-flex h-12 min-w-[140px] items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-6 text-sm font-semibold text-[#111111] shadow-[0_2px_8px_rgb(0,0,0,0.04)] transition-all hover:-translate-y-0.5" onClick={() => window.location.href = '/pricing'}>
-          <Rocket className="h-4 w-4" />
-          Upgrade Plan
-        </button>
       </div>
 
       {/* Usage History Table */}

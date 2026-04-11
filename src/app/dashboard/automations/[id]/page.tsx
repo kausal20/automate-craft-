@@ -104,6 +104,21 @@ export default function AutomationDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  useEffect(() => {
+    const touchAutomation = async () => {
+      try {
+        await fetch(`/api/automations/${automationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ touch: true }),
+        });
+      } catch (e) {
+        console.error("Failed to touch automation", e);
+      }
+    };
+    void touchAutomation();
+  }, [automationId]);
+
   const loadAutomation = async () => {
     console.log("[AutomationDetailPage] Loading automation.", automationId);
     setLoading(true);

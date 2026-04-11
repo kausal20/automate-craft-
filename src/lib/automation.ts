@@ -107,6 +107,7 @@ export type AuthenticatedUser = {
   email: string;
   name: string | null;
   mode: "supabase" | "local";
+  onboarded?: boolean;
 };
 
 export type AutomationRecord = {

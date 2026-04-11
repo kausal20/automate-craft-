@@ -87,6 +87,7 @@ async function getLocalUserFromCookie(): Promise<AuthenticatedUser | null> {
       email: user.email,
       name: user.name,
       mode: "local",
+      onboarded: !!(user as any).onboarded,
     };
   } catch {
     log.error("Failed to verify local session cookie.");
@@ -174,6 +175,7 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       email: data.user.email ?? "",
       name,
       mode: "supabase",
+      onboarded: !!data.user.user_metadata?.onboarded,
     };
   }
 
@@ -181,12 +183,17 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   return getLocalUserFromCookie();
 }
 
-export async function requireUser() {
+export async function requireUser({ requireOnboarding = true }: { requireOnboarding?: boolean } = {}) {
   const user = await getCurrentUser();
 
   if (!user) {
     log.info("No user found. Redirecting to /login.");
     redirect("/login");
+  }
+
+  if (requireOnboarding && !user.onboarded) {
+    log.info("User not onboarded. Redirecting to /onboarding.");
+    redirect("/onboarding");
   }
 
   return user;
@@ -244,6 +251,7 @@ export async function signUpWithCredentials(input: {
         email: normalizedEmail,
         name: input.name,
         mode: "supabase" as const,
+        onboarded: !!signUpResult.data.user.user_metadata?.onboarded,
       },
     };
   }
@@ -282,6 +290,7 @@ export async function signUpWithCredentials(input: {
       email: user.email,
       name: user.name,
       mode: "local" as const,
+      onboarded: !!(user as any).onboarded,
     },
   };
 }
@@ -323,6 +332,7 @@ export async function signInWithCredentials(input: {
         email: normalizedEmail,
         name,
         mode: "supabase" as const,
+        onboarded: !!signInResult.data.user.user_metadata?.onboarded,
       },
     };
   }
@@ -350,6 +360,7 @@ export async function signInWithCredentials(input: {
       email: user.email,
       name: user.name,
       mode: "local" as const,
+      onboarded: !!(user as any).onboarded,
     },
   };
 }

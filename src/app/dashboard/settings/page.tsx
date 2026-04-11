@@ -1,3 +1,4 @@
+import DeleteAccountSection from "@/components/dashboard/DeleteAccountSection";
 import {
   Bot,
   Database,
@@ -131,6 +132,8 @@ export default async function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <DeleteAccountSection />
     </div>
   );
 }

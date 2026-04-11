@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-corporate-blue: #0F3D6C;
+  --color-corporate-green: #2ecc71;
+  --color-background-start: #fdfdfd;
+  --color-background-end: #f0f4f8;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #475569;
+}
+
+body {
+  background: linear-gradient(135deg, var(--color-background-start) 0%, var(--color-background-end) 100%);
+  color: var(--color-text-primary);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
