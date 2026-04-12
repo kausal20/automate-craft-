@@ -1,18 +1,20 @@
 import { ChatContainer } from "@/components/chat/ChatContainer";
 
 interface ChatPageProps {
-  params: {
+  params: Promise<{
     chatId: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default function ChatPage({ params, searchParams }: ChatPageProps) {
-  const initialPrompt = typeof searchParams.prompt === "string" ? searchParams.prompt : undefined;
+export default async function ChatPage({ params, searchParams }: ChatPageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const initialPrompt = typeof resolvedSearchParams.prompt === "string" ? resolvedSearchParams.prompt : undefined;
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-[#0a0a0a]">
-      <ChatContainer chatId={params.chatId} initialPrompt={initialPrompt} />
+      <ChatContainer chatId={resolvedParams.chatId} initialPrompt={initialPrompt} />
     </div>
   );
 }

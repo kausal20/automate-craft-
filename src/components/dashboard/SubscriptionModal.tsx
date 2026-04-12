@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { useGeoPricing } from "@/hooks/useGeoPricing";
 
 export function SubscriptionModal({
   isOpen,
@@ -16,25 +17,26 @@ export function SubscriptionModal({
 }) {
   const router = useRouter();
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const { formatPrice } = useGeoPricing();
 
   const plans = [
     {
       id: "plan_starter",
       name: "Starter",
-      price: "₹999",
+      priceInr: 999,
       credits: "300 Runs / 50 Builds",
     },
     {
       id: "plan_plus",
       name: "Plus",
-      price: "₹2000",
+      priceInr: 2000,
       credits: "1200 Runs / 150 Builds",
       highlighted: true,
     },
     {
       id: "plan_pro",
       name: "Pro",
-      price: "₹3500",
+      priceInr: 3500,
       credits: "5000 Runs / 500 Builds",
     },
   ];
@@ -110,7 +112,7 @@ export function SubscriptionModal({
                   <div>
                     <h4 className="font-bold text-white">{plan.name}</h4>
                     <div className="my-3">
-                      <span className="text-2xl font-bold text-white">{plan.price}</span>
+                      <span className="text-2xl font-bold text-white">{formatPrice(plan.priceInr)}</span>
                       <span className="text-sm text-white/40">/mo</span>
                     </div>
                     <div className="flex items-start gap-2 text-sm font-medium text-white/60">

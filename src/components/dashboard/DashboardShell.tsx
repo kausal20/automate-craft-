@@ -20,6 +20,7 @@ import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
 import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
 import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
+import { SettingsModal } from "@/components/dashboard/SettingsModal";
 
 type RecentItem = {
   id: string;
@@ -52,6 +53,7 @@ export default function DashboardShell({
   const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const creditsRef = useRef<HTMLDivElement>(null);
 
@@ -132,7 +134,6 @@ export default function DashboardShell({
 
   const navItems = [
     { name: "Home", href: "/", icon: LayoutDashboard },
-    { name: "Workspace", href: "/dashboard/chat", icon: Sparkles },
   ];
 
   const projectItems = [
@@ -321,22 +322,26 @@ export default function DashboardShell({
               isCollapsed ? "left-2 w-[160px]" : "left-4 right-4"
             }`}>
               <div className="p-1.5 underline-none">
-                <Link
-                  href="/dashboard/settings"
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 transition-all ${isChatWorkspace ? "hover:bg-black/[0.04] hover:text-foreground" : "hover:bg-white/5 hover:text-foreground"}`}
-                  onClick={() => setIsUserMenuOpen(false)}
+                <button
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 transition-all ${isChatWorkspace ? "hover:bg-black/[0.04] hover:text-foreground" : "hover:bg-white/5 hover:text-foreground"}`}
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setShowSettingsModal(true);
+                  }}
                 >
                   <User className="h-4 w-4" />
                   Profile
-                </Link>
-                <Link
-                  href="/dashboard/settings"
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 transition-all ${isChatWorkspace ? "hover:bg-black/[0.04] hover:text-foreground" : "hover:bg-white/5 hover:text-foreground"}`}
-                  onClick={() => setIsUserMenuOpen(false)}
+                </button>
+                <button
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 transition-all ${isChatWorkspace ? "hover:bg-black/[0.04] hover:text-foreground" : "hover:bg-white/5 hover:text-foreground"}`}
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setShowSettingsModal(true);
+                  }}
                 >
                   <Settings className="h-4 w-4" />
                   Settings
-                </Link>
+                </button>
                 <div className={`my-1 border-t ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`} />
                 <button
                   onClick={handleSignOut}
@@ -358,12 +363,12 @@ export default function DashboardShell({
           <div className="fixed right-20 top-6 z-30" ref={creditsRef}>
           <button
             onClick={() => setIsCreditsOpen(!isCreditsOpen)}
-            className="flex items-center gap-2.5 rounded-full bg-white/5 px-4 py-2 shadow-[0_8px_20px_rgba(0,0,0,0.5)] border border-white/5 transition-all hover:scale-105 active:scale-95 group"
+            className="flex items-center gap-2.5 rounded-full bg-[#3B82F6] px-4 py-2 shadow-[0_8px_20px_rgba(59,130,246,0.3)] border border-[#3B82F6] transition-all hover:scale-105 active:scale-95 hover:bg-[#2563EB] group"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3B82F6]/10">
-              <Coins className="h-3.5 w-3.5 text-[#3B82F6]" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+              <Coins className="h-3.5 w-3.5 text-white" />
             </div>
-            <span className="text-sm font-bold text-foreground">
+            <span className="text-sm font-bold text-white">
               {creditsData ? creditsData.totalCredits.toFixed(2) : "..." }
             </span>
           </button>
@@ -458,6 +463,11 @@ export default function DashboardShell({
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
         onSuccess={handleModalSuccess}
+      />
+      <SettingsModal 
+        isOpen={showSettingsModal} 
+        onClose={() => setShowSettingsModal(false)} 
+        user={user} 
       />
     </div>
   );

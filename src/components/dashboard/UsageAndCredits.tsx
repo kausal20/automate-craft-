@@ -102,24 +102,24 @@ export function UsageAndCredits() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.1 }}
-      className="flex min-w-[280px] flex-1 flex-col justify-center gap-6 rounded-[2.5rem] bg-white p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.04]"
+      className="flex min-w-[280px] flex-1 flex-col justify-center gap-6 rounded-[2.5rem] bg-[#111111] p-10 shadow-[0_12px_40px_rgb(0,0,0,0.12)] ring-1 ring-white/10"
     >
-      <h3 className="text-sm font-bold uppercase tracking-wider text-[#6B7280]">
+      <h3 className="text-sm font-bold uppercase tracking-wider text-white/50">
         Monthly Insights
       </h3>
-      <div className="flex items-center justify-between border-b border-black/[0.04] pb-5">
-        <span className="text-[#6B7280]">Credits consumed</span>
-        <span className="text-xl font-bold text-[#111111]">{data.monthlyUsage.toLocaleString()}</span>
+      <div className="flex items-center justify-between border-b border-white/10 pb-5">
+        <span className="text-white/60">Credits consumed</span>
+        <span className="text-xl font-bold text-white">{data.monthlyUsage.toLocaleString()}</span>
       </div>
-      <div className="flex items-center justify-between border-b border-black/[0.04] pb-5">
-        <span className="text-[#6B7280]">Total automations created</span>
-        <span className="text-xl font-bold text-[#111111]">
+      <div className="flex items-center justify-between border-b border-white/10 pb-5">
+        <span className="text-white/60">Total automations created</span>
+        <span className="text-xl font-bold text-white">
           {data.usageHistory.filter((l) => l.action.includes("Generated")).length}
         </span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-[#6B7280]">Total executions run</span>
-        <span className="text-xl font-bold text-[#111111]">
+        <span className="text-white/60">Total executions run</span>
+        <span className="text-xl font-bold text-white">
           {data.usageHistory.filter((l) => l.action.toLowerCase().includes("execut") || l.action.toLowerCase().includes("sent") || l.action.toLowerCase().includes("run")).length}
         </span>
       </div>
@@ -127,13 +127,13 @@ export function UsageAndCredits() {
   );
 
   return (
-    <section className="mt-16 sm:mt-24">
+    <section className="mt-0">
       <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-[-0.04em] text-[#111111]">
+          <h2 className="text-3xl font-bold tracking-[-0.04em] text-[#3B82F6]">
             Usage & Credits
           </h2>
-          <p className="mt-2 text-[#6B7280]">
+          <p className="mt-2 text-white/50">
             Monitor your workspace consumption and recharge globally across all workflows.
           </p>
         </div>
@@ -165,24 +165,24 @@ export function UsageAndCredits() {
       </div>
 
       {/* Usage History Table */}
-      <div className="mt-16 rounded-[2.5rem] bg-white p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.04]">
-        <h3 className="mb-8 text-xl font-bold tracking-tight text-[#111111]">
+      <div className="mt-16 rounded-[2.5rem] bg-[#111111] p-8 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.5)] ring-1 ring-white/10">
+        <h3 className="mb-8 text-xl font-bold tracking-tight text-white">
           Usage History
         </h3>
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-black/[0.08] text-[#6B7280]">
+              <tr className="border-b border-white/10 text-white/50">
                 <th className="pb-4 font-medium uppercase tracking-wider text-[11px]">Date</th>
                 <th className="pb-4 font-medium uppercase tracking-wider text-[11px]">Action</th>
                 <th className="pb-4 font-medium uppercase tracking-wider text-[11px]">Cost</th>
                 <th className="pb-4 font-medium uppercase tracking-wider text-[11px]">Status</th>
               </tr>
             </thead>
-            <tbody className="text-[#111111]">
+            <tbody className="text-white">
               {data.usageHistory.map((log) => (
-                <tr key={log.id} className="border-b border-black/[0.04] last:border-0 hover:bg-black/[0.02] transition-colors">
-                  <td className="py-5 text-[#6B7280]">
+                <tr key={log.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                  <td className="py-5 text-white/50">
                     {new Date(log.createdAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -191,15 +191,15 @@ export function UsageAndCredits() {
                     })}
                   </td>
                   <td className="py-5 font-semibold">{log.action}</td>
-                  <td className="py-5 font-bold text-red-600">
+                  <td className="py-5 font-bold text-red-400">
                      {log.creditsUsed > 0 ? `-${log.creditsUsed}` : log.creditsUsed}
                   </td>
                   <td className="py-5">
                     <span
                       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
                         log.status === "Success"
-                          ? "bg-green-50 text-green-700"
-                          : "bg-red-50 text-red-700"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-500"
                       }`}
                     >
                       {log.status}
@@ -209,9 +209,9 @@ export function UsageAndCredits() {
               ))}
               {data.usageHistory.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-[#6B7280]">
+                  <td colSpan={4} className="py-12 text-center text-white/50">
                     <div className="flex flex-col items-center justify-center">
-                       <History className="h-8 w-8 text-black/10 mb-3" />
+                       <History className="h-8 w-8 text-white/10 mb-3" />
                        <span className="font-medium">No usage history found.</span>
                     </div>
                   </td>

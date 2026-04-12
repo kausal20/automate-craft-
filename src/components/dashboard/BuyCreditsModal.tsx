@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useGeoPricing } from "@/hooks/useGeoPricing";
 
 export function BuyCreditsModal({
   isOpen,
@@ -16,6 +17,7 @@ export function BuyCreditsModal({
   const [buying, setBuying] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
+  const { formatPrice } = useGeoPricing();
 
   const handleBuyCredits = async () => {
     if (!selectedPackage) return;
@@ -42,11 +44,11 @@ export function BuyCreditsModal({
   };
 
   const packages = [
-    { id: "pkg_600", credits: 600, price: "₹1,080", popular: true },
-    { id: "pkg_3600", credits: 3600, price: "₹6,480" },
-    { id: "pkg_7200", credits: 7200, price: "₹12,960" },
-    { id: "pkg_14400", credits: 14400, price: "₹25,920" },
-    { id: "pkg_30000", credits: 30000, price: "₹54,000" },
+    { id: "pkg_600", credits: 600, priceInr: 1080, popular: true },
+    { id: "pkg_3600", credits: 3600, priceInr: 6480 },
+    { id: "pkg_7200", credits: 7200, priceInr: 12960 },
+    { id: "pkg_14400", credits: 14400, priceInr: 25920 },
+    { id: "pkg_30000", credits: 30000, priceInr: 54000 },
   ];
 
   return (
@@ -105,7 +107,7 @@ export function BuyCreditsModal({
                     </div>
                     <div className="flex flex-col items-end">
                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Price</span>
-                       <span className="text-xl font-bold text-accent">{pkg.price}</span>
+                       <span className="text-xl font-bold text-accent">{formatPrice(pkg.priceInr)}</span>
                     </div>
                   </div>
 
@@ -129,7 +131,7 @@ export function BuyCreditsModal({
                    <span className="text-sm font-bold text-white">Custom Amount</span>
                    {selectedPackage === "custom" && customAmount && (
                      <span className="text-xl font-bold text-accent">
-                       ₹{Math.round(parseInt(customAmount, 10) * 1.8).toLocaleString()}
+                       {formatPrice(Math.round(parseInt(customAmount, 10) * 1.8), false)}
                      </span>
                    )}
                 </div>

@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
+import { SplashScreen } from "@/components/SplashScreen";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,6 +27,7 @@ export default function RootLayout({
       className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
+        <SplashScreen />
         <AppChrome navbar={<Navbar />} footer={<Footer />}>
           {children}
         </AppChrome>
