@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X } from "lucide-react";
+import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { InteractiveCanvas, type FlowNode } from "./InteractiveCanvas";
 
@@ -145,6 +145,11 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  const [ultraThinking, setUltraThinking] = useState(false);
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const isStarterPlan = true; // Mocked state for testing
+
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -248,6 +253,11 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     setAttachedFiles([]);
     addMessage("user", input);
 
+    if (ultraThinking) {
+      addMessage("system", "Using advanced reasoning mode...");
+      await new Promise(r => setTimeout(r, 600));
+    }
+
     if (step === "wait_message") {
       setWorkspaceState("ready_to_build");
       addMessage("system", "Structuring workflow logic...");
@@ -303,6 +313,75 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
   return (
     <div className="flex h-full w-full bg-[#0a0a0a] overflow-hidden relative justify-center">
+
+      {/* Absolute Full Width Header */}
+      <div className="absolute top-0 left-0 w-full flex h-[60px] shrink-0 items-center justify-between px-6 z-50 bg-[#0a0a0a]">
+        <div className="relative flex items-center" ref={dropdownRef}>
+          <div className="flex items-center gap-1">
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={draftTitle}
+                onChange={(event) => setDraftTitle(event.target.value)}
+                onBlur={saveTitle}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") { event.preventDefault(); saveTitle(); }
+                  if (event.key === "Escape") { setDraftTitle(chatTitle); setIsEditingTitle(false); }
+                }}
+                className="h-8 w-[170px] rounded-lg border border-white/10 bg-[#151515] px-3 text-[13px] font-semibold tracking-wide text-white outline-none focus:border-white/20"
+              />
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-2 rounded-lg px-2 py-1.5 -ml-2 text-white/78 transition-colors hover:bg-white/5 hover:text-white focus:outline-none"
+                >
+                  <span className="text-[14px] font-semibold tracking-wide">{chatTitle}</span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-white/40 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDraftTitle(chatTitle); setIsDropdownOpen(false); setIsEditingTitle(true); }}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-white/38 transition-colors hover:bg-white/5 hover:text-white/72"
+                >
+                  <PenLine className="h-3.5 w-3.5" />
+                </button>
+              </>
+            )}
+
+            {ultraThinking && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="ml-2 flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/5 px-2 py-0.5"
+              >
+                <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent shadow-[0_0_6px_rgba(79,142,247,0.8)]" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-accent/90">Ultra Mode</span>
+              </motion.div>
+            )}
+          </div>
+          
+          <AnimatePresence>
+            {isDropdownOpen && !isEditingTitle && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                className="absolute left-0 top-full mt-1 w-48 rounded-xl border border-[#222] bg-[#1a1a1a] shadow-2xl overflow-hidden py-1 z-50"
+              >
+                <button
+                  onClick={() => { setIsStarred((current) => !current); setIsDropdownOpen(false); }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current text-blue-500" : "text-white/45"}`} />
+                  {isStarred ? "Unstar Project" : "Star Project"}
+                </button>
+                <Link href="/" className="flex px-4 py-2.5 text-[13px] font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white">
+                  Go to Homepage
+                </Link>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
       
       {/* Dynamic Morphing Chat Area */}
       <motion.div 
@@ -310,64 +389,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         transition={{ type: "spring", bounce: 0, duration: 0.8, ease: "easeInOut" }}
         className="relative flex flex-col z-20 shadow-2xl h-full w-full max-w-[1200px] bg-[#0a0a0a]"
       >
-        <div className="flex h-[60px] shrink-0 items-center justify-between px-6 sticky top-0 z-20 bg-[#0a0a0a]">
-          <div className="relative flex items-center" ref={dropdownRef}>
-            <div className="flex items-center gap-1">
-              {isEditingTitle ? (
-                <input
-                  ref={titleInputRef}
-                  value={draftTitle}
-                  onChange={(event) => setDraftTitle(event.target.value)}
-                  onBlur={saveTitle}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") { event.preventDefault(); saveTitle(); }
-                    if (event.key === "Escape") { setDraftTitle(chatTitle); setIsEditingTitle(false); }
-                  }}
-                  className="h-8 w-[170px] rounded-lg border border-white/10 bg-[#151515] px-3 text-[13px] font-semibold tracking-wide text-white outline-none focus:border-white/20"
-                />
-              ) : (
-                <>
-                  <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 -ml-2 text-white/78 transition-colors hover:bg-white/5 hover:text-white focus:outline-none"
-                  >
-                    <span className="text-[14px] font-semibold tracking-wide">{chatTitle}</span>
-                    <ChevronDown className={`h-3.5 w-3.5 text-white/40 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setDraftTitle(chatTitle); setIsDropdownOpen(false); setIsEditingTitle(true); }}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-white/38 transition-colors hover:bg-white/5 hover:text-white/72"
-                  >
-                    <PenLine className="h-3.5 w-3.5" />
-                  </button>
-                </>
-              )}
-            </div>
-            
-            <AnimatePresence>
-              {isDropdownOpen && !isEditingTitle && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute left-0 top-full mt-1 w-48 rounded-xl border border-[#222] bg-[#1a1a1a] shadow-2xl overflow-hidden py-1 z-50"
-                >
-                  <button
-                    onClick={() => { setIsStarred((current) => !current); setIsDropdownOpen(false); }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white"
-                  >
-                    <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-current text-blue-500" : "text-white/45"}`} />
-                    {isStarred ? "Unstar Project" : "Star Project"}
-                  </button>
-                  <Link href="/" className="flex px-4 py-2.5 text-[13px] font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white">
-                    Go to Homepage
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-6 pb-28 pt-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 pb-28 pt-[84px] custom-scrollbar">
           <AnimatePresence initial={false}>
             {messages.map((msg) => (
               <motion.div 
@@ -423,7 +445,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
               }}
               placeholder={isInputDisabled ? "Thinking..." : "Message Agent"}
               disabled={isInputDisabled}
-              className="w-full min-h-[48px] max-h-[200px] resize-none bg-transparent text-[15px] pt-1 text-white outline-none placeholder:text-white/30 disabled:cursor-not-allowed px-1 custom-scrollbar"
+              className="caret-accent w-full min-h-[48px] max-h-[200px] resize-none bg-transparent text-[15px] pt-1 text-white outline-none placeholder:text-white/30 disabled:cursor-not-allowed px-1 custom-scrollbar"
             />
 
             {/* Bottom Actions Row */}
@@ -444,6 +466,57 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                   onChange={handleFileAttach}
                   multiple 
                 />
+
+                {/* Ultra Thinking Toggle */}
+                <div className="relative flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isStarterPlan) {
+                        setShowUpgradePopup(true);
+                      } else {
+                        setUltraThinking(!ultraThinking);
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-300 ${
+                      ultraThinking
+                        ? "bg-accent/10 text-accent ring-1 ring-accent/30 shadow-[0_0_8px_rgba(79,142,247,0.2)]"
+                        : "bg-[#1a1a1a] text-white/50 hover:bg-[#222] hover:text-white"
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Ultra Thinking
+                  </button>
+
+                  <AnimatePresence>
+                    {showUpgradePopup && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute bottom-[calc(100%+12px)] left-0 w-64 rounded-xl border border-[#222] bg-[#1a1a1a] p-4 shadow-xl z-50 origin-bottom-left"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setShowUpgradePopup(false)}
+                          className="absolute right-2 top-2 rounded-md p-1 text-white/40 hover:bg-white/5 hover:text-white"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                        <p className="text-[13px] text-white/80 pr-4 leading-relaxed">
+                          Ultra Thinking is available in Plus and above plans.
+                        </p>
+                        <Link
+                          href="/pricing"
+                          onClick={() => setShowUpgradePopup(false)}
+                          className="mt-3 block w-full rounded-lg bg-white py-1.5 text-center text-[13px] font-bold text-black transition-colors hover:bg-white/90 shadow-md hover:scale-[1.02]"
+                        >
+                          Upgrade to Plus
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                 
                 {/* Show attached files */}
                 {attachedFiles.map(file => (

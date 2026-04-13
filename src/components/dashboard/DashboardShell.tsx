@@ -167,7 +167,7 @@ export default function DashboardShell({
             className="group relative flex items-center transition-transform hover:scale-105 active:scale-95"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <BrandMark compact href="#" />
+            <BrandMark compact href="#" showName={!isCollapsed} />
           </button>
         </div>
 

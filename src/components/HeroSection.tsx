@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { ArrowUp, Mic, X as XIcon, Paperclip } from "lucide-react";
+import { ArrowUp, Mic, X as XIcon, Paperclip, Sparkles, X } from "lucide-react";
 import HeroScene from "@/components/HeroScene";
 import SocialMiniButtons from "@/components/home/SocialMiniButtons";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -37,6 +37,10 @@ export default function HeroSection({
   const [isListening, setIsListening] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   
+  const [ultraThinking, setUltraThinking] = useState(false);
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const isStarterPlan = true;
+
   const promptRef = useRef<HTMLTextAreaElement>(null);
   const heightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -266,16 +270,12 @@ export default function HeroSection({
                             if (canSubmit) handleSubmit();
                           }
                         }}
-                        className="min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-white outline-none sm:min-h-[78px] sm:text-[1.05rem]"
+                        className="caret-accent min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-white outline-none sm:min-h-[78px] sm:text-[1.05rem]"
                       />
                     </div>
 
                     <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-3.5">
-                      <p className="text-[0.7rem] font-medium tracking-[0.02em] text-white/30 hidden sm:block">
-                        Press Enter to generate
-                      </p>
-
-                      <div className="flex items-center gap-2.5 ml-auto">
+                      <div className="flex items-center gap-2.5">
                         <input 
                           type="file" 
                           ref={fileInputRef} 
@@ -293,6 +293,69 @@ export default function HeroSection({
                           <Paperclip className="h-4 w-4" />
                         </motion.button>
 
+                        <div className="relative flex items-center z-20">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isStarterPlan) {
+                                setShowUpgradePopup(true);
+                              } else {
+                                setUltraThinking(!ultraThinking);
+                              }
+                            }}
+                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-300 ${
+                              ultraThinking
+                                ? "bg-accent/10 text-accent ring-1 ring-accent/30 shadow-[0_0_8px_rgba(79,142,247,0.2)]"
+                                : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Ultra Thinking</span>
+                          </button>
+
+                          <AnimatePresence>
+                            {showUpgradePopup && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="absolute bottom-[calc(100%+12px)] left-0 w-[260px] rounded-xl border border-[#222] bg-[#1a1a1a] p-4 shadow-xl z-50 origin-bottom-left"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowUpgradePopup(false);
+                                  }}
+                                  className="absolute right-2 top-2 rounded-md p-1 text-white/40 hover:bg-white/5 hover:text-white"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                                <p className="text-[13px] text-white/80 pr-4 leading-relaxed">
+                                  Ultra Thinking is available in Plus and above plans.
+                                </p>
+                                <Link
+                                  href="/pricing"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowUpgradePopup(false);
+                                  }}
+                                  className="mt-3 block w-full rounded-lg bg-white py-1.5 text-center text-[13px] font-bold text-black transition-colors hover:bg-white/90 shadow-md hover:scale-[1.02]"
+                                >
+                                  Upgrade to Plus
+                                </Link>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        <p className="text-[0.7rem] font-medium tracking-[0.02em] text-white/30 hidden sm:block ml-1">
+                          Press Enter to generate
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 ml-auto">
                         <motion.button
                           onClick={toggleListening}
                           type="button"

@@ -105,7 +105,7 @@ export default function OnboardingFlow({ user }: { user: AuthenticatedUser }) {
       <div className="card-surface relative w-full max-w-[460px] rounded-[1.5rem] p-8 mx-4 overflow-hidden">
         
         <div className="mb-8 pl-1">
-          <BrandMark compact />
+          <BrandMark compact showName />
         </div>
 
         <div className="relative w-full min-h-[300px]">
@@ -123,7 +123,7 @@ export default function OnboardingFlow({ user }: { user: AuthenticatedUser }) {
               >
                 <div className="mb-6">
                   <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                    What&apos;s your name?
+                    What should we call you?
                   </h1>
                   <p className="mt-2 text-[0.95rem] text-foreground/50">
                     Let's personalize your AutomateCraft experience.

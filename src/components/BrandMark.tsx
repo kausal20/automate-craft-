@@ -5,15 +5,17 @@ type BrandMarkProps = {
   compact?: boolean;
   href?: string;
   white?: boolean;
+  showName?: boolean;
 };
 
 export default function BrandMark({
   compact = false,
   href = "/",
   white = false,
+  showName = false,
 }: BrandMarkProps) {
   const content = (
-    <div className="flex items-center">
+    <div className="flex items-center gap-2.5">
       <div className="relative flex items-center justify-center">
         <Image
           src="/logo-new.png"
@@ -24,6 +26,12 @@ export default function BrandMark({
           priority
         />
       </div>
+      {showName && (
+        <span className="text-[1.15rem] font-bold tracking-tight drop-shadow-sm">
+          <span className="text-white">Automate</span>
+          <span className="text-[#3b82f6]">Craft</span>
+        </span>
+      )}
     </div>
   );
 

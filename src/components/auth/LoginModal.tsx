@@ -76,7 +76,7 @@ export function LoginModal({ isOpen, onClose, nextUrl }: LoginModalProps) {
 
         <div className="mb-8">
           <div className="mb-6">
-            <BrandMark compact />
+            <BrandMark compact showName={true} />
           </div>
           <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">Log in to your account</h2>
           <p className="mt-2 text-sm text-foreground/50">Start building automations and managing workflows.</p>

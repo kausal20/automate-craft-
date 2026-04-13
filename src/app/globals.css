@@ -37,8 +37,9 @@ a {
 }
 
 .btn-dark:hover {
-  background-color: #ffffff !important;
-  color: #0a0a0a !important;
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
 }
 
 .btn-dark:disabled {

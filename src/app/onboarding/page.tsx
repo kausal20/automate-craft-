@@ -14,10 +14,10 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  // If already onboarded, send them to dashboard immediately
-  if (user.onboarded) {
-    redirect("/");
-  }
+  // Temporarily commented out for testing so you can view the page
+  // if (user.onboarded) {
+  //   redirect("/");
+  // }
 
   return <OnboardingFlow user={user} />;
 }

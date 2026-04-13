@@ -131,9 +131,9 @@ export default function NavbarClient({
             }`}
           >
             <div className="flex items-center justify-between px-4 py-2 md:px-5">
-              <BrandMark compact />
+              <BrandMark compact showName />
 
-              <div className={`hidden items-center gap-7 text-[0.95rem] font-medium text-foreground/72 lg:flex ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" ? "invisible pointer-events-none" : ""}`}>
+              <div className={`hidden items-center gap-7 text-[0.95rem] font-medium text-foreground/72 lg:flex ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname === "/lets-talk" ? "invisible pointer-events-none" : ""}`}>
                 {navigation.map((item) => (
                   <Link
                     key={item.href}
@@ -147,7 +147,7 @@ export default function NavbarClient({
                 ))}
               </div>
 
-              <div className={`hidden items-center gap-3 lg:flex ${pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || (isAuthenticated && isHome) ? "invisible pointer-events-none" : ""}`}>
+              <div className={`hidden items-center gap-3 lg:flex ${pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname === "/lets-talk" || (isAuthenticated && isHome) ? "invisible pointer-events-none" : ""}`}>
                 {isAuthenticated && (
                   <div className="relative" ref={popoverRef}>
                     <button
@@ -219,19 +219,27 @@ export default function NavbarClient({
                     {ctaLabel}
                   </Link>
                 ) : (
-                  <button
-                    onClick={() => setShowLoginModal(true)}
-                    className="btn-dark button-hover inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] md:px-6"
-                  >
-                    {ctaLabel}
-                  </button>
+                  <div className="flex items-center gap-4">
+                    <Link
+                      href="/login"
+                      className="text-sm font-bold text-white/70 hover:text-white transition-colors"
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="btn-dark button-hover inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] md:px-6"
+                    >
+                      Get Started
+                    </Link>
+                  </div>
                 )}
               </div>
 
               <button
                 type="button"
                 onClick={() => setOpen((current) => !current)}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] lg:hidden ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" ? "hidden" : ""}`}
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] lg:hidden ${isHome || pathname === "/login" || pathname === "/signup" || pathname === "/onboarding" || pathname === "/lets-talk" ? "hidden" : ""}`}
                 aria-label={open ? "Close navigation menu" : "Open navigation menu"}
               >
                 {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -266,15 +274,22 @@ export default function NavbarClient({
                     {ctaLabel}
                   </Link>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setOpen(false);
-                      setShowLoginModal(true);
-                    }}
-                    className="btn-dark button-hover mt-3 inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
-                  >
-                    {ctaLabel}
-                  </button>
+                  <div className="mt-4 flex flex-col gap-3">
+                    <Link
+                      href="/login"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      href="/signup"
+                      onClick={() => setOpen(false)}
+                      className="btn-dark button-hover inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
+                    >
+                      Get Started
+                    </Link>
+                  </div>
                 )}
                 {isAuthenticated && (
                   <button

@@ -157,7 +157,7 @@ export default function AuthScreen({
         className="card-surface relative w-full max-w-[480px] rounded-[1.5rem] p-8 sm:p-12 text-foreground"
       >
         <div className="mb-10 flex items-center justify-between">
-          <BrandMark compact />
+          <BrandMark compact showName={true} />
           <Link
             href="/"
             className="text-sm font-medium text-foreground/56 transition-colors hover:text-accent"

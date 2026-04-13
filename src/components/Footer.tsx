@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="site-container py-20">
         <div className="grid gap-14 md:grid-cols-[1.2fr_0.8fr]">
           <div className="max-w-sm">
-            <BrandMark compact={false} />
+            <BrandMark compact={false} showName />
             <p className="mt-4 text-sm leading-7 text-subtle">
               Our platform helps teams turn manual work into clear, dependable
               AI automations.
