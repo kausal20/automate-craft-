@@ -16,7 +16,8 @@ export default function AppChrome({
   const hideChrome =
     pathname.startsWith("/dashboard") ||
     pathname === "/login" ||
-    pathname === "/signup";
+    pathname === "/signup" ||
+    pathname === "/how-credits-work";
   const hideFooter = hideChrome || pathname === "/";
 
   return (

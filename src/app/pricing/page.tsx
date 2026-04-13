@@ -42,8 +42,10 @@ const plans: Plan[] = [
       { credits: "2000", priceMonthlyInr: 3499, priceYearlyInr: 2916, billedYearlyInr: 34990, idSuffix: "_2k" },
     ],
     features: [
-      "Basic automations",
-      "Email support",
+      "Simple automation workflows",
+      "Form to email alerts",
+      "Basic tool connections",
+      "Limited workflow steps",
     ],
     cta: "Get Started",
   },
@@ -58,9 +60,10 @@ const plans: Plan[] = [
       { credits: "5,000", priceMonthlyInr: 5999, priceYearlyInr: 4999, billedYearlyInr: 59990, idSuffix: "_5k" },
     ],
     features: [
-      "WhatsApp + Email + CRM",
-      "Faster execution",
-      "Priority support",
+      "Multi-step automations",
+      "CRM and WhatsApp workflows",
+      "Multiple tool connections",
+      "Faster execution speed",
     ],
     cta: "Get Started",
     highlighted: true,
@@ -76,10 +79,10 @@ const plans: Plan[] = [
       { credits: "10,000", priceMonthlyInr: 9999, priceYearlyInr: 8333, billedYearlyInr: 99990, idSuffix: "_10k" },
     ],
     features: [
-      "Advanced workflows",
-      "Priority execution speed",
-      "Advanced analytics",
-      "Dedicated support",
+      "Complex workflow automation",
+      "Conditional logic flows",
+      "High execution priority",
+      "Large scale automation",
     ],
     cta: "Get Started",
   },
@@ -92,11 +95,12 @@ const plans: Plan[] = [
     audience: "For high-scale needs",
     description: "For teams that need fully customized automation solutions and infrastructure.",
     features: [
-      "Custom credits",
-      "Unlimited workflows",
-      "Dedicated infrastructure",
-      "Custom integrations",
-      "Account manager",
+      "Unlimited workflow execution",
+      "Custom automation systems",
+      "Dedicated infrastructure setup",
+      "Custom integrations support",
+      "Dedicated account manager",
+      "Priority support access",
     ],
     cta: "Contact Us",
   },
@@ -369,31 +373,31 @@ export default function PricingPage() {
           ))}
         </div>
 
-        <div className="mx-auto mt-24 max-w-3xl rounded-[2rem] bg-white/5 p-10 ring-1 ring-white/10">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/5 shadow-sm ring-1 ring-white/10">
-              <Sparkles className="h-6 w-6 text-accent" />
+        {/* Highlighted How Credits Work Link */}
+        <div className="mt-20 flex justify-center">
+          <Link 
+            href="/how-credits-work" 
+            className="group relative inline-flex items-center gap-4 rounded-3xl bg-[#0a0a0a] px-8 py-5 ring-1 ring-white/10 hover:ring-accent/40 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-accent/10"
+          >
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-accent/0 via-accent/5 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-accent/10 text-accent ring-1 ring-accent/20 group-hover:bg-accent/20 transition-colors">
+              <Sparkles className="h-6 w-6" />
             </div>
-            <div>
-              <h3 className="text-2xl font-bold tracking-tight text-white">What are credits?</h3>
-              <div className="mt-4 grid gap-6 sm:grid-cols-2">
-                <div>
-                  <h4 className="font-bold text-white">Automation Creation</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-white/50">
-                    Whenever you generate a new automation utilizing AI, it utilizes a one-time fixed cost.<br className="hidden sm:block" />
-                    <strong>1 Automation Generate = 5 Credits</strong>
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-bold text-white">Automation Execution</h4>
-                  <p className="mt-2 text-sm leading-relaxed text-white/50">
-                    Whenever an active automation successfully executes limits are consumed. Certain powerful integrations like WhatsApp cost more.<br className="hidden sm:block" />
-                    <strong>Base Execution = 5 Credits</strong> (+2 WhatsApp, +1 Email, +1 CRM)
-                  </p>
-                </div>
-              </div>
+            
+            <div className="flex flex-col text-left">
+              <span className="text-[17px] font-bold text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
+                Wondering how credits work?
+              </span>
+              <span className="text-[14px] text-white/50 mt-0.5">
+                Learn exactly how simple and fair our pricing is.
+              </span>
             </div>
-          </div>
+            
+            <div className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50 group-hover:bg-accent group-hover:text-white transition-all transform group-hover:scale-110">
+              <span className="font-bold -mt-0.5">→</span>
+            </div>
+          </Link>
         </div>
       </section>
     </main>

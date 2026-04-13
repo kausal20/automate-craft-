@@ -16,9 +16,9 @@ import { LoginModal } from "@/components/auth/LoginModal";
 import type { AuthenticatedUser } from "@/lib/automation";
 
 const promptExamples = [
-  "Send WhatsApp message when someone fills my form",
-  "Automatically reply to new leads with email",
-  "Save form data to Google Sheets and notify me",
+  "Send WhatsApp message on new leads",
+  "Save form data to Google Sheets",
+  "Notify me when payment is received",
 ];
 
 export default function HeroSection({
@@ -164,7 +164,7 @@ export default function HeroSection({
     <>
       <section
         id="home"
-        className="relative flex min-h-screen items-center overflow-hidden bg-background pb-10 pt-24 md:pb-14"
+        className="relative flex min-h-screen items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#141820] via-background to-background pb-10 pt-24 md:pb-14"
       >
         <HeroScene isPromptFocused={isPromptFocused} />
 
@@ -186,14 +186,14 @@ export default function HeroSection({
               <p className="mx-auto mt-6 max-w-2xl text-[1.02rem] leading-8 text-foreground/62 sm:text-lg">
                 {user
                   ? "Describe what you need and we'll generate it for you."
-                  : "Describe your workflow and get a ready-to-run automation."}
+                  : "Turn your manual work into fully automated systems in minutes"}
               </p>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 22 }}
               animate={{ opacity: 1, y: 0 }}
-              whileHover={{ scale: 1.025, y: -6 }}
+              whileHover={{ scale: 1.015, y: -4 }}
               transition={{ duration: 0.85, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
               className="group relative mx-auto my-10 max-w-[600px] cursor-text"
               onClick={() => promptRef.current?.focus()}
@@ -205,24 +205,30 @@ export default function HeroSection({
               >
                 <motion.div
                   aria-hidden="true"
-                  className="pointer-events-none absolute left-8 top-10 h-20 w-20 rounded-full bg-accent/[0.05] blur-3xl"
-                  animate={{ x: [0, 10, -2, 0], y: [0, -8, 6, 0] }}
+                  className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 h-56 w-full rounded-full bg-accent/5 blur-[80px]"
+                  animate={{ opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-8 top-10 h-28 w-28 rounded-full bg-accent/[0.08] blur-[40px]"
+                  animate={{ x: [0, 15, -5, 0], y: [0, -12, 8, 0] }}
                   transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
                 />
                 <motion.div
                   aria-hidden="true"
-                  className="pointer-events-none absolute bottom-8 right-10 h-24 w-24 rounded-full bg-white/60 blur-3xl"
-                  animate={{ x: [0, -8, 4, 0], y: [0, 10, -4, 0] }}
+                  className="pointer-events-none absolute bottom-8 right-10 h-28 w-28 rounded-full bg-white/5 blur-[40px]"
+                  animate={{ x: [0, -10, 5, 0], y: [0, 12, -6, 0] }}
                   transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                 />
 
-                <div className="rounded-[16px] bg-[#0a0a0a] p-1.5 text-left shadow-[0_24px_50px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.1)] transition-[box-shadow,transform] duration-300 ease-out group-hover:shadow-[0_32px_60px_rgba(79,142,247,0.2),0_16px_32px_rgba(28,28,28,0.12)]">
+                <div className="rounded-[16px] bg-[#0a0a0a] p-1.5 text-left shadow-[0_24px_50px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.1)] transition-[box-shadow,transform] duration-300 ease-out group-hover:shadow-[0_0_80px_rgba(79,142,247,0.12),0_32px_60px_rgba(79,142,247,0.1),0_16px_32px_rgba(28,28,28,0.12)]">
                   <div
                     className={`relative isolate overflow-hidden rounded-[16px] border px-4 py-4 shadow-[0_10px_24px_rgba(0,0,0,0.1)] transition-all duration-300 ease-out sm:px-5 sm:py-4.5 ${
                       hasPrompt
-                        ? "border-accent/50 shadow-[0_0_0_4px_rgba(59,130,246,0.2),0_16px_34px_rgba(59,130,246,0.15)] scale-[1.015]"
+                        ? "border-accent/50 shadow-[0_0_0_4px_rgba(59,130,246,0.2),0_16px_34px_rgba(59,130,246,0.15)] scale-[1.01]"
                         : isPromptFocused
-                        ? "border-accent/40 shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_16px_34px_rgba(0,0,0,0.4)] scale-[1.01]"
+                        ? "border-accent/40 shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_16px_34px_rgba(0,0,0,0.4)] scale-[1.005]"
                         : "border-white/10 group-hover:border-white/20 group-hover:shadow-[0_18px_42px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.06)]"
                     }`}
                   >
@@ -252,6 +258,11 @@ export default function HeroSection({
                               className="absolute inset-0 text-white/40"
                             >
                               {promptExamples[exampleIndex]}
+                              <motion.span
+                                animate={{ opacity: [1, 0, 1] }}
+                                transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                                className="inline-block w-[2px] h-[1em] bg-accent ml-1 align-middle opacity-80"
+                              />
                             </motion.div>
                           </AnimatePresence>
                         </div>

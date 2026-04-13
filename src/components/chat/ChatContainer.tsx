@@ -2,14 +2,28 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles } from "lucide-react";
+import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { InteractiveCanvas, type FlowNode } from "./InteractiveCanvas";
+import { FormCard, type FieldDef } from "./FormCard";
+import { ProgressCard } from "./ProgressCard";
+import { ReadyCard } from "./ReadyCard";
+
+type FormDef = {
+  title: string;
+  description: string;
+  fields: FieldDef[];
+};
 
 type Message = {
   id: string;
-  role: "user" | "ai" | "system";
+  role: "user" | "ai" | "system" | "thinking";
   content: string;
+  state?: WorkspaceState;
+  form?: FormDef;
+  isReadyCard?: boolean;
+  isFormSubmitted?: boolean;
+  formValues?: Record<string, any>;
 };
 
 type ChatSequenceStep = "boot" | "wait_message" | "ready" | "deployed";
@@ -37,7 +51,9 @@ function generateTitle(prompt: string): string {
     .filter((word) => word.length > 2 && !stopWords.includes(word));
 
   if (words.length === 0) return "New Automation";
-  return words.slice(0, 3).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  const resultWords = words.slice(0, 3).map((word) => word.charAt(0).toUpperCase() + word.slice(1));
+  if (resultWords.length === 1) resultWords.push("Workflow");
+  return resultWords.join(" ");
 }
 
 function readStoredChat(chatId: string) {
@@ -52,6 +68,29 @@ function readStoredChat(chatId: string) {
 
 function sanitizeCustomTitle(value: string) {
   return value.replace(/[^\w\s-]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
+}
+
+function renderFormattedText(text: string) {
+  return text.split('\n').map((line, i) => {
+    if (line.startsWith('- ')) {
+      return (
+        <div key={i} className="flex items-start gap-2 ml-1 mt-1.5 mb-1.5 text-white/80">
+          <div className="mt-1.5 h-1 w-1 rounded-full bg-accent/60 shrink-0" />
+          <span className="leading-relaxed">{line.substring(2)}</span>
+        </div>
+      );
+    }
+    const parts = line.split(/(\*\*.*?\*\*)/g);
+    return (
+      <div key={i} className={line.trim() === "" ? "h-2" : "mb-1 leading-relaxed"}>
+        {parts.map((p, j) => 
+          p.startsWith('**') && p.endsWith('**') 
+            ? <strong key={j} className="text-white font-semibold tracking-wide">{p.slice(2, -2)}</strong> 
+            : p
+        )}
+      </div>
+    );
+  });
 }
 
 export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
@@ -147,6 +186,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
   const [ultraThinking, setUltraThinking] = useState(false);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const isStarterPlan = true; // Mocked state for testing
 
 
@@ -216,8 +256,8 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     }
   }, [messages, step, workspaceState, nodes, chatTitle, isStarred, chatId]);
 
-  const addMessage = (role: Message["role"], content: string) => {
-    setMessages(p => [...p, { id: Math.random().toString(36).substring(7), role, content }]);
+  const addMessage = (role: Message["role"], content: string, state?: WorkspaceState, form?: FormDef, isReadyCard?: boolean) => {
+    setMessages(p => [...p, { id: Math.random().toString(36).substring(7), role, content, state, form, isReadyCard }]);
   };
 
   const removeMessageByRole = (role: Message["role"]) => {
@@ -230,16 +270,95 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
     const runBootSequence = async () => {
       setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "active" } : x));
-      await new Promise(r => setTimeout(r, 2000));
+      
       removeMessageByRole("system");
+      addMessage("thinking", "Analyzing your automation...");
+      await new Promise(r => setTimeout(r, 1200));
+
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Trigger detected");
+      await new Promise(r => setTimeout(r, 1000));
+
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Trigger detected\n✓ Action detected");
+      await new Promise(r => setTimeout(r, 1200));
+
+      removeMessageByRole("thinking");
+      
+      const defaultPhone = initialPrompt?.match(/\+?\d{10,14}/)?.[0] || "";
+      
       setWorkspaceState("collecting_inputs");
-      addMessage("ai", "I can build a form handler that uses AI to analyze the contents and sends a notification. Let's configure it.\n\nWhat phone number should receive the messages?");
+      addMessage(
+        "ai", 
+        "**Automation Structure Ready**\nI've configured an AI form handler to push data forward.\n\nPlease complete the setup below to finalize your execution flow.",
+        "collecting_inputs",
+        {
+          title: "WhatsApp Configuration",
+          description: "Enter the target destination details",
+          fields: [
+            { key: "phone", label: "Target Phone Number", type: "text", placeholder: "+1 (555) 000-0000", defaultValue: defaultPhone },
+            { key: "message", label: "Message Content", type: "text", placeholder: "Hello, we received your form data!..." },
+            { key: "priority", label: "Alert Priority", type: "select", options: [{label: "Standard", value: "standard"}, {label: "High Priority", value: "high"}] },
+            { key: "enableLogging", label: "Enable Audit Logging", type: "toggle", defaultValue: true }
+          ]
+        }
+      );
       setStep("wait_message");
     };
 
     runBootSequence();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleFormSubmit = async (messageId: string, values: Record<string, any>) => {
+    setMessages(p => p.map(m => m.id === messageId ? { ...m, isFormSubmitted: true, formValues: values } : m));
+    
+    let inputSummary = values.phone || "the specified target";
+
+    if (ultraThinking) {
+      addMessage("system", "Using advanced reasoning mode...");
+      await new Promise(r => setTimeout(r, 600));
+    }
+
+    if (step === "wait_message") {
+      setWorkspaceState("ready_to_build");
+      addMessage("system", "Applying configuration to nodes...");
+      setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "Configured via GPT-4o" } : x));
+      
+      await new Promise(r => setTimeout(r, 1500));
+      setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active" } : x));
+      
+      await new Promise(r => setTimeout(r, 1500));
+      removeMessageByRole("system");
+      setWorkspaceState("canvas_visible");
+      
+      setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${inputSummary}` } : x));
+      addMessage(
+        "ai", 
+        "Automation Ready", 
+        "canvas_visible",
+        undefined,
+        true
+      );
+      setStep("ready");
+    }
+  };
+
+  const handleCopy = async (id: string, text: string) => {
+    try {
+      if (typeof window !== "undefined") {
+        await navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      }
+    } catch (e) {
+      console.error("Failed to copy", e);
+    }
+  };
+
+  const handleEdit = (text: string) => {
+    setInputText(text);
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -271,12 +390,18 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       setWorkspaceState("canvas_visible");
       
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${input}` } : x));
-      addMessage("ai", "Automation ready! The canvas is built. You can test the end-to-end flow to ensure it works correctly.");
+      addMessage(
+        "ai", 
+        "Automation Ready", 
+        "canvas_visible",
+        undefined,
+        true
+      );
       setStep("ready");
 
     } else if (step === "ready" || step === "deployed") {
       await new Promise(r => setTimeout(r, 800));
-      addMessage("ai", "I've noted that request. Keep in mind that live modifications to the pipeline will require running tests again!");
+      addMessage("ai", "**Modification Applied**\nKeep in mind that live modifications to the pipeline will require running tests again!");
       setHasTested(false);
       setHasDeployed(false);
       
@@ -296,7 +421,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     await new Promise(r => setTimeout(r, 2500));
     setIsTesting(false);
     setHasTested(true);
-    addMessage("ai", "Test completely successfully! All logical steps resolved without errors. You are ready to deploy.");
+    addMessage("ai", "**Tests Passed**\nAll logical steps resolved without errors. You are ready to deploy.");
   };
 
   const handleDeploy = async () => {
@@ -305,7 +430,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     setIsDeploying(false);
     setHasDeployed(true);
     setStep("deployed");
-    addMessage("ai", "Deployment complete! Your automation is now live and waiting for incoming triggers.");
+    addMessage("ai", "**Deployment Complete**\nYour automation is now live and waiting for incoming triggers.");
   };
 
   const isInputDisabled = workspaceState === "ready_to_build" || workspaceState === "understanding";
@@ -387,7 +512,9 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       <motion.div 
         layout
         transition={{ type: "spring", bounce: 0, duration: 0.8, ease: "easeInOut" }}
-        className="relative flex flex-col z-20 shadow-2xl h-full w-full max-w-[1200px] bg-[#0a0a0a]"
+        className={`relative flex flex-col z-20 shadow-2xl h-full bg-[#0a0a0a] ${
+          isCanvasVisible || workspaceState === "ready_to_build" ? "w-[40%] min-w-[400px] border-r border-[#222]" : "w-full max-w-[1200px]"
+        }`}
       >
         <div className="flex-1 overflow-y-auto px-6 pb-28 pt-[84px] custom-scrollbar">
           <AnimatePresence initial={false}>
@@ -399,13 +526,89 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                 className={`flex w-full mb-6 ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}
               >
                 {msg.role === "user" && (
-                  <div className="bg-[#121212] border border-[#222] text-white rounded-[18px] p-3.5 max-w-[85%] text-[14px] shadow-lg leading-relaxed whitespace-pre-wrap">
-                    {msg.content}
+                  <div className="flex flex-col items-end gap-1.5 max-w-[85%]">
+                    <div className="bg-[#121212] border border-[#222] text-white rounded-[18px] p-3.5 text-[14px] shadow-lg leading-relaxed whitespace-pre-wrap w-full">
+                      {msg.content}
+                    </div>
+                    <div className="flex items-center gap-1 mr-1 opacity-60 hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => handleCopy(msg.id, msg.content)}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        {copiedId === msg.id ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                        {copiedId === msg.id ? <span className="text-green-400">Copied</span> : "Copy"}
+                      </button>
+                      <button 
+                        onClick={() => handleEdit(msg.content)}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </button>
+                    </div>
                   </div>
                 )}
                 {msg.role === "ai" && (
-                  <div className="text-gray-100 max-w-[95%] text-[15px] leading-relaxed whitespace-pre-wrap py-1">
-                    {msg.content}
+                  <div className="w-full flex-1 max-w-[95%] text-[15px] leading-relaxed py-1">
+                    {msg.state && !msg.form && !msg.isReadyCard && (
+                      <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium tracking-wide text-white/50">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {msg.state === "understanding" && "Understanding"}
+                        {msg.state === "collecting_inputs" && "Collecting Inputs"}
+                        {msg.state === "ready_to_build" && "Building Automation"}
+                        {msg.state === "canvas_visible" && "Ready"}
+                      </div>
+                    )}
+                    
+                    {!msg.form && !msg.isReadyCard && renderFormattedText(msg.content)}
+                    
+                    {msg.form && !msg.isFormSubmitted && (
+                      <div className="mt-2 font-sans">
+                        <FormCard
+                          title={msg.form.title}
+                          description={msg.form.description}
+                          fields={msg.form.fields}
+                          onSubmit={(values) => handleFormSubmit(msg.id, values)}
+                        />
+                      </div>
+                    )}
+                    
+                    {msg.form && msg.isFormSubmitted && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-2 mb-2 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-[#121212] px-4 py-3 shadow-lg"
+                      >
+                        <CheckCircle2 className="h-5 w-5 text-accent" />
+                        <span className="text-[14px] text-white/80">
+                          Configuration saved. Ready to deploy.
+                        </span>
+                      </motion.div>
+                    )}
+
+                    {msg.isReadyCard && (
+                      <div className="mt-2">
+                        <ReadyCard 
+                          title="Automation Summary"
+                          description="The canvas map has been built. You can test the end-to-end flow to ensure logic fires correctly without errors."
+                          isTesting={isTesting}
+                          hasTested={hasTested}
+                          isDeploying={isDeploying}
+                          hasDeployed={hasDeployed}
+                          onTest={handleTest}
+                          onDeploy={handleDeploy}
+                          onModify={() => {
+                            const input = document.querySelector('textarea');
+                            if (input) input.focus();
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {msg.role === "thinking" && (
+                  <div className="w-full">
+                    <ProgressCard steps={msg.content.split('\n')} />
                   </div>
                 )}
                 {msg.role === "system" && (
@@ -555,6 +758,28 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
           </form>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {(isCanvasVisible || workspaceState === "ready_to_build" || step === "deployed") && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 h-full z-10 pt-[60px]"
+          >
+            <InteractiveCanvas 
+              nodes={nodes}
+              onTest={handleTest}
+              onDeploy={handleDeploy}
+              isDeploying={isDeploying}
+              hasDeployed={hasDeployed}
+              isTesting={isTesting}
+              hasTested={hasTested}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
