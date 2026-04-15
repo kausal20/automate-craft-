@@ -1,6 +1,7 @@
 "use client";
 
-import { createBrowserClient, type SupabaseClient } from "@supabase/ssr";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /* LOGIC EXPLAINED:
 This creates one shared Supabase browser client for the whole app. Using a
