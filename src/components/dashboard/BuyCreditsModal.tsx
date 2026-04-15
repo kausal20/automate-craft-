@@ -14,6 +14,10 @@ export function BuyCreditsModal({
   onClose: () => void;
   onSuccess?: () => void;
 }) {
+  /* LOGIC EXPLAINED: The cards were using bright accent-blue hover and selected states,
+     which made the modal feel electrically highlighted. This fix keeps the same layout
+     and behavior but switches those states to neutral dark surfaces with softer borders,
+     so the UI still communicates selection without the strong blue flash. */
   const [buying, setBuying] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
@@ -88,14 +92,15 @@ export function BuyCreditsModal({
                 <button
                   key={pkg.id}
                   onClick={() => setSelectedPackage(pkg.id)}
+                  data-static-hover
                   className={`relative flex items-center justify-between outline-none rounded-2xl border-2 p-4 transition-all w-full text-left ${
                     selectedPackage === pkg.id
-                      ? "border-[#3B82F6] bg-[#3B82F6]/10"
-                      : "border-[#3B82F6]/40 hover:border-[#3B82F6] bg-white/5"
+                      ? "border-white/20 bg-white/[0.06]"
+                      : "border-white/10 bg-white/5"
                   }`}
                 >
                   {pkg.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-[#151515] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/80">
                       Recommended
                     </span>
                   )}
@@ -107,12 +112,12 @@ export function BuyCreditsModal({
                     </div>
                     <div className="flex flex-col items-end">
                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Price</span>
-                       <span className="text-xl font-bold text-accent">{formatPrice(pkg.priceInr)}</span>
+                       <span className="text-xl font-bold text-white">{formatPrice(pkg.priceInr)}</span>
                     </div>
                   </div>
 
                   {selectedPackage === pkg.id && (
-                    <div className="absolute right-[-8px] top-[-8px] flex h-5 w-5 items-center justify-center rounded-full bg-[#3B82F6] text-white shadow-sm ring-2 ring-white">
+                    <div className="absolute right-[-8px] top-[-8px] flex h-5 w-5 items-center justify-center rounded-full bg-white text-black shadow-sm ring-2 ring-[#121212]">
                       <Check className="h-3 w-3" />
                     </div>
                   )}
@@ -121,16 +126,17 @@ export function BuyCreditsModal({
 
               <button
                 onClick={() => setSelectedPackage("custom")}
+                data-static-hover
                 className={`relative flex flex-col items-start outline-none rounded-2xl border-2 p-4 transition-all w-full text-left mt-2 ${
                   selectedPackage === "custom"
-                    ? "border-[#3B82F6] bg-[#3B82F6]/10"
-                    : "border-[#3B82F6]/40 hover:border-[#3B82F6] bg-white/5"
+                    ? "border-white/20 bg-white/[0.06]"
+                    : "border-white/10 bg-white/5"
                 }`}
               >
                 <div className="flex w-full items-center justify-between mb-3 px-2">
                    <span className="text-sm font-bold text-white">Custom Amount</span>
                    {selectedPackage === "custom" && customAmount && (
-                     <span className="text-xl font-bold text-accent">
+                     <span className="text-xl font-bold text-white">
                        {formatPrice(Math.round(parseInt(customAmount, 10) * 1.8), false)}
                      </span>
                    )}
@@ -146,7 +152,7 @@ export function BuyCreditsModal({
                       className={`w-full rounded-xl border px-4 py-3 text-sm font-semibold text-white outline-none transition-all bg-white/5 ${
                         customAmount && parseInt(customAmount, 10) < 600
                           ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                          : "border-white/10 focus:border-accent focus:ring-2 focus:ring-accent/20"
+                          : "border-white/10 focus:border-white/25 focus:ring-2 focus:ring-white/10"
                       }`}
                     />
                     {customAmount && parseInt(customAmount, 10) < 600 && (
@@ -157,7 +163,7 @@ export function BuyCreditsModal({
                   </div>
                 )}
                 {selectedPackage === "custom" && (
-                  <div className="absolute right-[-8px] top-[-8px] flex h-5 w-5 items-center justify-center rounded-full bg-[#3B82F6] text-white shadow-sm ring-2 ring-white">
+                  <div className="absolute right-[-8px] top-[-8px] flex h-5 w-5 items-center justify-center rounded-full bg-white text-black shadow-sm ring-2 ring-[#121212]">
                     <Check className="h-3 w-3" />
                   </div>
                 )}
@@ -172,7 +178,7 @@ export function BuyCreditsModal({
                   (selectedPackage === "custom" && (!customAmount || parseInt(customAmount, 10) < 600))
                 }
                 onClick={handleBuyCredits}
-                className="w-full rounded-full bg-white py-4 text-sm font-bold text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50 shadow-[0_8px_20px_rgba(255,255,255,0.1)]"
+                className="w-full rounded-full border border-white/10 bg-white py-4 text-sm font-bold text-black transition-all duration-200 hover:bg-white/92 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-50 shadow-[0_8px_20px_rgba(255,255,255,0.08)]"
               >
                 {buying ? "Processing..." : "Confirm Purchase"}
               </button>

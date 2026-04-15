@@ -34,6 +34,37 @@ interface ChatContainerProps {
   initialPrompt?: string;
 }
 
+type ChatIndexEntry = {
+  chatId: string;
+  title: string;
+  updatedAt: string;
+  isStarred: boolean;
+};
+
+const CHAT_INDEX_KEY = "chat_index_v1";
+
+function readChatIndex(): ChatIndexEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CHAT_INDEX_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? (parsed as ChatIndexEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeChatIndex(next: ChatIndexEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CHAT_INDEX_KEY, JSON.stringify(next));
+    // storage doesn't fire in same tab; emit for realtime UI.
+    window.dispatchEvent(new Event("chat-index-updated"));
+  } catch {
+    // ignore
+  }
+}
+
 const stopWords = ["the", "a", "an", "is", "for", "to", "when", "on", "and", "in", "it"];
 function generateTitle(prompt: string): string {
   const normalizedPrompt = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
@@ -70,27 +101,44 @@ function sanitizeCustomTitle(value: string) {
   return value.replace(/[^\w\s-]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
 }
 
-function renderFormattedText(text: string) {
-  return text.split('\n').map((line, i) => {
-    if (line.startsWith('- ')) {
-      return (
-        <div key={i} className="flex items-start gap-2 ml-1 mt-1.5 mb-1.5 text-white/80">
-          <div className="mt-1.5 h-1 w-1 rounded-full bg-accent/60 shrink-0" />
-          <span className="leading-relaxed">{line.substring(2)}</span>
+function renderStructuredAiContent(content: string) {
+  const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
+  const headingMatch = lines[0]?.match(/^\*\*(.*?)\*\*$/);
+  const heading = headingMatch ? headingMatch[1] : "Automation Update";
+
+  const remaining = headingMatch ? lines.slice(1) : lines;
+  const bullets = remaining
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.replace(/^- /, ""));
+  const bodyLines = remaining.filter((line) => !line.startsWith("- "));
+  const summary = bodyLines[0] ?? "System output is ready.";
+  const details = bodyLines.slice(1);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#111111] p-4 sm:p-5">
+      <div className="text-[15px] font-semibold tracking-wide text-white">{heading}</div>
+      <p className="mt-1.5 text-[13px] leading-relaxed text-white/55">{summary}</p>
+
+      {details.length > 0 && (
+        <div className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-white/75">
+          {details.map((line, index) => (
+            <p key={`${line}-${index}`}>{line}</p>
+          ))}
         </div>
-      );
-    }
-    const parts = line.split(/(\*\*.*?\*\*)/g);
-    return (
-      <div key={i} className={line.trim() === "" ? "h-2" : "mb-1 leading-relaxed"}>
-        {parts.map((p, j) => 
-          p.startsWith('**') && p.endsWith('**') 
-            ? <strong key={j} className="text-white font-semibold tracking-wide">{p.slice(2, -2)}</strong> 
-            : p
-        )}
-      </div>
-    );
-  });
+      )}
+
+      {bullets.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {bullets.map((item, index) => (
+            <div key={`${item}-${index}`} className="flex items-center gap-2 text-[13px] text-white/80">
+              <div className="h-1.5 w-1.5 rounded-full bg-accent/70" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
@@ -253,6 +301,14 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         `chat_${chatId}`,
         JSON.stringify({ messages, step, workspaceState, nodes, chatTitle, isStarred })
       );
+
+      const now = new Date().toISOString();
+      const previous = readChatIndex().filter((entry) => entry && entry.chatId);
+      const nextEntry: ChatIndexEntry = { chatId, title: chatTitle, updatedAt: now, isStarred };
+      const merged = [nextEntry, ...previous.filter((entry) => entry.chatId !== chatId)]
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .slice(0, 10);
+      writeChatIndex(merged);
     }
   }, [messages, step, workspaceState, nodes, chatTitle, isStarred, chatId]);
 
@@ -435,9 +491,16 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
   const isInputDisabled = workspaceState === "ready_to_build" || workspaceState === "understanding";
   const isCanvasVisible = workspaceState === "canvas_visible";
+  const stateSteps: Array<{ key: WorkspaceState; label: string }> = [
+    { key: "understanding", label: "Understanding" },
+    { key: "collecting_inputs", label: "Collecting Inputs" },
+    { key: "ready_to_build", label: "Building Automation" },
+    { key: "canvas_visible", label: "Ready" },
+  ];
+  const activeStateIndex = stateSteps.findIndex((stepItem) => stepItem.key === workspaceState);
 
   return (
-    <div className="flex h-full w-full bg-[#0a0a0a] overflow-hidden relative justify-center">
+    <div className="flex h-full w-full bg-[#0a0a0a] overflow-hidden relative">
 
       {/* Absolute Full Width Header */}
       <div className="absolute top-0 left-0 w-full flex h-[60px] shrink-0 items-center justify-between px-6 z-50 bg-[#0a0a0a]">
@@ -508,26 +571,52 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         </div>
       </div>
       
-      {/* Dynamic Morphing Chat Area */}
-      <motion.div 
-        layout
-        transition={{ type: "spring", bounce: 0, duration: 0.8, ease: "easeInOut" }}
-        className={`relative flex flex-col z-20 shadow-2xl h-full bg-[#0a0a0a] ${
-          isCanvasVisible || workspaceState === "ready_to_build" ? "w-[40%] min-w-[400px] border-r border-[#222]" : "w-full max-w-[1200px]"
-        }`}
-      >
-        <div className="flex-1 overflow-y-auto px-6 pb-28 pt-[84px] custom-scrollbar">
+      {/* Left Workspace Panel */}
+      <div className="relative z-20 flex h-full w-[38%] min-w-[420px] flex-col border-r border-white/10 bg-[#0a0a0a] shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+        {(isCanvasVisible || workspaceState === "ready_to_build") && (
+          <div className="pointer-events-none absolute -right-[1px] top-1/2 z-30 h-24 w-[2px] -translate-y-1/2 bg-gradient-to-b from-transparent via-accent/70 to-transparent" />
+        )}
+
+        <div className="absolute left-0 right-0 top-[60px] z-30 px-5">
+          <div className="w-full rounded-xl border border-white/10 bg-[#101010]/95 p-3 backdrop-blur-sm">
+            <div className="grid grid-cols-4 gap-2">
+              {stateSteps.map((stepItem, index) => {
+                const isActive = index === activeStateIndex;
+                const isCompleted = index < activeStateIndex;
+                return (
+                  <div key={stepItem.key} className="flex items-center gap-2">
+                    <div
+                      className={`h-2 w-2 rounded-full transition-all duration-200 ${
+                        isActive ? "bg-accent" : isCompleted ? "bg-white/70" : "bg-white/20"
+                      }`}
+                    />
+                    <span
+                      className={`truncate text-[11px] font-medium uppercase tracking-wider transition-colors duration-200 ${
+                        isActive ? "text-accent" : isCompleted ? "text-white/75" : "text-white/40"
+                      }`}
+                    >
+                      {stepItem.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-32 pt-[132px] custom-scrollbar">
           <AnimatePresence initial={false}>
             {messages.map((msg) => (
               <motion.div 
                 key={msg.id}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex w-full mb-6 ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className={`flex w-full mb-8 ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}
               >
                 {msg.role === "user" && (
                   <div className="flex flex-col items-end gap-1.5 max-w-[85%]">
-                    <div className="bg-[#121212] border border-[#222] text-white rounded-[18px] p-3.5 text-[14px] shadow-lg leading-relaxed whitespace-pre-wrap w-full">
+                    <div className="w-full whitespace-pre-wrap rounded-xl border border-white/10 bg-[#121212] p-4 text-[14px] leading-relaxed text-white shadow-[0_10px_28px_rgba(0,0,0,0.28)]">
                       {msg.content}
                     </div>
                     <div className="flex items-center gap-1 mr-1 opacity-60 hover:opacity-100 transition-opacity">
@@ -560,7 +649,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                       </div>
                     )}
                     
-                    {!msg.form && !msg.isReadyCard && renderFormattedText(msg.content)}
+                    {!msg.form && !msg.isReadyCard && renderStructuredAiContent(msg.content)}
                     
                     {msg.form && !msg.isFormSubmitted && (
                       <div className="mt-2 font-sans">
@@ -591,6 +680,9 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                         <ReadyCard 
                           title="Automation Summary"
                           description="The canvas map has been built. You can test the end-to-end flow to ensure logic fires correctly without errors."
+                          trigger={nodes.find((node) => node.type === "trigger")?.label}
+                          action={nodes.find((node) => node.type === "action")?.label}
+                          explanation={nodes.find((node) => node.type === "action")?.detail || "Workflow route is configured and ready for validation."}
                           isTesting={isTesting}
                           hasTested={hasTested}
                           isDeploying={isDeploying}
@@ -612,9 +704,24 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                   </div>
                 )}
                 {msg.role === "system" && (
-                  <div className="flex items-center gap-2 bg-[#222]/30 px-3 py-1.5 rounded-full border border-white/5">
-                    <span className="text-[12px] font-medium tracking-wide text-[#888888]">{msg.content}</span>
-                  </div>
+                  msg.content.toLowerCase().includes("structuring workflow logic") ||
+                  msg.content.toLowerCase().includes("applying configuration") ? (
+                    <div className="w-full max-w-[85%] rounded-2xl border border-white/10 bg-[#101010] p-4">
+                      <div className="text-[14px] font-semibold text-white">Building your automation...</div>
+                      <div className="mt-3 space-y-2">
+                        {["Connecting services", "Generating workflow", "Finalizing logic"].map((item) => (
+                          <div key={item} className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 mr-2 mb-2">
+                            <div className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-accent/70" />
+                            <span className="text-[12px] text-white/70">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-full border border-white/8 bg-[#222]/30 px-3 py-1.5">
+                      <span className="text-[12px] font-medium tracking-wide text-[#888888]">{msg.content}</span>
+                    </div>
+                  )
                 )}
               </motion.div>
             ))}
@@ -622,10 +729,10 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
           <div ref={messagesEndRef} className="h-4" />
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent pt-12 pb-6 px-6 z-10 pointer-events-none flex justify-center">
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a] to-transparent px-5 pb-5 pt-12 pointer-events-none">
           <form 
             onSubmit={handleSubmit}
-            className={`w-full max-w-[850px] flex flex-col gap-2 rounded-2xl bg-[#111111] border border-[#222] p-4 shadow-2xl transition-all pointer-events-auto
+            className={`w-full flex flex-col gap-2 rounded-2xl bg-[#111111] border border-[#222] p-4 shadow-2xl transition-all duration-200 pointer-events-auto
               ${isInputDisabled ? "opacity-50" : "focus-within:border-[#444] focus-within:bg-[#151515] hover:border-[#333]"}
             `}
           >
@@ -681,7 +788,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                         setUltraThinking(!ultraThinking);
                       }
                     }}
-                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-300 ${
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all duration-200 ${
                       ultraThinking
                         ? "bg-accent/10 text-accent ring-1 ring-accent/30 shadow-[0_0_8px_rgba(79,142,247,0.2)]"
                         : "bg-[#1a1a1a] text-white/50 hover:bg-[#222] hover:text-white"
@@ -712,7 +819,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                         <Link
                           href="/pricing"
                           onClick={() => setShowUpgradePopup(false)}
-                          className="mt-3 block w-full rounded-lg bg-white py-1.5 text-center text-[13px] font-bold text-black transition-colors hover:bg-white/90 shadow-md hover:scale-[1.02]"
+                          className="mt-3 block w-full rounded-lg bg-white py-1.5 text-center text-[13px] font-bold text-black transition-colors duration-200 hover:bg-white/90 shadow-md"
                         >
                           Upgrade to Plus
                         </Link>
@@ -757,29 +864,20 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
             </div>
           </form>
         </div>
-      </motion.div>
+      </div>
 
-      <AnimatePresence>
-        {(isCanvasVisible || workspaceState === "ready_to_build" || step === "deployed") && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.5 }}
-            className="flex-1 h-full z-10 pt-[60px]"
-          >
-            <InteractiveCanvas 
-              nodes={nodes}
-              onTest={handleTest}
-              onDeploy={handleDeploy}
-              isDeploying={isDeploying}
-              hasDeployed={hasDeployed}
-              isTesting={isTesting}
-              hasTested={hasTested}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Right Workspace Panel */}
+      <div className="h-full w-[62%] pt-[60px]">
+        <InteractiveCanvas 
+          nodes={nodes}
+          onTest={handleTest}
+          onDeploy={handleDeploy}
+          isDeploying={isDeploying}
+          hasDeployed={hasDeployed}
+          isTesting={isTesting}
+          hasTested={hasTested}
+        />
+      </div>
 
     </div>
   );

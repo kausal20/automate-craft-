@@ -15,6 +15,7 @@ import {
   Coins,
   HelpCircle,
   Plug,
+  MessageSquare,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
@@ -35,6 +36,26 @@ type CreditsData = {
   hasSubscription: boolean;
 };
 
+type ChatIndexEntry = {
+  chatId: string;
+  title: string;
+  updatedAt: string;
+  isStarred: boolean;
+};
+
+const CHAT_INDEX_KEY = "chat_index_v1";
+
+function readChatIndex(): ChatIndexEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(CHAT_INDEX_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? (parsed as ChatIndexEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function DashboardShell({
   children,
   user,
@@ -42,6 +63,11 @@ export default function DashboardShell({
   children: ReactNode;
   user: AuthenticatedUser;
 }) {
+  /* LOGIC EXPLAINED: The dashboard shell still had bright accent-blue surfaces
+     in the exact areas shown by the user: the logo row, logout action, credits
+     pill, and credits dropdown actions. This fix keeps the structure unchanged
+     but replaces those electric states with neutral dark surfaces and softer
+     hover feedback, so the dashboard feels calmer and more premium. */
   const pathname = usePathname();
   const router = useRouter();
   const isChatWorkspace =
@@ -51,6 +77,7 @@ export default function DashboardShell({
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
+  const [recentChats, setRecentChats] = useState<ChatIndexEntry[]>([]);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -103,6 +130,29 @@ export default function DashboardShell({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      const index = readChatIndex()
+        .filter((entry) => entry && entry.chatId && entry.title)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        .slice(0, 5);
+      setRecentChats(index);
+    };
+
+    sync();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CHAT_INDEX_KEY) sync();
+    };
+    const onLocal = () => sync();
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("chat-index-updated", onLocal as EventListener);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("chat-index-updated", onLocal as EventListener);
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -164,7 +214,8 @@ export default function DashboardShell({
         <div className={`flex h-16 items-center border-b ${isCollapsed ? "justify-center" : "px-6"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`}>
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="group relative flex items-center transition-transform hover:scale-105 active:scale-95"
+            className="group relative flex items-center rounded-xl transition-transform duration-200 active:scale-[0.99]"
+            data-static-hover
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <BrandMark compact href="#" showName={!isCollapsed} />
@@ -270,6 +321,40 @@ export default function DashboardShell({
                   <Plug className={`h-3.5 w-3.5 shrink-0 ${isCollapsed ? "h-4 w-4" : ""}`} />
                   {!isCollapsed && <span>Connect Apps</span>}
                 </Link>
+
+                {!isCollapsed && recentChats.length > 0 && (
+                  <div className="pt-3">
+                    <div className={`mb-2 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-widest ${isChatWorkspace ? "text-foreground/30" : "text-white/30"}`}>
+                      <MessageSquare className="h-3.5 w-3.5 opacity-60" />
+                      Recent Chats
+                    </div>
+                    <div className="space-y-1">
+                      {recentChats.map((chat) => (
+                        <Link
+                          key={chat.chatId}
+                          href={`/dashboard/chat/${chat.chatId}`}
+                          title={chat.title}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                            pathname === `/dashboard/chat/${chat.chatId}`
+                              ? isChatWorkspace
+                                ? "bg-black/[0.04] text-foreground"
+                                : "bg-white/5 text-foreground"
+                              : isChatWorkspace
+                                ? "text-foreground/50 hover:bg-black/[0.04] hover:text-foreground"
+                                : "text-foreground/50 hover:bg-white/5 hover:text-foreground"
+                          }`}
+                        >
+                          {chat.isStarred ? (
+                            <Star className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                          ) : (
+                            <MessageSquare className="h-3.5 w-3.5 shrink-0 text-white/30" />
+                          )}
+                          <span className="truncate">{chat.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </nav>
@@ -345,7 +430,8 @@ export default function DashboardShell({
                 <div className={`my-1 border-t ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`} />
                 <button
                   onClick={handleSignOut}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 transition-colors"
+                  data-static-hover
                 >
                   <LogOut className="h-4 w-4" />
                   Logout
@@ -363,9 +449,9 @@ export default function DashboardShell({
           <div className="fixed right-20 top-6 z-30" ref={creditsRef}>
           <button
             onClick={() => setIsCreditsOpen(!isCreditsOpen)}
-            className="flex items-center gap-2.5 rounded-full bg-[#3B82F6] px-4 py-2 shadow-[0_8px_20px_rgba(59,130,246,0.3)] border border-[#3B82F6] transition-all hover:scale-105 active:scale-95 hover:bg-[#2563EB] group"
+            className="flex items-center gap-2.5 rounded-full border border-white/10 bg-[#141414] px-4 py-2 shadow-[0_8px_20px_rgba(0,0,0,0.24)] transition-all duration-200 hover:scale-[1.01] hover:border-white/20 hover:bg-[#181818] active:scale-[0.99] group"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/8">
               <Coins className="h-3.5 w-3.5 text-white" />
             </div>
             <span className="text-sm font-bold text-white">
@@ -381,15 +467,15 @@ export default function DashboardShell({
                   <span className="text-xs font-bold uppercase tracking-widest text-white/40">Available Credits</span>
                   <HelpCircle className="h-3.5 w-3.5 text-white/20" />
                 </div>
-                <div className="flex items-center gap-1.5 rounded-full bg-[#3B82F6]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#3B82F6]">
+                <div className="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/60">
                   <Sparkles className="h-3 w-3" />
                   {creditsData.hasSubscription ? "Premium" : "Standard"}
                 </div>
               </div>
 
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#3B82F6]/20">
-                  <Coins className="h-6 w-6 text-[#3B82F6]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+                  <Coins className="h-6 w-6 text-white/80" />
                 </div>
                 <span className="text-[2rem] font-bold leading-none tracking-tight text-white">
                   {creditsData.totalCredits.toFixed(2)}
@@ -430,7 +516,7 @@ export default function DashboardShell({
                       setIsCreditsOpen(false);
                       router.push("/pricing");
                     }}
-                    className="w-full flex items-center justify-center rounded-xl bg-[#3B82F6] py-3 text-xs font-bold text-white transition-all hover:bg-[#2563EB] hover:scale-[1.02] active:scale-[0.98] shadow-[0_8px_20px_rgba(59,130,246,0.2)]"
+                    className="w-full flex items-center justify-center rounded-xl border border-white/10 bg-white py-3 text-xs font-bold text-black transition-all duration-200 hover:bg-white/92 hover:scale-[1.01] active:scale-[0.99] shadow-[0_8px_20px_rgba(255,255,255,0.08)]"
                   >
                     Manage your Subscriptions
                   </button>
@@ -440,7 +526,7 @@ export default function DashboardShell({
                       setIsCreditsOpen(false);
                       setShowBuyCreditsModal(true);
                     }}
-                    className="w-full flex items-center justify-center rounded-xl bg-[#3B82F6] py-3 text-xs font-bold text-white transition-all hover:bg-[#2563EB] hover:scale-[1.02] active:scale-[0.98] shadow-[0_8px_20px_rgba(59,130,246,0.2)]"
+                    className="w-full flex items-center justify-center rounded-xl border border-white/10 bg-white py-3 text-xs font-bold text-black transition-all duration-200 hover:bg-white/92 hover:scale-[1.01] active:scale-[0.99] shadow-[0_8px_20px_rgba(255,255,255,0.08)]"
                   >
                     Buy More Credits
                   </button>

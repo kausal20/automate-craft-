@@ -38,7 +38,7 @@ a {
 
 .btn-dark:hover {
   background-color: #3b82f6 !important;
-  color: #ffffff !important;
+  color: #0a0a0a !important;
   border-color: #3b82f6 !important;
 }
 
@@ -208,15 +208,32 @@ select {
 }
 
 .button-hover {
-  transition:
-    transform 300ms ease,
-    background-color 300ms ease,
-    color 300ms ease,
-    border-color 300ms ease;
+  transition: all 0.2s ease;
 }
 
 .button-hover:hover {
-  transform: scale(1.03);
+  transform: none;
+}
+
+/* Global button hover (excluded via data-static-hover). */
+button:not([data-static-hover]),
+a[role="button"]:not([data-static-hover]),
+input[type="button"]:not([data-static-hover]),
+input[type="submit"]:not([data-static-hover]),
+input[type="reset"]:not([data-static-hover]) {
+  transition: all 0.2s ease;
+}
+
+button:not([data-static-hover]):hover,
+a[role="button"]:not([data-static-hover]):hover,
+input[type="button"]:not([data-static-hover]):hover,
+input[type="submit"]:not([data-static-hover]):hover,
+input[type="reset"]:not([data-static-hover]):hover {
+  background-color: var(--color-accent) !important;
+  color: #0a0a0a !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
 }
 
 .link-hover {

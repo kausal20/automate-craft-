@@ -56,6 +56,12 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
     setValues((prev) => ({ ...prev, [key]: val }));
   };
 
+  const remainingInputs = fields.filter((field) => {
+    if (field.type === "toggle") return false;
+    const value = values[field.key];
+    return String(value ?? "").trim().length === 0;
+  }).length;
+
   if (status === "submitted") {
     return (
       <motion.div
@@ -80,7 +86,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="w-full max-w-[85%] mb-6"
     >
-      <div className="rounded-[22px] border border-[#222] bg-[#111] p-6 shadow-2xl shadow-black/40 relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-[22px] border border-[#222] bg-[#111] p-6 shadow-2xl shadow-black/40">
         {/* Subtle background glow effect */}
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
 
@@ -88,13 +94,19 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/5 text-accent ring-1 ring-white/10">
             <SlidersHorizontal className="h-5 w-5" />
           </div>
-          <div>
-            <p className="text-[15px] font-semibold tracking-wide text-white">
-              {title}
+          <div className="flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent/80">
+              Setup Required
+            </p>
+            <p className="mt-1 text-[16px] font-semibold tracking-wide text-white">
+              {title || "Automation Setup"}
             </p>
             <p className="mt-1.5 text-[13px] leading-relaxed text-white/50">
               {description}
             </p>
+            <div className="mt-3 inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-medium text-white/70">
+              {remainingInputs > 0 ? `${remainingInputs} inputs remaining` : "All required inputs completed"}
+            </div>
           </div>
         </div>
 
@@ -107,7 +119,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
 
               {field.type === "text" || field.type === "number" ? (
                 <div
-                  className={`relative flex items-center transition-all duration-300 rounded-[14px] border bg-[#1a1a1a] px-4 py-3 ${
+                  className={`relative flex items-center rounded-[14px] border bg-[#1a1a1a] px-4 py-3 transition-all duration-200 ${
                     activeField === field.key
                       ? "border-accent ring-1 ring-accent/30 shadow-[0_0_12px_rgba(79,142,247,0.15)]"
                       : "border-white/10 hover:border-white/20"
@@ -126,7 +138,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                 </div>
               ) : field.type === "select" ? (
                 <div
-                  className={`relative transition-all duration-300 rounded-[14px] border bg-[#1a1a1a] ${
+                  className={`relative rounded-[14px] border bg-[#1a1a1a] transition-all duration-200 ${
                     activeField === field.key
                       ? "border-accent ring-1 ring-accent/30 shadow-[0_0_12px_rgba(79,142,247,0.15)]"
                       : "border-white/10 hover:border-white/20"
@@ -179,7 +191,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
             <button
               type="submit"
               disabled={status === "submitting"}
-              className="group relative flex h-10 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-6 text-[13px] font-bold text-black transition-all hover:scale-[1.02] hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+              className="group relative flex h-10 items-center justify-center gap-2 overflow-hidden rounded-full bg-white px-6 text-[13px] font-bold text-black transition-all duration-200 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <AnimatePresence mode="wait">
                 {status === "submitting" ? (

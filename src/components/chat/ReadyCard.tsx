@@ -6,6 +6,9 @@ import { CheckCircle2, Play, Rocket, Settings2, Loader2, FileCheck2 } from "luci
 type ReadyCardProps = {
   title: string;
   description: string;
+  trigger?: string;
+  action?: string;
+  explanation?: string;
   isTesting?: boolean;
   hasTested?: boolean;
   isDeploying?: boolean;
@@ -18,6 +21,9 @@ type ReadyCardProps = {
 export function ReadyCard({
   title,
   description,
+  trigger = "Form Submission",
+  action = "Send Notification",
+  explanation = "The workflow captures incoming data and executes the configured action path.",
   isTesting,
   hasTested,
   isDeploying,
@@ -30,7 +36,7 @@ export function ReadyCard({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className="w-full max-w-[85%] mb-6"
     >
       <div className="rounded-[22px] border border-[#222] bg-[#111] p-6 shadow-2xl shadow-black/40 relative overflow-hidden">
@@ -41,11 +47,31 @@ export function ReadyCard({
             <CheckCircle2 className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <p className="text-[15px] font-semibold tracking-wide text-white">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent/80">
+              Ready
+            </p>
+            <p className="mt-1 text-[17px] font-semibold tracking-wide text-white">
               {title}
             </p>
-            <div className="mt-2 text-[13px] leading-relaxed text-white/70 whitespace-pre-wrap">
+            <div className="mt-2 text-[13px] leading-relaxed text-white/55 whitespace-pre-wrap">
               {description}
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Trigger</p>
+                <p className="mt-1 text-[13px] font-medium text-white/85">{trigger}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Action</p>
+                <p className="mt-1 text-[13px] font-medium text-white/85">{action}</p>
+              </div>
+            </div>
+
+            <p className="mt-3 text-[12px] leading-relaxed text-white/60">{explanation}</p>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1.5 text-[12px] font-medium text-green-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              This automation is ready to run
             </div>
             
             {hasTested && !hasDeployed && (
@@ -77,7 +103,7 @@ export function ReadyCard({
           <button
             onClick={onDeploy}
             disabled={!hasTested || isDeploying || hasDeployed}
-            className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-[13px] font-bold text-black transition-all hover:scale-[1.02] hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-[13px] font-bold text-black transition-all duration-200 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
             Deploy Live

@@ -77,8 +77,8 @@ export function InteractiveCanvas({
   }, [logs]);
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#050505] relative overflow-hidden font-sans">
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#050505] font-sans">
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0)", backgroundSize: "32px 32px" }} />
 
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 pointer-events-none">
         <div className="flex items-center gap-2">
@@ -117,10 +117,10 @@ export function InteractiveCanvas({
                     initial={{ opacity: 0, scale: 0.8, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                    transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
-                    className={`w-full rounded-[18px] border p-5 flex items-start gap-4 transition-all duration-500 z-10
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className={`z-10 flex w-full items-start gap-4 rounded-[16px] border p-5 transition-all duration-200
                       ${isCompleted ? "bg-[#111111] border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.4)]" : ""}
-                      ${isActive ? "bg-[#18181B] border-accent/40 shadow-[0_0_40px_rgba(79,142,247,0.15)] ring-1 ring-accent/30" : ""}
+                      ${isActive ? "bg-[#18181B] border-accent/40 ring-1 ring-accent/20" : ""}
                     `}
                   >
                     <div className={`mt-0.5 shrink-0 flex items-center justify-center h-11 w-11 rounded-xl
@@ -158,15 +158,10 @@ export function InteractiveCanvas({
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 40 }}
-                      transition={{ duration: 0.4, delay: 0.2 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
                       className="w-[2px] bg-gradient-to-b from-white/20 to-white/5 my-1 relative"
                     >
-                      <motion.div
-                         initial={{ top: 0, opacity: 1 }}
-                         animate={{ top: "100%", opacity: 0 }}
-                         transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                         className="absolute left-1/2 -translate-x-1/2 w-1.5 h-6 rounded-full bg-accent/80 blur-[1px]"
-                      />
+                      <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/65" />
                     </motion.div>
                   )}
                 </React.Fragment>

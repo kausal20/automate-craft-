@@ -251,18 +251,13 @@ export default function HeroSection({
                           <AnimatePresence mode="popLayout">
                             <motion.div
                               key={exampleIndex}
-                              initial={{ opacity: 0, y: 15 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -15 }}
-                              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                              initial={{ opacity: 0, x: 18 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -18 }}
+                              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                               className="absolute inset-0 text-white/40"
                             >
                               {promptExamples[exampleIndex]}
-                              <motion.span
-                                animate={{ opacity: [1, 0, 1] }}
-                                transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                                className="inline-block w-[2px] h-[1em] bg-accent ml-1 align-middle opacity-80"
-                              />
                             </motion.div>
                           </AnimatePresence>
                         </div>
