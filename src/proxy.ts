@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { env, isSupabaseMode } from "@/lib/env";
+import { env, isSupabaseAuthEnabled } from "@/lib/env";
+
+const AUTH_PAGES = new Set(["/login", "/signup"]);
+const PROTECTED_PREFIXES = ["/dashboard", "/setup", "/onboarding"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
@@ -9,7 +12,7 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  if (!isSupabaseMode()) {
+  if (!isSupabaseAuthEnabled()) {
     return response;
   }
 
@@ -36,7 +39,21 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  if (!user && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (user && AUTH_PAGES.has(pathname)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   return response;
 }

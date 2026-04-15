@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isSupabaseMode } from "@/lib/env";
+import { isSupabaseAuthEnabled } from "@/lib/env";
 import { sanitizeNextPath } from "@/lib/navigation";
 import { createSupabaseRouteClient } from "@/lib/supabase";
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!isSupabaseMode()) {
+  if (!isSupabaseAuthEnabled()) {
     return NextResponse.redirect(
       new URL(
         "/login?error=Social%20login%20requires%20Supabase%20configuration.",

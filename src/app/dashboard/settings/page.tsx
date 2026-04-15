@@ -8,15 +8,15 @@ import {
   Webhook,
 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { env, hasOpenAIKey, isSupabaseMode } from "@/lib/env";
+import { env, hasOpenAIKey, isSupabaseAuthEnabled, isSupabaseMode } from "@/lib/env";
 
 const statusCards = [
   {
     title: "Authentication",
-    description: isSupabaseMode()
+    description: isSupabaseAuthEnabled()
       ? "Supabase Auth is active for session handling and user identity."
       : "Local credential auth is active. Set Supabase keys to move to managed auth.",
-    value: isSupabaseMode() ? "Supabase mode" : "Local mode",
+    value: isSupabaseAuthEnabled() ? "Supabase mode" : "Local mode",
     icon: ShieldCheck,
   },
   {

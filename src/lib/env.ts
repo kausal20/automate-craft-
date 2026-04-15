@@ -9,18 +9,26 @@ export const env = {
   sessionSecret: process.env.SESSION_SECRET || "automatecraft-dev-session-secret",
 } as const;
 
+/* LOGIC EXPLAINED:
+Supabase auth was previously treated as "configured" only when the service-role
+key was present. That blocked normal email/password login even though Supabase
+Auth only needs the public URL and publishable key. This fix separates public
+auth mode from admin/database mode so sign up, login, and sessions work with
+the provided frontend credentials, while admin-only database features still
+check for the service-role key explicitly.
+*/
+export function isSupabaseAuthEnabled() {
+  return Boolean(env.supabaseUrl && env.supabasePublishableKey);
+}
+
 export function isSupabaseMode() {
-  return Boolean(
-    env.supabaseUrl &&
-      env.supabasePublishableKey &&
-      env.supabaseServiceRoleKey,
-  );
+  return Boolean(isSupabaseAuthEnabled() && env.supabaseServiceRoleKey);
 }
 
 /** Enterprise SSO (Supabase SAML). Set NEXT_PUBLIC_ENABLE_SSO=false to hide until SAML is configured. */
 export function isSsoEnabled() {
   return (
-    isSupabaseMode() && process.env.NEXT_PUBLIC_ENABLE_SSO !== "false"
+    isSupabaseAuthEnabled() && process.env.NEXT_PUBLIC_ENABLE_SSO !== "false"
   );
 }
 

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,10 +28,12 @@ export default function RootLayout({
       className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <SplashScreen />
-        <AppChrome navbar={<Navbar />} footer={<Footer />}>
-          {children}
-        </AppChrome>
+        <SupabaseProvider>
+          <SplashScreen />
+          <AppChrome navbar={<Navbar />} footer={<Footer />}>
+            {children}
+          </AppChrome>
+        </SupabaseProvider>
       </body>
     </html>
   );

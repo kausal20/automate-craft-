@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isSupabaseMode } from "@/lib/env";
+import { isSupabaseAuthEnabled } from "@/lib/env";
 import { sanitizeNextPath } from "@/lib/navigation";
 import { syncSupabaseProfileFromCurrentSession } from "@/lib/auth";
 import { createSupabaseRouteClient } from "@/lib/supabase";
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!isSupabaseMode() || !code) {
+  if (!isSupabaseAuthEnabled() || !code) {
     return NextResponse.redirect(
       new URL("/login?error=Could%20not%20complete%20sign%20in.", request.url),
     );

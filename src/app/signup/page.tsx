@@ -1,6 +1,8 @@
 import AuthScreen from "@/components/auth/AuthScreen";
-import { isSsoEnabled, isSupabaseMode } from "@/lib/env";
+import { getCurrentUser } from "@/lib/auth";
+import { isSsoEnabled, isSupabaseAuthEnabled } from "@/lib/env";
 import { sanitizeNextPath } from "@/lib/navigation";
+import { redirect } from "next/navigation";
 
 type SearchParams = Promise<{
   next?: string | string[];
@@ -17,6 +19,11 @@ export default async function SignupPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const user = await getCurrentUser();
+  if (user) {
+    redirect("/dashboard");
+  }
+
   const params = await searchParams;
 
   return (
@@ -24,7 +31,7 @@ export default async function SignupPage({
       mode="signup"
       nextPath={sanitizeNextPath(pickFirst(params.next))}
       initialError={pickFirst(params.error) || null}
-      socialAuthEnabled={isSupabaseMode()}
+      socialAuthEnabled={isSupabaseAuthEnabled()}
       ssoEnabled={isSsoEnabled()}
       focusSso={pickFirst(params.focus) === "sso"}
     />

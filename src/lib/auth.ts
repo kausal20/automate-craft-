@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { AuthenticatedUser } from "@/lib/automation";
-import { env, isSupabaseMode } from "@/lib/env";
+import { env, isSupabaseAuthEnabled, isSupabaseMode } from "@/lib/env";
 import { readLocalDatabase, updateLocalDatabase } from "@/lib/local-store";
 import {
   createSupabaseAdminClient,
@@ -118,8 +118,8 @@ async function ensureSupabaseProfile(user: {
 }
 
 export async function syncSupabaseProfileFromCurrentSession() {
-  if (!isSupabaseMode()) {
-    log.debug("Supabase mode is off. Skipping session profile sync.");
+  if (!isSupabaseAuthEnabled()) {
+    log.debug("Supabase auth is off. Skipping session profile sync.");
     return null;
   }
 
@@ -153,8 +153,8 @@ export async function syncSupabaseProfileFromCurrentSession() {
 }
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
-  if (isSupabaseMode()) {
-    log.debug("Loading current user in Supabase mode.");
+  if (isSupabaseAuthEnabled()) {
+    log.debug("Loading current user in Supabase auth mode.");
     const supabase = await createSupabaseServerComponentClient();
     const { data, error } = await supabase.auth.getUser();
 
@@ -205,7 +205,7 @@ export async function signUpWithCredentials(input: {
   password: string;
 }) {
   log.info("Starting sign up flow for:", input.email);
-  if (isSupabaseMode()) {
+  if (isSupabaseAuthEnabled()) {
     const supabase = await createSupabaseRouteClient();
     const normalizedEmail = input.email.trim().toLowerCase();
     const signUpResult = await supabase.auth.signUp({
@@ -300,7 +300,7 @@ export async function signInWithCredentials(input: {
   password: string;
 }) {
   log.info("Starting sign in flow for:", input.email);
-  if (isSupabaseMode()) {
+  if (isSupabaseAuthEnabled()) {
     const supabase = await createSupabaseRouteClient();
     const normalizedEmail = input.email.trim().toLowerCase();
     const signInResult = await supabase.auth.signInWithPassword({
@@ -367,7 +367,7 @@ export async function signInWithCredentials(input: {
 
 export async function signOutCurrentUser() {
   log.info("Starting sign out flow.");
-  if (isSupabaseMode()) {
+  if (isSupabaseAuthEnabled()) {
     const supabase = await createSupabaseRouteClient();
     const { error } = await supabase.auth.signOut();
 

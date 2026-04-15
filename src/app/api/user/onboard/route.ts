@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { isSupabaseMode } from "@/lib/env";
+import { isSupabaseAuthEnabled } from "@/lib/env";
 import { createSupabaseRouteClient } from "@/lib/supabase";
 import { updateLocalDatabase } from "@/lib/local-store";
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const { fullName, role, companySize } = parsed.data;
 
     // Supabase Mode
-    if (isSupabaseMode()) {
+    if (isSupabaseAuthEnabled()) {
       const supabase = await createSupabaseRouteClient();
       
       const { error } = await supabase.auth.updateUser({

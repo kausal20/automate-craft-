@@ -1,6 +1,6 @@
 import HeroSection from "@/components/HeroSection";
 import { getCurrentUser } from "@/lib/auth";
-import { isSsoEnabled, isSupabaseMode } from "@/lib/env";
+import { isSsoEnabled, isSupabaseAuthEnabled } from "@/lib/env";
 import DashboardShell from "@/components/dashboard/DashboardShell";
 
 export default async function Home() {
@@ -9,7 +9,7 @@ export default async function Home() {
   const content = (
     <HeroSection
       user={user}
-      socialAuthEnabled={isSupabaseMode()}
+      socialAuthEnabled={isSupabaseAuthEnabled()}
       ssoEnabled={isSsoEnabled()}
     />
   );
