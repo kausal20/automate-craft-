@@ -154,16 +154,45 @@ export async function syncSupabaseProfileFromCurrentSession() {
 }
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+  // Open-access shortcut: skip all auth checks and return guest immediately.
+  if (isOpenAccessMode()) {
+    // Still try to load a real session so logged-in users get their own data,
+    // but never crash or block if it fails.
+    try {
+      if (isSupabaseAuthEnabled()) {
+        const supabase = await createSupabaseServerComponentClient();
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data.user) {
+          const name =
+            typeof data.user.user_metadata.full_name === "string"
+              ? data.user.user_metadata.full_name
+              : typeof data.user.user_metadata.name === "string"
+                ? data.user.user_metadata.name
+                : null;
+          return {
+            id: data.user.id,
+            email: data.user.email ?? "",
+            name,
+            mode: "supabase",
+            onboarded: !!data.user.user_metadata?.onboarded,
+          };
+        }
+      }
+      const localUser = await getLocalUserFromCookie();
+      if (localUser) return localUser;
+    } catch (err) {
+      log.warn("Auth check failed in open-access mode, using guest.", err);
+    }
+    return getGuestUser();
+  }
+
+  // Standard auth flow (open-access OFF)
   if (isSupabaseAuthEnabled()) {
     log.debug("Loading current user in Supabase auth mode.");
     const supabase = await createSupabaseServerComponentClient();
     const { data, error } = await supabase.auth.getUser();
 
     if (error || !data.user) {
-      if (isOpenAccessMode()) {
-        log.warn("Supabase auth unavailable. Falling back to guest access mode.");
-        return getGuestUser();
-      }
       log.error("Supabase getUser failed or returned no user.", error);
       return null;
     }
@@ -185,29 +214,27 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   }
 
   log.debug("Loading current user in local mode.");
-  const localUser = await getLocalUserFromCookie();
-
-  if (localUser) {
-    return localUser;
-  }
-
-  if (isOpenAccessMode()) {
-    log.info("Open access mode enabled. Returning guest user.");
-    return getGuestUser();
-  }
-
-  return null;
+  return getLocalUserFromCookie();
 }
 
 export async function requireUser({ requireOnboarding = true }: { requireOnboarding?: boolean } = {}) {
   const user = await getCurrentUser();
 
   if (!user) {
+    // Safety net: never redirect in open-access mode
+    if (isOpenAccessMode()) {
+      log.warn("requireUser: no user but open-access mode is ON. Returning guest.");
+      return getGuestUser();
+    }
     log.info("No user found. Redirecting to /login.");
     redirect("/login");
   }
 
   if (requireOnboarding && !user.onboarded) {
+    // Skip onboarding redirect in open-access mode
+    if (isOpenAccessMode()) {
+      return user;
+    }
     log.info("User not onboarded. Redirecting to /onboarding.");
     redirect("/onboarding");
   }
