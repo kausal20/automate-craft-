@@ -3,7 +3,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { AuthenticatedUser } from "@/lib/automation";
-import { env, isSupabaseAuthEnabled, isSupabaseMode } from "@/lib/env";
+import { env, isOpenAccessMode, isSupabaseAuthEnabled, isSupabaseMode } from "@/lib/env";
+import { getGuestUser } from "@/lib/guest-access";
 import { readLocalDatabase, updateLocalDatabase } from "@/lib/local-store";
 import {
   createSupabaseAdminClient,
@@ -87,7 +88,7 @@ async function getLocalUserFromCookie(): Promise<AuthenticatedUser | null> {
       email: user.email,
       name: user.name,
       mode: "local",
-      onboarded: !!(user as any).onboarded,
+      onboarded: !!user.onboarded,
     };
   } catch {
     log.error("Failed to verify local session cookie.");
@@ -159,6 +160,10 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
     const { data, error } = await supabase.auth.getUser();
 
     if (error || !data.user) {
+      if (isOpenAccessMode()) {
+        log.warn("Supabase auth unavailable. Falling back to guest access mode.");
+        return getGuestUser();
+      }
       log.error("Supabase getUser failed or returned no user.", error);
       return null;
     }
@@ -180,7 +185,18 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
   }
 
   log.debug("Loading current user in local mode.");
-  return getLocalUserFromCookie();
+  const localUser = await getLocalUserFromCookie();
+
+  if (localUser) {
+    return localUser;
+  }
+
+  if (isOpenAccessMode()) {
+    log.info("Open access mode enabled. Returning guest user.");
+    return getGuestUser();
+  }
+
+  return null;
 }
 
 export async function requireUser({ requireOnboarding = true }: { requireOnboarding?: boolean } = {}) {
@@ -304,6 +320,7 @@ export async function signUpWithCredentials(input: {
       createdAt: new Date().toISOString(),
       planCredits: 500,
       extraCredits: 0,
+      onboarded: false,
     };
 
     database.users.push(createdUser);
@@ -319,7 +336,7 @@ export async function signUpWithCredentials(input: {
       email: user.email,
       name: user.name,
       mode: "local" as const,
-      onboarded: !!(user as any).onboarded,
+      onboarded: !!user.onboarded,
     },
   };
 }
@@ -389,7 +406,7 @@ export async function signInWithCredentials(input: {
       email: user.email,
       name: user.name,
       mode: "local" as const,
-      onboarded: !!(user as any).onboarded,
+      onboarded: !!user.onboarded,
     },
   };
 }

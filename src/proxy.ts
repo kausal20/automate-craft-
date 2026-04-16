@@ -1,11 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { env, isSupabaseAuthEnabled } from "@/lib/env";
+import { env, isOpenAccessMode, isSupabaseAuthEnabled } from "@/lib/env";
 
 const AUTH_PAGES = new Set(["/login", "/signup"]);
 const PROTECTED_PREFIXES = ["/dashboard", "/setup", "/onboarding"];
 
 export async function proxy(request: NextRequest) {
+  if (isOpenAccessMode()) {
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,

@@ -6,6 +6,7 @@ export const env = {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  openAccessMode: process.env.OPEN_ACCESS_MODE === "true",
   sessionSecret: process.env.SESSION_SECRET || "automatecraft-dev-session-secret",
 } as const;
 
@@ -34,4 +35,8 @@ export function isSsoEnabled() {
 
 export function hasOpenAIKey() {
   return Boolean(env.openaiApiKey);
+}
+
+export function isOpenAccessMode() {
+  return env.openAccessMode;
 }

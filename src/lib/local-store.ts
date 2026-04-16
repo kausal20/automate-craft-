@@ -5,6 +5,8 @@ import type {
   AutomationRunRecord,
   IntegrationConnectionRecord,
 } from "@/lib/automation";
+import { isOpenAccessMode } from "@/lib/env";
+import { GUEST_USER_EMAIL, GUEST_USER_ID, GUEST_USER_NAME } from "@/lib/guest-access";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("local-store");
@@ -17,6 +19,7 @@ export type LocalUserRecord = {
   createdAt: string;
   planCredits: number;
   extraCredits: number;
+  onboarded?: boolean;
 };
 
 export type UsageLogRecord = {
@@ -149,7 +152,7 @@ const emptyDatabase: LocalDatabase = {
 function normalizeLocalDatabase(
   database: Partial<LocalDatabase> | null | undefined,
 ): LocalDatabase {
-  return {
+  const normalized = {
     users: database?.users ?? [],
     automations: database?.automations ?? [],
     automationRuns: database?.automationRuns ?? [],
@@ -159,6 +162,23 @@ function normalizeLocalDatabase(
     plans: database?.plans && database.plans.length > 0 ? database.plans : emptyDatabase.plans,
     subscriptions: database?.subscriptions ?? [],
   };
+
+  if (
+    isOpenAccessMode() &&
+    !normalized.users.some((user) => user.id === GUEST_USER_ID)
+  ) {
+    normalized.users.unshift({
+      id: GUEST_USER_ID,
+      email: GUEST_USER_EMAIL,
+      name: GUEST_USER_NAME,
+      passwordHash: "guest-access-disabled",
+      createdAt: new Date().toISOString(),
+      planCredits: 5000,
+      extraCredits: 0,
+    });
+  }
+
+  return normalized;
 }
 
 async function ensureStorage() {
