@@ -208,6 +208,13 @@ export async function signUpWithCredentials(input: {
   if (isSupabaseAuthEnabled()) {
     const supabase = await createSupabaseRouteClient();
     const normalizedEmail = input.email.trim().toLowerCase();
+
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      (process.env.NEXT_PUBLIC_VERCEL_URL
+        ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+        : "http://localhost:3000");
+
     const signUpResult = await supabase.auth.signUp({
       email: normalizedEmail,
       password: input.password,
@@ -215,6 +222,7 @@ export async function signUpWithCredentials(input: {
         data: {
           full_name: input.name,
         },
+        emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
       },
     });
 
@@ -223,20 +231,39 @@ export async function signUpWithCredentials(input: {
       throw new Error(signUpResult.error.message);
     }
 
-    if (!signUpResult.data.session) {
-      const signInResult = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password: input.password,
-      });
-
-      if (signInResult.error) {
-        log.error("Supabase auto sign in after sign up failed.", signInResult.error);
-        throw new Error(signInResult.error.message);
-      }
-    }
-
     if (!signUpResult.data.user?.id) {
       throw new Error("Could not create the Supabase user.");
+    }
+
+    // When email confirmation is enabled, Supabase returns no session.
+    // Instead of trying to sign in (which would fail with "Email not confirmed"),
+    // return a flag so the frontend can redirect to the check-email page.
+    if (!signUpResult.data.session) {
+      log.info("Email confirmation required for:", normalizedEmail);
+
+      // Still upsert the profile so it exists when the user confirms.
+      try {
+        await ensureSupabaseProfile({
+          id: signUpResult.data.user.id,
+          email: normalizedEmail,
+          name: input.name,
+        });
+      } catch {
+        // Profile upsert may fail without service-role key — that's fine,
+        // the callback route will sync it after confirmation.
+        log.warn("Profile upsert skipped (no service role key or table missing).");
+      }
+
+      return {
+        needsEmailVerification: true,
+        user: {
+          id: signUpResult.data.user.id,
+          email: normalizedEmail,
+          name: input.name,
+          mode: "supabase" as const,
+          onboarded: false,
+        },
+      };
     }
 
     await ensureSupabaseProfile({
@@ -246,6 +273,7 @@ export async function signUpWithCredentials(input: {
     });
 
     return {
+      needsEmailVerification: false,
       user: {
         id: signUpResult.data.user.id,
         email: normalizedEmail,
@@ -285,6 +313,7 @@ export async function signUpWithCredentials(input: {
   await setLocalSessionCookie(user);
 
   return {
+    needsEmailVerification: false,
     user: {
       id: user.id,
       email: user.email,

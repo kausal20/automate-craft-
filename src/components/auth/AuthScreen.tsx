@@ -117,11 +117,19 @@ export default function AuthScreen({
       const json = (await response.json()) as {
         error?: string;
         user?: { onboarded: boolean };
+        needsEmailVerification?: boolean;
       };
       console.log("[AuthScreen] Submit response received.", json);
 
       if (!response.ok) {
         throw new Error(json.error || "Authentication failed.");
+      }
+
+      // Email verification required — redirect to check-email page
+      if (json.needsEmailVerification) {
+        console.log("[AuthScreen] Email verification required. Redirecting to /check-email.");
+        router.push(`/check-email?email=${encodeURIComponent(email)}`);
+        return;
       }
 
       let finalPath = nextPath;

@@ -3,6 +3,8 @@ const SAFE_PATH_PREFIXES = [
   "/lets-talk",
   "/login",
   "/signup",
+  "/check-email",
+  "/onboarding",
   "/",
 ];
 
