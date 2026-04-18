@@ -16,6 +16,16 @@ export type UserCredits = {
 export async function getUserCredits(userId: string): Promise<UserCredits> {
   log.info("Fetching user credits for user:", userId);
 
+  if (userId === "guest-user") {
+    return {
+      planCredits: 50,
+      extraCredits: 10,
+      totalCredits: 60,
+      monthlyUsage: 0,
+      hasSubscription: false,
+    };
+  }
+
   if (isSupabaseMode()) {
     log.debug("Using Supabase to get user credits.");
     const supabase = createSupabaseAdminClient();
@@ -247,6 +257,10 @@ export async function buyCredits(userId: string, amount: number, packageDesc: st
 
 export async function listUsageLogsForUser(userId: string): Promise<UsageLogRecord[]> {
   log.info("Listing usage logs for user:", userId);
+
+  if (userId === "guest-user") {
+    return [];
+  }
 
   if (isSupabaseMode()) {
     const supabase = createSupabaseAdminClient();

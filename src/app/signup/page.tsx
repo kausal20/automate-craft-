@@ -19,9 +19,13 @@ export default async function SignupPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser({ allowUnverified: true });
   if (user) {
-    redirect("/dashboard");
+    redirect(
+      user.emailVerified
+        ? "/dashboard"
+        : `/verify-email?email=${encodeURIComponent(user.email)}`,
+    );
   }
 
   const params = await searchParams;

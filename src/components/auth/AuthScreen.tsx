@@ -122,13 +122,17 @@ export default function AuthScreen({
       console.log("[AuthScreen] Submit response received.", json);
 
       if (!response.ok) {
+        if (json.needsEmailVerification) {
+          router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+          return;
+        }
         throw new Error(json.error || "Authentication failed.");
       }
 
       // Email verification required — redirect to check-email page
       if (json.needsEmailVerification) {
-        console.log("[AuthScreen] Email verification required. Redirecting to /check-email.");
-        router.push(`/check-email?email=${encodeURIComponent(email)}`);
+        console.log("[AuthScreen] Email verification required. Redirecting to /verify-email.");
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
         return;
       }
 

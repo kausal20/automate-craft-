@@ -18,9 +18,23 @@ export async function POST(request: Request) {
     const body = loginSchema.parse(await request.json());
     console.log("[api/auth/login] Payload validated for:", body.email);
     const result = await signInWithCredentials(body);
-    console.log("[api/auth/login] Sign in succeeded for:", result.user.email);
+    console.log("[api/auth/login] Sign in result for:", result.user.email, "needsEmailVerification:", result.needsEmailVerification);
 
-    return Response.json({ user: result.user });
+    if (result.needsEmailVerification) {
+      return Response.json(
+        {
+          error: "Please verify your email before continuing",
+          user: result.user,
+          needsEmailVerification: true,
+        },
+        { status: 403 },
+      );
+    }
+
+    return Response.json({
+      user: result.user,
+      needsEmailVerification: false,
+    });
   } catch (error) {
     console.error("[api/auth/login] Request failed.", error);
     const message =

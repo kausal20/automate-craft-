@@ -108,6 +108,7 @@ export type AuthenticatedUser = {
   name: string | null;
   mode: "supabase" | "local";
   onboarded?: boolean;
+  emailVerified?: boolean;
 };
 
 export type AutomationRecord = {

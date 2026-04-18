@@ -1,5 +1,5 @@
 import VerifyEmailScreen from "@/components/auth/VerifyEmailScreen";
 
-export default function CheckEmailPage() {
+export default function VerifyEmailPage() {
   return <VerifyEmailScreen />;
 }

@@ -52,6 +52,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  const isVerified = Boolean(user?.email_confirmed_at);
 
   if (!user && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     const loginUrl = new URL("/login", request.url);
@@ -59,7 +60,22 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (user && !isVerified && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    const verifyUrl = new URL("/verify-email", request.url);
+    if (user.email) {
+      verifyUrl.searchParams.set("email", user.email);
+    }
+    return NextResponse.redirect(verifyUrl);
+  }
+
   if (user && AUTH_PAGES.has(pathname)) {
+    if (!isVerified) {
+      const verifyUrl = new URL("/verify-email", request.url);
+      if (user.email) {
+        verifyUrl.searchParams.set("email", user.email);
+      }
+      return NextResponse.redirect(verifyUrl);
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

@@ -29,6 +29,31 @@ function getSessionSecret() {
   return new TextEncoder().encode(env.sessionSecret);
 }
 
+function mapSupabaseUser(
+  user: {
+    id: string;
+    email?: string | null;
+    email_confirmed_at?: string | null;
+    user_metadata?: Record<string, unknown>;
+  },
+): AuthenticatedUser {
+  const name =
+    typeof user.user_metadata?.full_name === "string"
+      ? user.user_metadata.full_name
+      : typeof user.user_metadata?.name === "string"
+        ? user.user_metadata.name
+        : null;
+
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    name,
+    mode: "supabase",
+    onboarded: !!user.user_metadata?.onboarded,
+    emailVerified: Boolean(user.email_confirmed_at),
+  };
+}
+
 async function setLocalSessionCookie(user: {
   id: string;
   email: string;
@@ -153,7 +178,11 @@ export async function syncSupabaseProfileFromCurrentSession() {
   };
 }
 
-export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+export async function getCurrentUser(
+  options: { allowUnverified?: boolean } = {},
+): Promise<AuthenticatedUser | null> {
+  const { allowUnverified = false } = options;
+
   // Open-access shortcut: skip all auth checks and return guest immediately.
   if (isOpenAccessMode()) {
     // Still try to load a real session so logged-in users get their own data,
@@ -197,20 +226,14 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       return null;
     }
 
-    const name =
-      typeof data.user.user_metadata.full_name === "string"
-        ? data.user.user_metadata.full_name
-        : typeof data.user.user_metadata.name === "string"
-          ? data.user.user_metadata.name
-          : null;
+    const currentUser = mapSupabaseUser(data.user);
 
-    return {
-      id: data.user.id,
-      email: data.user.email ?? "",
-      name,
-      mode: "supabase",
-      onboarded: !!data.user.user_metadata?.onboarded,
-    };
+    if (!allowUnverified && !currentUser.emailVerified) {
+      log.info("Supabase user exists, but email is not verified.");
+      return null;
+    }
+
+    return currentUser;
   }
 
   log.debug("Loading current user in local mode.");
@@ -218,7 +241,7 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
 }
 
 export async function requireUser({ requireOnboarding = true }: { requireOnboarding?: boolean } = {}) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser({ allowUnverified: true });
 
   if (!user) {
     // Safety net: never redirect in open-access mode
@@ -228,6 +251,11 @@ export async function requireUser({ requireOnboarding = true }: { requireOnboard
     }
     log.info("No user found. Redirecting to /login.");
     redirect("/login");
+  }
+
+  if (!user.emailVerified) {
+    log.info("User email is not verified. Redirecting to /verify-email.");
+    redirect(`/verify-email?email=${encodeURIComponent(user.email)}`);
   }
 
   if (requireOnboarding && !user.onboarded) {
@@ -279,8 +307,7 @@ export async function signUpWithCredentials(input: {
     }
 
     // When email confirmation is enabled, Supabase returns no session.
-    // Instead of trying to sign in (which would fail with "Email not confirmed"),
-    // return a flag so the frontend can redirect to the check-email page.
+    // Return a flag so the frontend can redirect to the verify-email page.
     if (!signUpResult.data.session) {
       log.info("Email confirmation required for:", normalizedEmail);
 
@@ -305,6 +332,7 @@ export async function signUpWithCredentials(input: {
           name: input.name,
           mode: "supabase" as const,
           onboarded: false,
+          emailVerified: false,
         },
       };
     }
@@ -323,6 +351,7 @@ export async function signUpWithCredentials(input: {
         name: input.name,
         mode: "supabase" as const,
         onboarded: !!signUpResult.data.user.user_metadata?.onboarded,
+        emailVerified: Boolean(signUpResult.data.user.email_confirmed_at),
       },
     };
   }
@@ -364,6 +393,7 @@ export async function signUpWithCredentials(input: {
       name: user.name,
       mode: "local" as const,
       onboarded: !!user.onboarded,
+      emailVerified: true,
     },
   };
 }
@@ -381,32 +411,62 @@ export async function signInWithCredentials(input: {
       password: input.password,
     });
 
-    if (signInResult.error || !signInResult.data.user) {
+    if (signInResult.error) {
       log.error("Supabase sign in failed.", signInResult.error);
-      throw new Error(signInResult.error?.message || "Invalid login.");
+
+      if (signInResult.error.message.toLowerCase().includes("email not confirmed")) {
+        return {
+          needsEmailVerification: true,
+          user: {
+            id: "",
+            email: normalizedEmail,
+            name: null,
+            mode: "supabase" as const,
+            onboarded: false,
+            emailVerified: false,
+          },
+        };
+      }
+
+      if (signInResult.error.message.toLowerCase().includes("invalid login credentials")) {
+        throw new Error(
+          "Incorrect email or password. If you just signed up, please verify your email before continuing.",
+        );
+      }
+
+      throw new Error(signInResult.error.message || "Invalid login.");
     }
 
-    const name =
-      typeof signInResult.data.user.user_metadata.full_name === "string"
-        ? signInResult.data.user.user_metadata.full_name
-        : typeof signInResult.data.user.user_metadata.name === "string"
-          ? signInResult.data.user.user_metadata.name
-          : null;
+    if (!signInResult.data.user) {
+      throw new Error("Invalid login.");
+    }
+
+    if (!signInResult.data.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      return {
+        needsEmailVerification: true,
+        user: {
+          id: signInResult.data.user.id,
+          email: normalizedEmail,
+          name: null,
+          mode: "supabase" as const,
+          onboarded: false,
+          emailVerified: false,
+        },
+      };
+    }
+
+    const mappedUser = mapSupabaseUser(signInResult.data.user);
 
     await ensureSupabaseProfile({
       id: signInResult.data.user.id,
       email: normalizedEmail,
-      name,
+      name: mappedUser.name,
     });
 
     return {
-      user: {
-        id: signInResult.data.user.id,
-        email: normalizedEmail,
-        name,
-        mode: "supabase" as const,
-        onboarded: !!signInResult.data.user.user_metadata?.onboarded,
-      },
+      needsEmailVerification: false,
+      user: mappedUser,
     };
   }
 
@@ -428,12 +488,14 @@ export async function signInWithCredentials(input: {
   await setLocalSessionCookie(user);
 
   return {
+    needsEmailVerification: false,
     user: {
       id: user.id,
       email: user.email,
       name: user.name,
       mode: "local" as const,
       onboarded: !!user.onboarded,
+      emailVerified: true,
     },
   };
 }

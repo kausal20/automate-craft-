@@ -12,28 +12,17 @@ import {
   User,
   Star,
   Users,
-  Coins,
-  HelpCircle,
   Plug,
   MessageSquare,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
-import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
-import { SubscriptionModal } from "@/components/dashboard/SubscriptionModal";
 import { SettingsModal } from "@/components/dashboard/SettingsModal";
+import { CreditsDropdown } from "@/components/dashboard/CreditsDropdown";
 
 type RecentItem = {
   id: string;
   name: string;
-};
-
-type CreditsData = {
-  totalCredits: number;
-  planCredits: number;
-  extraCredits: number;
-  freeCredits?: number;
-  hasSubscription: boolean;
 };
 
 type ChatIndexEntry = {
@@ -64,25 +53,19 @@ export default function DashboardShell({
   user: AuthenticatedUser;
 }) {
   /* LOGIC EXPLAINED: The dashboard shell still had bright accent-blue surfaces
-     in the exact areas shown by the user: the logo row, logout action, credits
-     pill, and credits dropdown actions. This fix keeps the structure unchanged
-     but replaces those electric states with neutral dark surfaces and softer
-     hover feedback, so the dashboard feels calmer and more premium. */
+     now needs the old credits trigger removed completely. This change takes the
+     shared credits component out of the dashboard shell so no floating credits
+     UI is rendered while we prepare to rebuild that feature from scratch. */
   const pathname = usePathname();
   const router = useRouter();
   const isChatWorkspace =
     pathname === "/dashboard/chat" || pathname.startsWith("/dashboard/chat/");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isCreditsOpen, setIsCreditsOpen] = useState(false);
   const [recents, setRecents] = useState<RecentItem[]>([]);
-  const [creditsData, setCreditsData] = useState<CreditsData | null>(null);
   const [recentChats, setRecentChats] = useState<ChatIndexEntry[]>([]);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const creditsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchRecents = async () => {
@@ -105,27 +88,9 @@ export default function DashboardShell({
   }, [pathname]);
 
   useEffect(() => {
-    const fetchCredits = async () => {
-      try {
-        const res = await fetch("/api/credits");
-        if (res.ok) {
-          const data = await res.json();
-          setCreditsData(data);
-        }
-      } catch {
-        console.error("Failed to fetch credits");
-      }
-    };
-    void fetchCredits();
-  }, [pathname]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
-      }
-      if (creditsRef.current && !creditsRef.current.contains(event.target as Node)) {
-        setIsCreditsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -164,22 +129,6 @@ export default function DashboardShell({
     } catch (error) {
       console.error("Sign out failed.", error);
     }
-  };
-
-  const handleModalSuccess = () => {
-    const fetchCredits = async () => {
-      try {
-        const res = await fetch("/api/credits");
-        if (res.ok) {
-          const data = await res.json();
-          setCreditsData(data);
-        }
-      } catch {
-        console.error("Failed to fetch credits");
-      }
-    };
-    void fetchCredits();
-    router.refresh();
   };
 
   const navItems = [
@@ -444,112 +393,12 @@ export default function DashboardShell({
       )}
 
       <main className={`${mainMargin} relative min-w-0 flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
-        {/* Top-Right Credits Floating Pill & Dropdown */}
-        {pathname === "/" && (
-          <div className="fixed right-20 top-6 z-30" ref={creditsRef}>
-          <button
-            onClick={() => setIsCreditsOpen(!isCreditsOpen)}
-            className="flex items-center gap-2.5 rounded-full border border-white/10 bg-[#141414] px-4 py-2 shadow-[0_8px_20px_rgba(0,0,0,0.24)] transition-all duration-200 hover:scale-[1.01] hover:border-white/20 hover:bg-[#181818] active:scale-[0.99] group"
-          >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/8">
-              <Coins className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold text-white">
-              {creditsData ? creditsData.totalCredits.toFixed(2) : "..." }
-            </span>
-          </button>
-
-          {/* Credits Popover (attached to top-right pill) */}
-          {isCreditsOpen && creditsData && (
-            <div className="absolute right-0 top-full mt-3 overflow-hidden rounded-[1.5rem] bg-[#111111] p-5 shadow-[0_24px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/5 animate-in fade-in zoom-in-95 duration-200 z-50 w-[300px]">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-white/40">Available Credits</span>
-                  <HelpCircle className="h-3.5 w-3.5 text-white/20" />
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/60">
-                  <Sparkles className="h-3 w-3" />
-                  {creditsData.hasSubscription ? "Premium" : "Standard"}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-                  <Coins className="h-6 w-6 text-white/80" />
-                </div>
-                <span className="text-[2rem] font-bold leading-none tracking-tight text-white">
-                  {creditsData.totalCredits.toFixed(2)}
-                </span>
-              </div>
-
-              <div className="space-y-3.5 pt-5 border-t border-white/5 mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-white/50">Free Credits</span>
-                    <HelpCircle className="h-3 w-3 text-white/10" />
-                  </div>
-                  <span className="text-xs font-bold text-white">
-                    {(creditsData.freeCredits || 0).toFixed(2)} <span className="text-white/20 ml-1">/ 10</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-white/50">Monthly Credits</span>
-                    <HelpCircle className="h-3 w-3 text-white/10" />
-                  </div>
-                  <span className="text-xs font-bold text-white">
-                    {creditsData.planCredits.toFixed(2)} <span className="text-white/20 ml-1">/ 50</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-white/50">Top up Credits</span>
-                  <span className="text-xs font-bold text-white">
-                    {creditsData.extraCredits.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2.5">
-                {!creditsData.hasSubscription ? (
-                  <button
-                    onClick={() => {
-                      setIsCreditsOpen(false);
-                      router.push("/pricing");
-                    }}
-                    className="w-full flex items-center justify-center rounded-xl border border-white/10 bg-white py-3 text-xs font-bold text-black transition-all duration-200 hover:bg-white/92 hover:scale-[1.01] active:scale-[0.99] shadow-[0_8px_20px_rgba(255,255,255,0.08)]"
-                  >
-                    Manage your Subscriptions
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setIsCreditsOpen(false);
-                      setShowBuyCreditsModal(true);
-                    }}
-                    className="w-full flex items-center justify-center rounded-xl border border-white/10 bg-white py-3 text-xs font-bold text-black transition-all duration-200 hover:bg-white/92 hover:scale-[1.01] active:scale-[0.99] shadow-[0_8px_20px_rgba(255,255,255,0.08)]"
-                  >
-                    Buy More Credits
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+        {/* Top Right Header Area */}
+        <div className="absolute right-6 top-5 z-50 flex items-center justify-end">
+          <CreditsDropdown />
         </div>
-        )}
-
         {children}
       </main>
-
-      <BuyCreditsModal
-        isOpen={showBuyCreditsModal}
-        onClose={() => setShowBuyCreditsModal(false)}
-        onSuccess={handleModalSuccess}
-      />
-      <SubscriptionModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-        onSuccess={handleModalSuccess}
-      />
       <SettingsModal 
         isOpen={showSettingsModal} 
         onClose={() => setShowSettingsModal(false)} 

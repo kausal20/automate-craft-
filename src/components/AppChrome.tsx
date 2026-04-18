@@ -13,16 +13,17 @@ export default function AppChrome({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const hideChrome =
+  const showNavbar = pathname === "/";
+  const hideFooter =
     pathname.startsWith("/dashboard") ||
     pathname === "/login" ||
     pathname === "/signup" ||
-    pathname === "/how-credits-work";
-  const hideFooter = hideChrome || pathname === "/";
+    pathname === "/how-credits-work" ||
+    pathname === "/";
 
   return (
     <div className="flex min-h-screen flex-col">
-      {hideChrome ? null : navbar}
+      {showNavbar ? navbar : null}
       <div className="flex-1">{children}</div>
       {hideFooter ? null : footer}
     </div>

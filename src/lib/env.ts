@@ -38,5 +38,5 @@ export function hasOpenAIKey() {
 }
 
 export function isOpenAccessMode() {
-  return env.openAccessMode !== "false";
+  return env.openAccessMode === "true";
 }
