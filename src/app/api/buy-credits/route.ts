@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { buyCredits } from "@/lib/credit-store";
 
+const PRICE_PER_CREDIT = 1.8;
+const MAX_CUSTOM_PRICE_INR = 100000;
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -19,6 +22,13 @@ export async function POST(request: Request) {
       creditsToAdd = parseInt(customCredits, 10);
       if (creditsToAdd < 600) {
         return NextResponse.json({ error: "Minimum custom credit top-up is 600" }, { status: 400 });
+      }
+      const customPrice = Math.round(creditsToAdd * PRICE_PER_CREDIT);
+      if (customPrice > MAX_CUSTOM_PRICE_INR) {
+        return NextResponse.json(
+          { error: "Maximum custom purchase is ₹1,00,000" },
+          { status: 400 },
+        );
       }
       desc = `${creditsToAdd} Credits Top-up (Custom)`;
     } else {

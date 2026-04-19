@@ -26,6 +26,8 @@ const CREDIT_PACKAGES: CreditPackage[] = [
 ];
 
 const PRICE_PER_CREDIT = 1.8;
+const MAX_CUSTOM_PRICE_INR = 100000;
+const MAX_CUSTOM_CREDITS = 55555;
 
 function formatCredits(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
@@ -71,8 +73,12 @@ export function BuyCreditsModal({
     : (selectedPackage?.price ?? 0);
 
   const customAmountError =
-    selectedPackageId === "custom" && customCreditsNumber < 600
-      ? "Minimum custom credit purchase is 600."
+    selectedPackageId === "custom"
+      ? customCreditsNumber < 600
+        ? "Minimum custom credit purchase is 600."
+        : customPrice > MAX_CUSTOM_PRICE_INR
+          ? "Maximum custom purchase is ₹1,00,000."
+          : null
       : null;
 
   const handleClose = (force = false) => {
@@ -247,14 +253,32 @@ export function BuyCreditsModal({
                     <input
                       type="number"
                       min={600}
+                      max={MAX_CUSTOM_CREDITS}
                       step={1}
                       inputMode="numeric"
                       value={customCredits}
                       onFocus={() => setSelectedPackageId("custom")}
                       onChange={(event) => {
+                        const nextValue = event.target.value;
+
                         setSelectedPackageId("custom");
-                        setCustomCredits(event.target.value);
                         setError(null);
+
+                        if (nextValue === "") {
+                          setCustomCredits("");
+                          return;
+                        }
+
+                        const parsedValue = Number.parseInt(nextValue, 10);
+
+                        if (!Number.isFinite(parsedValue)) {
+                          setCustomCredits("");
+                          return;
+                        }
+
+                        setCustomCredits(
+                          String(Math.min(parsedValue, MAX_CUSTOM_CREDITS)),
+                        );
                       }}
                       className="minimal-number-input mt-2 w-[180px] max-w-full bg-transparent text-[2rem] font-semibold leading-none tracking-[-0.05em] text-white outline-none [color-scheme:dark] placeholder:text-white/22"
                       placeholder="600"
@@ -276,7 +300,7 @@ export function BuyCreditsModal({
             </div>
 
             <p className="mt-3 px-1 text-sm text-white/45">
-              Minimum custom credit purchase is 600.
+              Minimum custom credit purchase is 600. Maximum total is ₹1,00,000.
             </p>
 
             {error || customAmountError ? (
