@@ -138,9 +138,23 @@ async function ensureSupabaseProfile(user: {
       id: user.id,
       email: user.email,
       full_name: user.name,
+      plan_credits: 50,
+      extra_credits: 0,
     },
-    { onConflict: "id" },
+    {
+      onConflict: "id",
+      // Only update name/email on conflict, never overwrite existing credits
+      ignoreDuplicates: false,
+    },
   );
+
+  // Ensure we don't overwrite existing credit values for returning users
+  // The upsert above sets defaults for NEW rows only; for existing rows,
+  // we only update the non-credit fields
+  await supabaseAdmin
+    .from("profiles")
+    .update({ email: user.email, full_name: user.name })
+    .eq("id", user.id);
 }
 
 export async function syncSupabaseProfileFromCurrentSession() {

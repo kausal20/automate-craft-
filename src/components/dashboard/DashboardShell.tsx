@@ -18,7 +18,7 @@ import {
 import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
 import { SettingsModal } from "@/components/dashboard/SettingsModal";
-import { CreditsDropdown } from "@/components/dashboard/CreditsDropdown";
+import { CreditsDropdown } from "@/components/CreditsDropdown";
 
 type RecentItem = {
   id: string;
@@ -328,6 +328,10 @@ export default function DashboardShell({
           )}
         </div>
 
+        {/* Credits Button */}
+        <div className={`border-t ${isCollapsed ? "px-2 py-3 flex justify-center" : "px-4 py-3"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`}>
+          <CreditsDropdown />
+        </div>
 
         {/* User Footer */}
         <div className={`relative border-t ${isCollapsed ? "p-2" : "p-4"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`} ref={userMenuRef}>
@@ -393,10 +397,6 @@ export default function DashboardShell({
       )}
 
       <main className={`${mainMargin} relative min-w-0 flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
-        {/* Top Right Header Area */}
-        <div className="absolute right-6 top-5 z-50 flex items-center justify-end">
-          <CreditsDropdown />
-        </div>
         {children}
       </main>
       <SettingsModal 

@@ -3,20 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Building2,
   Eye,
   EyeOff,
+  Mail,
+  KeyRound,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
-
-/* LOGIC EXPLAINED:
-This is the browser-side auth form. The fix adds clear logs for submit start,
-API response, success, and failure so you can trace login and signup from the
-browser without guessing which step broke.
-*/
 
 type AuthScreenProps = {
   mode: "login" | "signup";
@@ -68,6 +66,13 @@ export default function AuthScreen({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError);
 
+  // Magic link state
+  const [authMethod, setAuthMethod] = useState<"magic" | "password">("magic");
+  const [magicEmail, setMagicEmail] = useState("");
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
+  const [magicError, setMagicError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!focusSso || !ssoEnabled) {
       return;
@@ -93,24 +98,16 @@ export default function AuthScreen({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log("[AuthScreen] Submit started.", {
-      mode,
-      email,
-      nextPath,
-    });
+    console.log("[AuthScreen] Submit started.", { mode, email, nextPath });
     setLoading(true);
     setError(null);
 
     try {
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          isSignup
-            ? { name, email, password }
-            : { email, password },
+          isSignup ? { name, email, password } : { email, password },
         ),
       });
 
@@ -153,6 +150,34 @@ export default function AuthScreen({
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMagicLink = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMagicLoading(true);
+    setMagicError(null);
+
+    try {
+      const response = await fetch("/api/auth/magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: magicEmail }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json.error || "Could not send magic link.");
+      }
+
+      setMagicSent(true);
+    } catch (err) {
+      setMagicError(
+        err instanceof Error ? err.message : "Could not send magic link.",
+      );
+    } finally {
+      setMagicLoading(false);
     }
   };
 
@@ -272,84 +297,206 @@ export default function AuthScreen({
             </div>
           </div>
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {error ? (
-              <div className="rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-3 text-[0.95rem] font-medium text-red-400">
-                {error}
-              </div>
-            ) : null}
-
-            {isSignup ? (
-              <div>
-                <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
-                  Full name
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Your full name"
-                  autoComplete="name"
-                  className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
-                />
-              </div>
-            ) : null}
-
-            <div>
-              <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
-                Email
-              </label>
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@company.com"
-                autoComplete="email"
-                className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
+          {/* ─── Auth Method Toggle (Login only) ─── */}
+          {!isSignup && (
+            <div className="mb-6 flex items-center gap-1 rounded-2xl bg-white/[0.03] p-1 border border-white/[0.06]">
+              <button
+                type="button"
+                onClick={() => { setAuthMethod("magic"); setError(null); }}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-200 ${
+                  authMethod === "magic"
+                    ? "bg-accent text-white shadow-[0_2px_8px_rgba(59,130,246,0.25)]"
+                    : "text-foreground/40 hover:text-foreground/60"
+                }`}
+              >
+                <Mail className="h-4 w-4" />
+                Magic Link
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMethod("password"); setError(null); setMagicError(null); }}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium transition-all duration-200 ${
+                  authMethod === "password"
+                    ? "bg-accent text-white shadow-[0_2px_8px_rgba(59,130,246,0.25)]"
+                    : "text-foreground/40 hover:text-foreground/60"
+                }`}
+              >
+                <KeyRound className="h-4 w-4" />
                 Password
-              </label>
-              <div className="relative">
-                <input
-                  required
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  minLength={8}
-                  placeholder={isSignup ? "Minimum 8 characters" : "Your password"}
-                  autoComplete={isSignup ? "new-password" : "current-password"}
-                  className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 pr-12 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60 transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
+              </button>
             </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-dark mt-4 inline-flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-2xl px-8 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {loading ? pendingLabel : submitLabel}
-              {!loading ? <ArrowRight className="h-4 w-4" /> : null}
-            </button>
-          </form>
+          {/* ─── Magic Link Form ─── */}
+          <AnimatePresence mode="wait">
+            {!isSignup && authMethod === "magic" ? (
+              <motion.div
+                key="magic"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                {magicSent ? (
+                  /* ─── Success State ─── */
+                  <div className="flex flex-col items-center text-center py-4">
+                    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 ring-1 ring-accent/20">
+                      <CheckCircle2 className="h-8 w-8 text-accent" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-foreground mb-2">Check your inbox</h2>
+                    <p className="text-sm text-foreground/50 mb-1">
+                      We sent a login link to
+                    </p>
+                    <p className="text-sm font-semibold text-accent mb-6">{magicEmail}</p>
+                    <p className="text-xs text-foreground/30 mb-4">
+                      Click the link in the email to sign in automatically. The link expires in 1 hour.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setMagicSent(false); setMagicEmail(""); }}
+                      className="text-sm font-medium text-foreground/40 hover:text-foreground/70 transition-colors"
+                    >
+                      Use a different email
+                    </button>
+                  </div>
+                ) : (
+                  /* ─── Input State ─── */
+                  <form onSubmit={handleMagicLink} className="space-y-5">
+                    {magicError && (
+                      <div className="rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-3 text-[0.95rem] font-medium text-red-400">
+                        {magicError}
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
+                        Email
+                      </label>
+                      <input
+                        required
+                        type="email"
+                        value={magicEmail}
+                        onChange={(e) => setMagicEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        autoComplete="email"
+                        className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={magicLoading}
+                      className="btn-dark mt-2 inline-flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-2xl px-8 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {magicLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending link...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4" />
+                          Send magic link
+                        </>
+                      )}
+                    </button>
+
+                    <p className="text-center text-xs text-foreground/30 leading-5">
+                      No password needed. We'll email you a one-time login link.
+                    </p>
+                  </form>
+                )}
+              </motion.div>
+            ) : (
+              /* ─── Password Form (original) ─── */
+              <motion.div
+                key="password"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  {error ? (
+                    <div className="rounded-2xl border border-red-900/50 bg-red-950/20 px-4 py-3 text-[0.95rem] font-medium text-red-400">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  {isSignup ? (
+                    <div>
+                      <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
+                        Full name
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        placeholder="Your full name"
+                        autoComplete="name"
+                        className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
+                      />
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
+                      Email
+                    </label>
+                    <input
+                      required
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="you@company.com"
+                      autoComplete="email"
+                      className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-[0.95rem] font-medium text-foreground/80">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        required
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        minLength={8}
+                        placeholder={isSignup ? "Minimum 8 characters" : "Your password"}
+                        autoComplete={isSignup ? "new-password" : "current-password"}
+                        className="h-[3.25rem] w-full rounded-2xl border border-white/10 bg-white/[0.02] px-5 pr-12 text-[0.95rem] text-foreground outline-none transition-all placeholder:text-foreground/30 focus:border-accent focus:bg-white/5 focus:ring-[3px] focus:ring-accent/15"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground/60 transition-colors"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-dark mt-4 inline-flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-2xl px-8 text-[0.95rem] font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {loading ? pendingLabel : submitLabel}
+                    {!loading ? <ArrowRight className="h-4 w-4" /> : null}
+                  </button>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <p className="mt-10 text-center text-[0.85rem] leading-6 text-foreground/45">
             By continuing, you agree to our Terms and Privacy Policy.

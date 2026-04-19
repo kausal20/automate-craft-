@@ -40,7 +40,7 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
       throw new Error(error.message);
     }
 
-    const planCredits = profile?.plan_credits ?? 500;
+    const planCredits = profile?.plan_credits ?? 50;
     const extraCredits = profile?.extra_credits ?? 0;
     const totalCredits = planCredits + extraCredits;
 

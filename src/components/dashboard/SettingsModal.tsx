@@ -4,7 +4,6 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Pencil, Camera } from "lucide-react";
 import type { AuthenticatedUser } from "@/lib/automation";
-import { UsageAndCredits } from "@/components/dashboard/UsageAndCredits";
 
 export function SettingsModal({
   isOpen,
@@ -15,7 +14,7 @@ export function SettingsModal({
   onClose: () => void;
   user: AuthenticatedUser;
 }) {
-  const [activeTab, setActiveTab] = useState<"account" | "credits">("account");
+  const [activeTab, setActiveTab] = useState<"account">("account");
 
   // Account State
   const [name, setName] = useState(user.name || "AutomateCraft user");
@@ -75,16 +74,6 @@ export function SettingsModal({
                    >
                      Account Settings
                    </button>
-                   <button
-                     onClick={() => setActiveTab("credits")}
-                     className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors border-t border-transparent mt-1 ${
-                       activeTab === "credits" 
-                         ? "bg-[#252525] text-white shadow-sm ring-1 ring-white/10" 
-                         : "text-white/60 hover:bg-white/5 hover:text-white"
-                     }`}
-                   >
-                     Credit Usage
-                   </button>
                  </nav>
                </div>
             </div>
@@ -94,7 +83,7 @@ export function SettingsModal({
                {/* Fixed Header */}
                <div className="sticky top-0 z-10 flex items-center justify-between bg-[#111111]/90 backdrop-blur-md px-8 py-6 border-b border-white/5 shadow-sm">
                  <h2 className="text-xl font-bold text-white">
-                   {activeTab === "account" ? "Account Settings" : "Credit Usage"}
+                   Account Settings
                  </h2>
                  <button
                    title="Close settings"
@@ -209,18 +198,6 @@ export function SettingsModal({
                    </motion.div>
                  )}
 
-                 {activeTab === "credits" && (
-                   <motion.div 
-                     initial={{ opacity: 0, y: 10 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     className="w-full overflow-hidden"
-                   >
-                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10 min-h-[400px]">
-                       {/* This wrapper forces UsageAndCredits to conform even if it has lightmode remnants */}
-                       <UsageAndCredits />
-                     </div>
-                   </motion.div>
-                 )}
                </div>
             </div>
           </motion.div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { UsageAndCredits } from "@/components/dashboard/UsageAndCredits";
+import { AlertCircle } from "lucide-react";
 
 export default function UsagePage() {
   return (
@@ -15,8 +15,12 @@ export default function UsagePage() {
           </p>
         </div>
       </div>
-      <div className="mt-8">
-        <UsageAndCredits />
+      <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/5 py-24 text-center">
+        <AlertCircle className="mb-4 h-12 w-12 text-white/20" />
+        <h3 className="text-lg font-bold text-white">Usage Dashboard Retired</h3>
+        <p className="mt-2 max-w-sm text-sm text-white/50">
+          The legacy usage dashboard has been removed. Active usage and credits can now be tracked in real-time from the top header dropdown on the home page.
+        </p>
       </div>
     </div>
   );

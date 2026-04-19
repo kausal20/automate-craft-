@@ -4,9 +4,9 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
-import FloatingCreditsButton from "@/components/FloatingCreditsButton";
 import { SplashScreen } from "@/components/SplashScreen";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
+import { RuntimeDebugProbe } from "@/components/RuntimeDebugProbe";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,8 +30,8 @@ export default function RootLayout({
     >
       <body className="min-h-full font-sans">
         <SupabaseProvider>
+          <RuntimeDebugProbe />
           <SplashScreen />
-          <FloatingCreditsButton />
           <AppChrome navbar={<Navbar />} footer={<Footer />}>
             {children}
           </AppChrome>

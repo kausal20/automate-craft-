@@ -19,3 +19,13 @@ export function getGuestUser(): AuthenticatedUser {
     onboarded: true,
   };
 }
+
+/* LOGIC EXPLAINED:
+Open-access mode returns a guest workspace user so dashboard routes can still
+load without login. For UI decisions like "Public Home" vs "Authenticated Home",
+we must not treat that guest identity as a real signed-in account. This helper
+keeps that rule simple and reusable anywhere the app needs to distinguish them.
+*/
+export function isGuestUser(user: AuthenticatedUser | null | undefined) {
+  return Boolean(user && user.id === GUEST_USER_ID);
+}

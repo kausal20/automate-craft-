@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil } from "lucide-react";
+import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil, Lightbulb, TrendingUp, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { InteractiveCanvas, type FlowNode } from "./InteractiveCanvas";
 import { FormCard, type FieldDef } from "./FormCard";
@@ -101,6 +101,13 @@ function sanitizeCustomTitle(value: string) {
   return value.replace(/[^\w\s-]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
 }
 
+const ENGAGEMENT_TIPS = [
+  "AutomateCraft workflows run 24/7 with zero downtime.",
+  "You can chain up to 12 services in a single automation.",
+  "Every deployment gets a live audit trail for debugging.",
+  "Ultra Thinking mode unlocks advanced multi-step reasoning.",
+];
+
 function renderStructuredAiContent(content: string) {
   const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
   const headingMatch = lines[0]?.match(/^\*\*(.*?)\*\*$/);
@@ -115,28 +122,41 @@ function renderStructuredAiContent(content: string) {
   const details = bodyLines.slice(1);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#111111] p-4 sm:p-5">
-      <div className="text-[15px] font-semibold tracking-wide text-white">{heading}</div>
-      <p className="mt-1.5 text-[13px] leading-relaxed text-white/55">{summary}</p>
-
-      {details.length > 0 && (
-        <div className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-white/75">
-          {details.map((line, index) => (
-            <p key={`${line}-${index}`}>{line}</p>
-          ))}
-        </div>
-      )}
-
-      {bullets.length > 0 && (
-        <div className="mt-3 space-y-1.5">
-          {bullets.map((item, index) => (
-            <div key={`${item}-${index}`} className="flex items-center gap-2 text-[13px] text-white/80">
-              <div className="h-1.5 w-1.5 rounded-full bg-accent/70" />
-              <span>{item}</span>
+    <div className="rounded-2xl border border-white/10 bg-[#111111] overflow-hidden">
+      {/* Accent left stripe */}
+      <div className="flex">
+        <div className="w-[3px] shrink-0 bg-gradient-to-b from-accent to-cyan-400" />
+        <div className="flex-1 p-4 sm:p-5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/10">
+              <Zap className="h-3 w-3 text-accent" />
             </div>
-          ))}
+            <span className="text-[15px] font-semibold tracking-wide text-white">{heading}</span>
+          </div>
+          <p className="mt-2 text-[13px] leading-relaxed text-white/55">{summary}</p>
+
+          {details.length > 0 && (
+            <div className="mt-3 space-y-1.5 text-[13px] leading-relaxed text-white/75">
+              {details.map((line, index) => (
+                <p key={`${line}-${index}`}>{line}</p>
+              ))}
+            </div>
+          )}
+
+          {bullets.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {bullets.map((item, index) => (
+                <div key={`${item}-${index}`} className="flex items-center gap-2.5 text-[13px] text-white/80">
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-accent/10">
+                    <CheckCircle2 className="h-3 w-3 text-accent" />
+                  </div>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -615,25 +635,31 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                 className={`flex w-full mb-8 ${msg.role === "user" ? "justify-end" : msg.role === "system" ? "justify-center" : "justify-start"}`}
               >
                 {msg.role === "user" && (
-                  <div className="flex flex-col items-end gap-1.5 max-w-[85%]">
-                    <div className="w-full whitespace-pre-wrap rounded-xl border border-white/10 bg-[#121212] p-4 text-[14px] leading-relaxed text-white shadow-[0_10px_28px_rgba(0,0,0,0.28)]">
-                      {msg.content}
+                  <div className="flex items-start gap-3 max-w-[85%]">
+                    <div className="flex-1 flex flex-col items-end gap-1.5">
+                      <div className="w-full whitespace-pre-wrap rounded-xl border border-white/10 bg-[#121212] p-4 text-[14px] leading-relaxed text-white shadow-[0_10px_28px_rgba(0,0,0,0.28)]">
+                        {msg.content}
+                      </div>
+                      <div className="flex items-center gap-1 mr-1 opacity-60 hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleCopy(msg.id, msg.content)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white transition-colors hover:bg-white/10"
+                        >
+                          {copiedId === msg.id ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                          {copiedId === msg.id ? <span className="text-green-400">Copied</span> : "Copy"}
+                        </button>
+                        <button 
+                          onClick={() => handleEdit(msg.content)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white transition-colors hover:bg-white/10"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 mr-1 opacity-60 hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => handleCopy(msg.id, msg.content)}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        {copiedId === msg.id ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
-                        {copiedId === msg.id ? <span className="text-green-400">Copied</span> : "Copy"}
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(msg.content)}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        <Pencil className="h-3 w-3" />
-                        Edit
-                      </button>
+                    {/* User avatar */}
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-bold text-accent ring-1 ring-accent/20">
+                      U
                     </div>
                   </div>
                 )}
@@ -706,19 +732,35 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                 {msg.role === "system" && (
                   msg.content.toLowerCase().includes("structuring workflow logic") ||
                   msg.content.toLowerCase().includes("applying configuration") ? (
-                    <div className="w-full max-w-[85%] rounded-2xl border border-white/10 bg-[#101010] p-4">
-                      <div className="text-[14px] font-semibold text-white">Building your automation...</div>
-                      <div className="mt-3 space-y-2">
-                        {["Connecting services", "Generating workflow", "Finalizing logic"].map((item) => (
-                          <div key={item} className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 mr-2 mb-2">
-                            <div className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-accent/70" />
-                            <span className="text-[12px] text-white/70">{item}</span>
+                    <div className="w-full max-w-[85%] space-y-3">
+                      <div className="rounded-2xl border border-white/10 bg-[#101010] p-4 relative overflow-hidden">
+                        {/* Shimmer effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent animate-[shimmer_2.5s_ease-in-out_infinite]" style={{ backgroundSize: "200% 100%" }} />
+                        <div className="relative">
+                          <div className="text-[14px] font-semibold text-white">Building your automation...</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {["Connecting services", "Generating workflow", "Finalizing logic"].map((item) => (
+                              <div key={item} className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1.5">
+                                <div className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-accent/70" />
+                                <span className="text-[12px] text-white/70">{item}</span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
+                      </div>
+                      {/* Engagement tip card */}
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                        <div className="flex items-start gap-2.5">
+                          <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-400/70" />
+                          <p className="text-[12px] leading-relaxed text-white/40">
+                            {ENGAGEMENT_TIPS[Math.floor(Math.random() * ENGAGEMENT_TIPS.length)]}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 rounded-full border border-white/8 bg-[#222]/30 px-3 py-1.5">
+                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent/50" />
                       <span className="text-[12px] font-medium tracking-wide text-[#888888]">{msg.content}</span>
                     </div>
                   )
