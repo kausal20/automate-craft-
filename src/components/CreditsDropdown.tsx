@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Coins, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
 
 type CreditsData = {
   planCredits: number;
@@ -21,8 +21,8 @@ const DEFAULT_CREDITS: CreditsData = {
 };
 
 export function CreditsDropdown() {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<CreditsData>(DEFAULT_CREDITS);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -49,6 +49,26 @@ export function CreditsDropdown() {
     }
     fetchCredits();
   }, []);
+
+  const refreshCredits = async () => {
+    try {
+      const res = await fetch("/api/credits", { cache: "no-store" });
+      if (!res.ok) {
+        return;
+      }
+
+      const data = await res.json();
+      setCredits({
+        planCredits: data.planCredits ?? 50,
+        extraCredits: data.extraCredits ?? 0,
+        totalCredits: data.totalCredits ?? 50,
+        monthlyUsage: data.monthlyUsage ?? 0,
+        hasSubscription: data.hasSubscription ?? false,
+      });
+    } catch (error) {
+      console.error("Failed to refresh credits", error);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -146,16 +166,24 @@ export function CreditsDropdown() {
             <button 
               onClick={() => {
                 setIsOpen(false);
-                router.push("/pricing");
+                setIsBuyCreditsOpen(true);
               }}
-              className="w-full rounded-xl bg-[#3B82F6] py-2.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)] transition-all hover:scale-[1.02] hover:bg-[#4a8cf7] active:scale-[0.98]"
+              className="w-full rounded-xl bg-[#3B82F6] py-2.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)]"
             >
-              {credits.hasSubscription ? "Manage Subscription" : "Upgrade Plan"}
+              Buy More Credits
             </button>
           </div>
 
         </div>
       )}
+
+      <BuyCreditsModal
+        isOpen={isBuyCreditsOpen}
+        onClose={() => setIsBuyCreditsOpen(false)}
+        onPurchased={() => {
+          void refreshCredits();
+        }}
+      />
     </div>
   );
 }

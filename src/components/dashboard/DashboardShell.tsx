@@ -52,10 +52,12 @@ export default function DashboardShell({
   children: ReactNode;
   user: AuthenticatedUser;
 }) {
-  /* LOGIC EXPLAINED: The dashboard shell still had bright accent-blue surfaces
-     now needs the old credits trigger removed completely. This change takes the
-     shared credits component out of the dashboard shell so no floating credits
-     UI is rendered while we prepare to rebuild that feature from scratch. */
+  /* LOGIC EXPLAINED:
+     The active credits trigger in the dashboard was still mounted inside the
+     sidebar footer, which forced it into the bottom-left area shown by the
+     user. This fix keeps the same CreditsDropdown component and behavior, but
+     moves its render point into a fixed top-right overlay so the control is
+     consistently visible across dashboard pages. */
   const pathname = usePathname();
   const router = useRouter();
   const isChatWorkspace =
@@ -328,11 +330,6 @@ export default function DashboardShell({
           )}
         </div>
 
-        {/* Credits Button */}
-        <div className={`border-t ${isCollapsed ? "px-2 py-3 flex justify-center" : "px-4 py-3"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`}>
-          <CreditsDropdown />
-        </div>
-
         {/* User Footer */}
         <div className={`relative border-t ${isCollapsed ? "p-2" : "p-4"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`} ref={userMenuRef}>
           <button
@@ -399,6 +396,11 @@ export default function DashboardShell({
       <main className={`${mainMargin} relative min-w-0 flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
         {children}
       </main>
+      <div className="pointer-events-none fixed right-5 top-5 z-[9999] sm:right-6 sm:top-6">
+        <div className="pointer-events-auto">
+          <CreditsDropdown />
+        </div>
+      </div>
       <SettingsModal 
         isOpen={showSettingsModal} 
         onClose={() => setShowSettingsModal(false)} 

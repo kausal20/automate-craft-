@@ -54,6 +54,17 @@ select {
   font: inherit;
 }
 
+.minimal-number-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.minimal-number-input::-webkit-outer-spin-button,
+.minimal-number-input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 ::selection {
   background: rgba(79, 142, 247, 0.16);
 }
