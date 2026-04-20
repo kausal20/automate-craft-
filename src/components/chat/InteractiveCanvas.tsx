@@ -78,19 +78,35 @@ export function InteractiveCanvas({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#050505] font-sans">
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.03) 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+      {/* Enhanced dot grid with center radial glow */}
+      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.025) 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.03)_0%,transparent_70%)]" />
 
+      {/* Top header */}
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10 pointer-events-none">
-        <div className="flex items-center gap-2">
-          <Workflow className="h-5 w-5 text-white/30" />
-          <span className="text-white/40 text-[13px] font-semibold tracking-widest uppercase">Engine Pipeline</span>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.03] ring-1 ring-white/[0.06]">
+            <Workflow className="h-3.5 w-3.5 text-white/30" />
+          </div>
+          <span className="text-white/35 text-[13px] font-semibold tracking-widest uppercase">Engine Pipeline</span>
         </div>
         
         {hasDeployed && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium backdrop-blur-sm">
-            <ShieldCheck className="h-4 w-4" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-emerald-500/[0.06] border border-emerald-500/15 text-emerald-400 px-3.5 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium backdrop-blur-sm pointer-events-auto"
+          >
+            <div className="relative">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <motion.div
+                className="absolute -inset-1 rounded-full border border-emerald-500/30"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </div>
             Live & Active
-          </div>
+          </motion.div>
         )}
       </div>
 
@@ -100,10 +116,7 @@ export function InteractiveCanvas({
         <div className="flex flex-col items-center max-w-md w-full mx-auto relative">
           <AnimatePresence>
             {nodes.map((node, index) => {
-              // Hide pending nodes completely until they are active to feel like step-by-step building
               if (node.status === "pending" && !isTesting && !hasTested && !hasDeployed) {
-                // Return null if we want to hide it completely before it is reached
-                // Wait, if it's the sequence, we WANT them to pop in one by one. But the chat sequence just sets n2 completed, then n3 active. So they pop in nicely.
                 return null;
               }
 
@@ -114,54 +127,95 @@ export function InteractiveCanvas({
               return (
                 <React.Fragment key={node.id}>
                   <motion.div 
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    initial={{ opacity: 0, scale: 0.85, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className={`z-10 flex w-full items-start gap-4 rounded-[16px] border p-5 transition-all duration-200
-                      ${isCompleted ? "bg-[#111111] border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.4)]" : ""}
-                      ${isActive ? "bg-[#18181B] border-accent/40 ring-1 ring-accent/20" : ""}
+                    exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className={`group z-10 flex w-full items-start gap-4 rounded-[18px] border p-5 transition-all duration-300
+                      ${isCompleted ? "bg-[#0a0a0a]/80 border-white/[0.06] shadow-[0_4px_32px_rgba(0,0,0,0.4)] hover:border-white/10" : ""}
+                      ${isActive ? "bg-[#0c0c0c] border-accent/30 shadow-[0_4px_32px_rgba(59,130,246,0.08)]" : ""}
                     `}
                   >
-                    <div className={`mt-0.5 shrink-0 flex items-center justify-center h-11 w-11 rounded-xl
-                        ${isCompleted ? "bg-white/5 text-white/50" : ""}
-                        ${isActive ? "bg-accent/20 text-accent shadow-inner" : ""}
+                    {/* Active glow aura */}
+                    {isActive && (
+                      <div className="absolute -inset-[1px] rounded-[18px] bg-gradient-to-r from-accent/10 via-transparent to-accent/10 pointer-events-none" />
+                    )}
+                    {/* Completed subtle green glow */}
+                    {isCompleted && (
+                      <div className="absolute -top-6 -left-6 h-12 w-12 rounded-full bg-emerald-500/5 blur-[20px] pointer-events-none" />
+                    )}
+
+                    <div className={`relative mt-0.5 shrink-0 flex items-center justify-center h-11 w-11 rounded-xl transition-all duration-300
+                        ${isCompleted ? "bg-white/[0.03] text-white/50 ring-1 ring-white/[0.06]" : ""}
+                        ${isActive ? "bg-accent/15 text-accent ring-1 ring-accent/20" : ""}
                       `}
                     >
-                      {isActive ? <Loader2 className="h-5 w-5 animate-spin" /> : getIcon(node.type)}
+                      {isActive ? (
+                        <div className="relative">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          {/* Orbiting ring */}
+                          <motion.div
+                            className="absolute -inset-2 rounded-xl border border-accent/20"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                          />
+                        </div>
+                      ) : getIcon(node.type)}
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[11px] font-bold uppercase tracking-wider mb-1.5
-                        ${isCompleted ? "text-white/40" : ""}
+                    <div className="flex-1 min-w-0 relative">
+                      <p className={`text-[11px] font-bold uppercase tracking-wider mb-1.5 transition-colors
+                        ${isCompleted ? "text-white/30" : ""}
                         ${isActive ? "text-accent" : ""}
                       `}>
                         {node.type}
                       </p>
-                      <h3 className={`font-semibold text-[15px] tracking-tight truncate ${isCompleted ? "text-white/90" : "text-white"}`}>
+                      <h3 className={`font-semibold text-[15px] tracking-tight truncate transition-colors ${isCompleted ? "text-white/85" : "text-white"}`}>
                         {node.label}
                       </h3>
                       {node.detail && (
-                        <p className={`text-[13px] mt-1.5 leading-relaxed truncate ${isCompleted ? "text-white/40" : "text-white/70"}`}>
+                        <p className={`text-[13px] mt-1.5 leading-relaxed truncate transition-colors ${isCompleted ? "text-white/35" : "text-white/60"}`}>
                           {node.detail}
                         </p>
                       )}
                     </div>
                     
                     <div className="shrink-0 mt-2 flex items-center justify-center h-6 w-6">
-                      {isCompleted && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
-                      {isActive && <div className="h-2 w-2 rounded-full bg-accent animate-ping" />}
+                      {isCompleted && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                        </motion.div>
+                      )}
+                      {isActive && (
+                        <div className="relative">
+                          <div className="h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                          <motion.div
+                            className="absolute -inset-1 rounded-full border border-accent/30"
+                            animate={{ scale: [1, 1.6, 1], opacity: [0.5, 0, 0.5] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </motion.div>
 
+                  {/* Connector line — animated gradient with flow dot */}
                   {!isLastVisible && (
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 40 }}
+                      animate={{ opacity: 1, height: 44 }}
                       transition={{ duration: 0.2, delay: 0.1 }}
-                      className="w-[2px] bg-gradient-to-b from-white/20 to-white/5 my-1 relative"
+                      className="relative w-[2px] my-1 overflow-hidden"
                     >
-                      <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/65" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-white/8 to-white/[0.03]" />
+                      {/* Flowing dot animation */}
+                      <motion.div
+                        className="absolute left-1/2 h-3 w-[2px] -translate-x-1/2 bg-gradient-to-b from-accent/60 to-transparent rounded-full"
+                        animate={{ top: ["-12px", "100%"] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear", repeatDelay: 0.5 }}
+                      />
+                      {/* Center node */}
+                      <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent/40" />
                     </motion.div>
                   )}
                 </React.Fragment>
@@ -177,27 +231,36 @@ export function InteractiveCanvas({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="mt-16 w-full max-w-md rounded-[16px] border border-white/10 bg-[#0A0A0A] overflow-hidden flex flex-col mb-24"
+              className="mt-16 w-full max-w-md rounded-[18px] border border-white/[0.06] bg-[#080808] overflow-hidden flex flex-col mb-24 shadow-[0_8px_40px_rgba(0,0,0,0.5)]"
             >
-              <div className="bg-[#111] px-4 py-3 border-b border-white/5 flex items-center gap-2">
-                <Terminal className="h-4 w-4 text-white/40" />
-                <span className="text-[12px] font-semibold text-white/50 uppercase tracking-widest">Execution Logs</span>
-                {isTesting && <Loader2 className="h-3 w-3 animate-spin text-white/40 ml-auto" />}
+              <div className="bg-[#0c0c0c] px-4 py-3 border-b border-white/[0.04] flex items-center gap-2.5">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.03] ring-1 ring-white/[0.06]">
+                  <Terminal className="h-3 w-3 text-white/35" />
+                </div>
+                <span className="text-[12px] font-semibold text-white/40 uppercase tracking-widest">Execution Logs</span>
+                {isTesting && <Loader2 className="h-3 w-3 animate-spin text-accent/50 ml-auto" />}
+                {hasTested && !isTesting && (
+                  <div className="ml-auto flex items-center gap-1.5 text-emerald-400/70">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span className="text-[10px] font-medium uppercase tracking-wider">Complete</span>
+                  </div>
+                )}
               </div>
               
-              <div className="p-4 flex flex-col gap-2 min-h-[160px] max-h-[220px] overflow-y-auto font-mono text-[13px] custom-scrollbar">
-                {logs.length === 0 && <span className="text-white/20">Waiting for payload...</span>}
-                {logs.map((log) => (
+              <div className="p-4 flex flex-col gap-1.5 min-h-[160px] max-h-[220px] overflow-y-auto font-mono text-[12px] custom-scrollbar">
+                {logs.length === 0 && <span className="text-white/15">Waiting for payload...</span>}
+                {logs.map((log, i) => (
                    <motion.div 
                      key={log.id} 
-                     initial={{ opacity: 0, x: -10 }} 
+                     initial={{ opacity: 0, x: -12 }} 
                      animate={{ opacity: 1, x: 0 }}
-                     className="flex items-start gap-2"
+                     transition={{ duration: 0.2 }}
+                     className="flex items-start gap-2 py-0.5"
                    >
-                     <span className="text-white/30 shrink-0 mt-[1px]">{">"}</span>
+                     <span className="text-white/20 shrink-0 mt-[1px] select-none">{">"}</span>
                      <span className={
-                       log.status === "success" ? "text-emerald-400" : 
-                       log.status === "error" ? "text-red-400" : "text-white/70"
+                       log.status === "success" ? "text-emerald-400/80" : 
+                       log.status === "error" ? "text-red-400/80" : "text-white/55"
                      }>
                        {log.text}
                      </span>
@@ -209,7 +272,7 @@ export function InteractiveCanvas({
           )}
         </AnimatePresence>
         
-        {/* Placeholder spacer if no logs to keep it centered properly */}
+        {/* Placeholder spacer */}
         {(!isTesting && !hasTested) && <div className="h-32" />}
 
       </div>

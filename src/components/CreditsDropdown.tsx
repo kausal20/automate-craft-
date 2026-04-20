@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Coins, Loader2 } from "lucide-react";
 import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type CreditsData = {
   planCredits: number;
@@ -28,15 +30,18 @@ export function CreditsDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function fetchCredits() {
+    let channel: RealtimeChannel | null = null;
+
+    async function fetchAndSubscribe() {
+      // 1. Initial fetch via API route (server-side auth)
       try {
         const res = await fetch("/api/credits");
         if (res.ok) {
           const data = await res.json();
           setCredits({
-            planCredits: data.planCredits ?? 50,
+            planCredits: data.planCredits ?? 0,
             extraCredits: data.extraCredits ?? 0,
-            totalCredits: data.totalCredits ?? 50,
+            totalCredits: data.totalCredits ?? 0,
             monthlyUsage: data.monthlyUsage ?? 0,
             hasSubscription: data.hasSubscription ?? false,
           });
@@ -46,8 +51,53 @@ export function CreditsDropdown() {
       } finally {
         setLoading(false);
       }
+
+      // 2. Real-time subscription via browser client
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel("credits-realtime")
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            const row = payload.new as {
+              plan_credits?: number;
+              extra_credits?: number;
+              credits?: number;
+            };
+            // Support both column layouts: `credits` (single) or `plan_credits`+`extra_credits`
+            const planCredits = row.plan_credits ?? row.credits ?? 0;
+            const extraCredits = row.extra_credits ?? 0;
+            const totalCredits = planCredits + extraCredits;
+            setCredits((prev) => ({
+              ...prev,
+              planCredits,
+              extraCredits,
+              totalCredits,
+            }));
+          }
+        )
+        .subscribe();
     }
-    fetchCredits();
+
+    void fetchAndSubscribe();
+
+    return () => {
+      const supabase = getSupabaseBrowserClient();
+      if (supabase && channel) {
+        void supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   const refreshCredits = async () => {
