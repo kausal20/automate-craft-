@@ -118,7 +118,7 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
 
   const handleSubscribeClick = () => {
     if (plan.name === "Enterprise") {
-      onSubscribe(plan.idBase); // Parent will handle enterprise redirect
+      onSubscribe(plan.idBase);
       return;
     }
     const actualPlanId = billingCycle === "yearly" 
@@ -132,27 +132,36 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, ease: "easeOut" }}
-      whileHover={{ y: -6 }}
-      className={`relative flex flex-col justify-between rounded-2xl bg-[#0f0f0f] p-8 transition-all duration-300 ${
+      whileHover={{ y: -4 }}
+      className={`relative flex flex-col justify-between rounded-2xl p-8 transition-all duration-300 ${
         plan.highlighted
-          ? "border-[2px] border-white/20 shadow-[0_12px_40px_rgb(0,0,0,0.6)]"
-          : "border border-white/5 shadow-[0_4px_24px_rgb(0,0,0,0.4)] hover:border-white/10 hover:shadow-[0_12px_40px_rgb(0,0,0,0.7)]"
+          ? "border border-accent/30 bg-[#0d1117] shadow-[0_0_40px_rgba(59,130,246,0.08),0_12px_40px_rgba(0,0,0,0.5)]"
+          : "border border-white/[0.06] bg-[#0f0f11] shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:border-white/[0.1] hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
       }`}
     >
+      {/* Highlighted ambient glow */}
       {plan.highlighted && (
-        <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-md bg-[#252525] border border-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-yellow-500 shadow-xl z-20">
-           BEST VALUE
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-60 rounded-full opacity-50"
+          style={{ background: "radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, transparent 70%)" }}
+        />
+      )}
+
+      {plan.highlighted && (
+        <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)] z-20">
+          Most Popular
         </div>
       )}
 
       <div>
-        <h3 className={`text-xl font-bold tracking-tight ${plan.highlighted ? "text-yellow-500" : "text-white"}`}>
+        <h3 className={`text-xl font-bold tracking-tight ${plan.highlighted ? "text-accent" : "text-white"}`}>
           {plan.name}
         </h3>
-        <p className="mt-2 text-sm text-white/40">{plan.audience}</p>
+        <p className="mt-2 text-sm text-white/35">{plan.audience}</p>
         <div className="mt-6 mb-2">
           {billingCycle === "yearly" && plan.name !== "Enterprise" && (
-            <div className="text-sm font-semibold text-white/30 line-through decoration-white/20 mb-1">
+            <div className="text-sm font-semibold text-white/25 line-through decoration-white/15 mb-1">
               {currentPriceMonthly}
             </div>
           )}
@@ -161,10 +170,10 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
               {currentPrice}
             </span>
             {plan.name !== "Enterprise" && (
-              <span className="text-sm font-medium text-white/40 pb-1">/ month</span>
+              <span className="text-sm font-medium text-white/35 pb-1">/ month</span>
             )}
             {billingCycle === "yearly" && plan.name !== "Enterprise" && (
-              <div className="ml-auto bg-green-500/10 text-green-500 px-2 py-1 rounded-md text-xs font-bold whitespace-nowrap mb-1 flex-shrink-0">
+              <div className="ml-auto bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap mb-1 flex-shrink-0">
                 Save 20%
               </div>
             )}
@@ -173,7 +182,7 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
         
         <div className="h-5 mb-4">
          {billingCycle === "yearly" && plan.name !== "Enterprise" && (
-            <span className="text-xs font-semibold text-white/30">
+            <span className="text-xs font-semibold text-white/25">
               {currentBilledYearly}
             </span>
          )}
@@ -183,29 +192,28 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
           <div className="relative mt-2 mb-6">
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`w-full flex items-center justify-between rounded-xl border border-white/10 bg-[#151515] px-4 py-3 text-sm text-white transition-colors relative z-10 ${
-                isDropdownOpen ? "border-white/30 bg-[#1a1c1e]" : "hover:bg-white/5"
+              className={`w-full flex items-center justify-between rounded-xl border bg-white/[0.03] px-4 py-3 text-sm text-white transition-all duration-200 relative z-10 ${
+                isDropdownOpen ? "border-accent/30 bg-accent/[0.04]" : "border-white/[0.08] hover:border-white/[0.12] hover:bg-white/[0.04]"
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="h-4 w-4 rounded-full border border-white/20 flex items-center justify-center">
-                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                <div className="h-4 w-4 rounded-full border border-white/15 flex items-center justify-center">
+                  <div className="h-1.5 w-1.5 rounded-full bg-accent" />
                 </div>
                 <div className="flex items-baseline gap-1">
-                  {/* Show 12x credits visually if yearly */}
                   <span className="font-semibold text-[14px]">
                     {billingCycle === "yearly" ? parseInt(activeTier!.credits.replace(',', '')) * 12 : activeTier!.credits} credits
                   </span>
-                  <span className="text-white/40 text-xs">/ {billingCycle === "yearly" ? 'yr' : 'month'}</span>
+                  <span className="text-white/35 text-xs">/ {billingCycle === "yearly" ? 'yr' : 'month'}</span>
                 </div>
               </div>
-              <ChevronDown className={`h-4 w-4 text-white/40 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-4 w-4 text-white/35 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
             </button>
 
             {isDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsDropdownOpen(false)} />
-                <div className="absolute top-[calc(100%+8px)] left-0 right-0 z-50 rounded-xl border border-white/10 bg-[#1a1c1e] p-1.5 shadow-[0_10px_40px_rgb(0,0,0,0.8)] overflow-hidden">
+                <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 rounded-xl border border-white/[0.08] bg-[#111113] p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.7)] overflow-hidden backdrop-blur-xl">
                   {plan.creditTiers.map((tier, idx) => (
                     <button
                       key={idx}
@@ -213,26 +221,26 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
                         setSelectedTierIndex(idx);
                         setIsDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all ${
+                      className={`w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all duration-150 ${
                         selectedTierIndex === idx 
-                          ? "bg-white/5 text-cyan-400 font-medium" 
-                          : "text-white/70 hover:bg-white/5 hover:text-white"
+                          ? "bg-accent/[0.08] text-accent font-medium" 
+                          : "text-white/60 hover:bg-white/[0.04] hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${
-                          selectedTierIndex === idx ? "border-cyan-400/50" : "border-white/20"
+                          selectedTierIndex === idx ? "border-accent/40" : "border-white/15"
                         }`}>
-                          {selectedTierIndex === idx && <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />}
+                          {selectedTierIndex === idx && <div className="h-1.5 w-1.5 rounded-full bg-accent" />}
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span>
                             {billingCycle === "yearly" ? parseInt(tier.credits.replace(',', '')) * 12 : tier.credits} credits
                           </span>
-                          <span className="opacity-50 text-xs">/ {billingCycle === "yearly" ? 'yr' : 'month'}</span>
+                          <span className="opacity-40 text-xs">/ {billingCycle === "yearly" ? 'yr' : 'month'}</span>
                         </div>
                       </div>
-                      {selectedTierIndex === idx && <Check className="h-4 w-4 text-cyan-400" />}
+                      {selectedTierIndex === idx && <Check className="h-4 w-4 text-accent" />}
                     </button>
                   ))}
                 </div>
@@ -241,16 +249,16 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
           </div>
         )}
 
-        <p className={`text-sm leading-relaxed text-white/70 ${plan.creditTiers ? 'mb-4' : 'mb-8'}`}>
+        <p className={`text-sm leading-relaxed text-white/50 ${plan.creditTiers ? 'mb-4' : 'mb-8'}`}>
           {plan.description}
         </p>
 
         <div className="space-y-4">
-          <div className="text-xs font-semibold text-white/40 mb-2 uppercase tracking-wide">Includes:</div>
+          <div className="text-[10px] font-semibold text-white/30 mb-2 uppercase tracking-[0.18em]">Includes:</div>
           {plan.features.map((feature) => (
             <div key={feature} className="flex items-start gap-3">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-white/40" />
-              <span className="text-sm font-medium text-white/80">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent/50" />
+              <span className="text-sm font-medium text-white/65">
                  {feature}
               </span>
             </div>
@@ -262,12 +270,12 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
         <button
           onClick={handleSubscribeClick}
           disabled={subscribing !== null}
-          className={`w-full rounded-xl py-3.5 text-sm font-bold transition-all disabled:opacity-50 ${
+          className={`w-full rounded-xl py-3.5 text-sm font-bold transition-all duration-200 disabled:opacity-50 ${
             plan.highlighted
-              ? "bg-[#e5b34a] text-black hover:bg-[#ffe995] shadow-[0_4px_24px_rgba(229,179,74,0.3)] hover:-translate-y-0.5"
+              ? "bg-accent text-white hover:bg-[#4a8cf7] shadow-[0_4px_20px_rgba(59,130,246,0.25)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.35)] hover:-translate-y-0.5"
               : plan.name === "Enterprise"
-                ? "bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                : "bg-white text-black hover:bg-white/90 shadow-[0_4px_14px_0_rgba(255,255,255,0.1)] hover:-translate-y-0.5"
+                ? "bg-white/[0.04] border border-white/[0.08] text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
+                : "bg-white text-black hover:bg-white/90 shadow-[0_4px_14px_0_rgba(255,255,255,0.06)] hover:-translate-y-0.5"
           } relative overflow-hidden`}
         >
           {subscribing && subscribing.startsWith(plan.idBase) ? "Processing..." : plan.cta}
@@ -296,7 +304,6 @@ export default function PricingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: actualPlanId }),
       });
-      // Redirect to dashboard or signup based on auth status
       if (res.status === 401) {
         router.push("/signup");
       } else if (res.ok) {
@@ -311,15 +318,15 @@ export default function PricingPage() {
 
   return (
     <main className="relative min-h-screen pt-6">
-      {/* Close button aligned with content max-width */}
+      {/* Close button */}
       <div className="mx-auto max-w-[1400px] px-6 relative h-0 flex justify-end">
         <div className="relative top-2 md:top-6 z-50">
           <Link
             href="/"
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white hover:bg-white/10 transition-colors"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
             aria-label="Close pricing and return"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </Link>
         </div>
       </div>
@@ -331,27 +338,27 @@ export default function PricingPage() {
       />
 
       <div className="flex justify-center mb-16">
-        <div className="flex items-center gap-3 p-1 rounded-full bg-white/5 ring-1 ring-white/10">
+        <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] ring-1 ring-white/[0.06]">
           <button
             onClick={() => setBillingCycle("monthly")}
-            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
               billingCycle === "monthly" 
-                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.1)]" 
-                : "text-white/40 hover:text-white"
+                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.08)]" 
+                : "text-white/35 hover:text-white/60"
             }`}
           >
             Monthly
           </button>
           <button
             onClick={() => setBillingCycle("yearly")}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
               billingCycle === "yearly" 
-                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.1)]" 
-                : "text-white/40 hover:text-white"
+                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.08)]" 
+                : "text-white/35 hover:text-white/60"
             }`}
           >
             Yearly
-            <span className="px-2 py-0.5 rounded-md bg-accent/20 text-accent text-[0.65rem] uppercase tracking-wider font-bold">
+            <span className="px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[0.65rem] uppercase tracking-wider font-bold">
               Save 20%
             </span>
           </button>
@@ -359,7 +366,7 @@ export default function PricingPage() {
       </div>
 
       <section className="mx-auto max-w-[1400px] px-6 pb-24">
-        <div className="grid gap-8 lg:grid-cols-4">
+        <div className="grid gap-6 lg:grid-cols-4">
           {plans.map((plan, i) => (
             <PlanCard 
               key={plan.name} 
@@ -373,28 +380,28 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Highlighted How Credits Work Link */}
+        {/* How Credits Work Link */}
         <div className="mt-20 flex justify-center">
           <Link 
             href="/how-credits-work" 
-            className="group relative inline-flex items-center gap-4 rounded-3xl bg-[#0a0a0a] px-8 py-5 ring-1 ring-white/10 hover:ring-accent/40 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-accent/10"
+            className="group relative inline-flex items-center gap-4 rounded-2xl bg-white/[0.02] px-8 py-5 ring-1 ring-white/[0.06] hover:ring-accent/25 shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
           >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-accent/0 via-accent/5 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-accent/0 via-accent/[0.03] to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-accent/10 text-accent ring-1 ring-accent/20 group-hover:bg-accent/20 transition-colors">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/15 group-hover:bg-accent/15 transition-colors duration-200">
               <Sparkles className="h-6 w-6" />
             </div>
             
             <div className="flex flex-col text-left">
-              <span className="text-[17px] font-bold text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-all">
+              <span className="text-[17px] font-bold text-white transition-all duration-200">
                 Wondering how credits work?
               </span>
-              <span className="text-[14px] text-white/50 mt-0.5">
+              <span className="text-[14px] text-white/40 mt-0.5">
                 Learn exactly how simple and fair our pricing is.
               </span>
             </div>
             
-            <div className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-white/50 group-hover:bg-accent group-hover:text-white transition-all transform group-hover:scale-110">
+            <div className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] text-white/40 group-hover:bg-accent group-hover:text-white transition-all duration-200 transform group-hover:scale-110">
               <span className="font-bold -mt-0.5">→</span>
             </div>
           </Link>
@@ -403,4 +410,3 @@ export default function PricingPage() {
     </main>
   );
 }
-

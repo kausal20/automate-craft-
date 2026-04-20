@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Blocks,
+  FolderOpen,
   LayoutDashboard,
   Sparkles,
   LogOut,
@@ -12,7 +12,7 @@ import {
   User,
   Star,
   Users,
-  Plug,
+  Cable,
   MessageSquare,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
@@ -138,7 +138,7 @@ export default function DashboardShell({
   ];
 
   const projectItems = [
-    { name: "All Projects", href: "/dashboard/projects", icon: Blocks },
+    { name: "All Projects", href: "/dashboard/projects", icon: FolderOpen },
     { name: "Starred", href: "#", icon: Star },
     { name: "Created by Me", href: "#", icon: User },
     { name: "Shared with Me", href: "#", icon: Users },
@@ -151,7 +151,7 @@ export default function DashboardShell({
     <div className="flex h-screen overflow-hidden bg-[#0a0a0a]">
       {!isChatWorkspace && (
       <aside 
-        className={`fixed bottom-0 left-0 top-0 ${sidebarWidth} flex shrink-0 flex-col border-r z-40 transition-all duration-300 ease-in-out border-white/5 bg-[#0f0f0f] ${
+        className={`fixed bottom-0 left-0 top-0 ${sidebarWidth} flex shrink-0 flex-col border-r z-40 transition-all duration-300 ease-in-out border-white/[0.04] bg-[#0c0c0e] ${
           isCollapsed ? "cursor-pointer hover:bg-white/[0.02]" : ""
         }`}
         onClick={(e) => {
@@ -182,18 +182,21 @@ export default function DashboardShell({
                 key={item.name}
                 href={item.href}
                 title={isCollapsed ? item.name : undefined}
-                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`relative flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   isCollapsed ? "justify-center" : "gap-3"
                 } ${
                   pathname === item.href
                     ? isChatWorkspace
                       ? "bg-black/[0.04] text-foreground"
-                      : "bg-white/5 text-foreground"
+                      : "bg-white/[0.06] text-foreground"
                     : isChatWorkspace
                       ? "text-foreground/60 hover:bg-black/[0.04] hover:text-foreground"
-                      : "text-foreground/60 hover:bg-white/5 hover:text-foreground"
+                      : "text-foreground/50 hover:bg-white/[0.04] hover:text-foreground"
                 }`}
               >
+                {pathname === item.href && !isCollapsed && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-full bg-accent" />
+                )}
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
@@ -243,7 +246,7 @@ export default function DashboardShell({
               {!isCollapsed ? (
                 <div className="flex w-full items-center px-3 py-2 text-sm font-medium text-foreground/30 transition-all justify-between">
                   <div className="flex items-center gap-3">
-                    <Plug className="h-4 w-4 shrink-0 text-accent/50" />
+                    <Cable className="h-4 w-4 shrink-0 text-accent/50" />
                     <span className={`uppercase tracking-widest text-[10px] font-bold ${isChatWorkspace ? "text-foreground/30" : "text-white/30"}`}>Integrations</span>
                   </div>
                 </div>
@@ -269,7 +272,7 @@ export default function DashboardShell({
                         : "text-foreground/50 hover:bg-white/5 hover:text-foreground"
                   }`}
                 >
-                  <Plug className={`h-3.5 w-3.5 shrink-0 ${isCollapsed ? "h-4 w-4" : ""}`} />
+                  <Cable className={`h-3.5 w-3.5 shrink-0 ${isCollapsed ? "h-4 w-4" : ""}`} />
                   {!isCollapsed && <span>Connect Apps</span>}
                 </Link>
 
@@ -338,7 +341,7 @@ export default function DashboardShell({
               isCollapsed ? "justify-center p-1.5" : "gap-3 p-2"
             } ${isChatWorkspace ? "hover:bg-black/[0.04]" : "hover:bg-white/5"}`}
           >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-bold text-black uppercase ring-2 ring-white/5 shadow-sm`}>
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-bold text-black uppercase ring-2 ring-accent/20 shadow-[0_0_12px_rgba(59,130,246,0.1)]`}>
               {user.name?.[0] || user.email[0]}
             </div>
             {!isCollapsed && (

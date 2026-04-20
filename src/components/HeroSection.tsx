@@ -16,9 +16,11 @@ import { LoginModal } from "@/components/auth/LoginModal";
 import type { AuthenticatedUser } from "@/lib/automation";
 
 const promptExamples = [
-  "Send WhatsApp message on new leads",
-  "Save form data to Google Sheets",
-  "Notify me when payment is received",
+  "Auto-send leads to my CRM",
+  "Email me on new payments",
+  "Sync form replies to Sheets",
+  "Alert team on new signups",
+  "Follow up leads via WhatsApp",
 ];
 
 export default function HeroSection({
@@ -183,7 +185,7 @@ export default function HeroSection({
                   ? <>Ready to build Automation,<br /><span className="text-accent">{user.name || "there"}</span></>
                   : "Build AI Automations Instantly"}
               </h1>
-              <p className="mx-auto mt-6 max-w-2xl text-[1.02rem] leading-8 text-foreground/62 sm:text-lg">
+              <p className="mx-auto mt-6 max-w-2xl text-[1.02rem] leading-8 text-white/50 sm:text-lg">
                 {user
                   ? "Describe what you need and we'll generate it for you."
                   : "Turn your manual work into fully automated systems in minutes"}

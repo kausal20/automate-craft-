@@ -1,12 +1,12 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Bot, Database, MessageSquareText, PencilLine } from "lucide-react";
+import { BrainCircuit, Database, MessageCircle, FileInput } from "lucide-react";
 
 const nodes = [
-  { title: "Form", subtitle: "Capture", icon: PencilLine },
-  { title: "AI Processing", subtitle: "Interpret", icon: Bot },
-  { title: "WhatsApp", subtitle: "Notify", icon: MessageSquareText },
+  { title: "Form", subtitle: "Capture", icon: FileInput },
+  { title: "AI Processing", subtitle: "Interpret", icon: BrainCircuit },
+  { title: "WhatsApp", subtitle: "Notify", icon: MessageCircle },
   { title: "CRM", subtitle: "Sync", icon: Database },
 ];
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, CheckCircle2, ChevronDown } from "lucide-react";
+import { ArrowRight, ArrowLeft, CheckCircle2, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 
 type ConsultationFormState = {
@@ -230,6 +230,17 @@ export default function LetsTalkPage() {
 
   return (
     <main className="min-h-screen bg-[#050505] pt-24 pb-24 font-sans flex flex-col items-center">
+      {/* Close button */}
+      <div className="fixed top-5 right-5 z-50 sm:top-6 sm:right-6">
+        <Link
+          href="/"
+          aria-label="Close and return to homepage"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04] text-white/50 transition-all duration-200 hover:bg-white/[0.08] hover:text-white hover:border-white/[0.12]"
+        >
+          <X className="h-5 w-5" />
+        </Link>
+      </div>
+
       {/* Page Header */}
       <div className="text-center mb-10 px-6">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-4">

@@ -1,6 +1,6 @@
 import DeleteAccountSection from "@/components/dashboard/DeleteAccountSection";
 import {
-  Bot,
+  BrainCircuit,
   Database,
   KeyRound,
   ShieldCheck,
@@ -33,7 +33,7 @@ const statusCards = [
       ? `Workflow generation uses ${env.openaiModel}.`
       : "OpenAI is not configured, so the deterministic fallback workflow builder is active.",
     value: hasOpenAIKey() ? "OpenAI enabled" : "Fallback mode",
-    icon: Bot,
+    icon: BrainCircuit,
   },
   {
     title: "Webhooks",

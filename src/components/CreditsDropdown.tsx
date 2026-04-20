@@ -157,7 +157,7 @@ export function CreditsDropdown() {
 
       {/* DROPDOWN PANEL */}
       {isOpen && (
-        <div className="absolute right-0 top-[120%] w-[300px] origin-top-right rounded-[16px] border border-white/10 bg-black p-4 shadow-[0_20px_40px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-[120%] w-[300px] origin-top-right rounded-[16px] border border-white/[0.08] bg-[#0c0c0e]/95 backdrop-blur-xl p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset,0_20px_50px_rgba(0,0,0,0.6)] animate-in fade-in slide-in-from-top-2 duration-200">
           
           {/* HEADER */}
           <div className="flex items-start justify-between mb-4">

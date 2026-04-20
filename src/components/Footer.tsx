@@ -3,12 +3,15 @@ import BrandMark from "@/components/BrandMark";
 
 export default function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-[#0a0a0a]">
+    <footer className="relative bg-[#09090b]">
+      {/* Gradient separator line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
       <div className="site-container py-20">
         <div className="grid gap-14 md:grid-cols-[1.2fr_0.8fr]">
           <div className="max-w-sm">
             <BrandMark compact={false} showName />
-            <p className="mt-4 text-sm leading-7 text-subtle">
+            <p className="mt-4 text-sm leading-7 text-white/40">
               Our platform helps teams turn manual work into clear, dependable
               AI automations.
             </p>
@@ -16,27 +19,27 @@ export default function Footer() {
 
           <div className="grid gap-12 sm:grid-cols-2">
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">
                 Pages
               </h4>
-              <ul className="mt-4 space-y-2.5 text-sm text-foreground/70">
+              <ul className="mt-4 space-y-2.5 text-sm text-white/50">
                 <li>
-                  <Link href="/" className="link-hover">
+                  <Link href="/" className="transition-colors duration-200 hover:text-white/80">
                     Home
                   </Link>
                 </li>
                 <li>
-                  <Link href="/pricing" className="link-hover">
+                  <Link href="/pricing" className="transition-colors duration-200 hover:text-white/80">
                     Pricing
                   </Link>
                 </li>
                 <li>
-                  <Link href="/why-us" className="link-hover">
+                  <Link href="/why-us" className="transition-colors duration-200 hover:text-white/80">
                     Why Us
                   </Link>
                 </li>
                 <li>
-                  <Link href="/lets-talk" className="link-hover">
+                  <Link href="/lets-talk" className="transition-colors duration-200 hover:text-white/80">
                     Contact
                   </Link>
                 </li>
@@ -44,16 +47,16 @@ export default function Footer() {
             </div>
 
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/30">
                 Reach
               </h4>
-              <ul className="mt-4 space-y-2.5 text-sm text-foreground/70">
+              <ul className="mt-4 space-y-2.5 text-sm text-white/50">
                 <li>
                   <a
                     href="https://x.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="link-hover"
+                    className="transition-colors duration-200 hover:text-white/80"
                   >
                     X
                   </a>
@@ -63,7 +66,7 @@ export default function Footer() {
                     href="https://linkedin.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="link-hover"
+                    className="transition-colors duration-200 hover:text-white/80"
                   >
                     LinkedIn
                   </a>
@@ -71,7 +74,7 @@ export default function Footer() {
                 <li>
                   <a
                     href="mailto:hello@automatecraft.ai"
-                    className="link-hover"
+                    className="transition-colors duration-200 hover:text-white/80"
                   >
                     hello@automatecraft.ai
                   </a>
@@ -81,7 +84,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-7 text-sm text-white/40 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-3 border-t border-white/[0.06] pt-7 text-sm text-white/30 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} AutomateCraft. All rights reserved.</p>
           <p>Built for modern business workflows.</p>
         </div>

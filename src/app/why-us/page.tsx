@@ -22,11 +22,13 @@ export default function WhyUsPage() {
         <div className="site-container grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
           <Reveal>
             <div>
-              <p className="eyebrow">Mission</p>
+              <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/5 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-accent">
+                Mission
+              </span>
               <h2 className="section-title mt-6">
                 Help businesses automate repetitive work with less operational friction.
               </h2>
-              <p className="mt-7 text-[0.97rem] leading-8 text-subtle">
+              <p className="mt-7 text-[0.97rem] leading-8 text-white/45">
                 The goal is not to add another layer of software. The goal is to
                 replace manual handoffs with workflows that are easier to understand,
                 configure, and maintain.
@@ -35,8 +37,8 @@ export default function WhyUsPage() {
           </Reveal>
 
           <Reveal delay={0.08}>
-            <article className="card-surface rounded-[24px] p-8">
-              <p className="text-[1.02rem] leading-8 text-subtle">
+            <article className="card-glass rounded-[24px] p-8">
+              <p className="text-[1.02rem] leading-8 text-white/50">
                 Teams trust automation when the trigger is visible, the setup is
                 explicit, and the execution history is easy to scan. That is the
                 standard AutomateCraft is designed around.
@@ -49,16 +51,18 @@ export default function WhyUsPage() {
       <section className="section-space">
         <div className="site-container grid gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <Reveal>
-            <article className="card-surface rounded-[24px] p-8 lg:min-h-[340px]">
-              <p className="eyebrow">Why Choose Us</p>
+            <article className="card-glass rounded-[24px] p-8 lg:min-h-[340px]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/5 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-accent">
+                Why Choose Us
+              </span>
               <h2 className="mt-6 text-[2.3rem] font-semibold leading-[0.98] tracking-[-0.05em] text-foreground sm:text-[2.9rem]">
                 Clear creation, calm execution, and fewer moving parts.
               </h2>
               <div className="mt-10 grid gap-4 sm:grid-cols-2">
                 {principles.map((item) => (
                   <div key={item} className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-accent" />
-                    <span className="text-sm leading-7 text-subtle">{item}</span>
+                    <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-accent/60" />
+                    <span className="text-sm leading-7 text-white/50">{item}</span>
                   </div>
                 ))}
               </div>
@@ -66,18 +70,22 @@ export default function WhyUsPage() {
           </Reveal>
 
           <Reveal delay={0.08}>
-            <div className="space-y-8">
-              <article className="card-surface rounded-[24px] p-8">
-                <p className="eyebrow">Problem</p>
-                <p className="mt-5 text-[0.97rem] leading-8 text-subtle">
+            <div className="space-y-6">
+              <article className="card-glass rounded-[24px] p-8">
+                <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/5 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-accent">
+                  Problem
+                </span>
+                <p className="mt-5 text-[0.97rem] leading-8 text-white/50">
                   Manual repetitive work slows teams down, creates inconsistent
                   follow-ups, and makes execution harder to track.
                 </p>
               </article>
 
-              <article className="card-surface rounded-[24px] p-8">
-                <p className="eyebrow">Solution</p>
-                <p className="mt-5 text-[0.97rem] leading-8 text-subtle">
+              <article className="card-glass rounded-[24px] p-8">
+                <span className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/5 px-3 py-1 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-accent">
+                  Solution
+                </span>
+                <p className="mt-5 text-[0.97rem] leading-8 text-white/50">
                   AI-powered automation with clear triggers, setup requirements,
                   connection status, and dependable logs for every run.
                 </p>

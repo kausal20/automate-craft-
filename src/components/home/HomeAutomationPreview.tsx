@@ -3,12 +3,12 @@
 import Link from "next/link";
 import type { RefObject } from "react";
 import {
-  Bot,
+  BrainCircuit,
   CheckCircle2,
   LockKeyhole,
-  MessageSquareText,
-  PlugZap,
-  Puzzle,
+  FileInput,
+  Settings,
+  Cable,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type {
@@ -154,7 +154,7 @@ export default function HomeAutomationPreview({
               {isGenerating ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="relative mb-7 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-accent/10 text-accent">
-                    <Bot className="h-10 w-10 animate-pulse" />
+                    <BrainCircuit className="h-10 w-10 animate-pulse" />
                     <div className="absolute inset-0 animate-ping rounded-[1.75rem] bg-accent/14 opacity-70" />
                   </div>
                   <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
@@ -171,7 +171,7 @@ export default function HomeAutomationPreview({
                   <div className="grid gap-10 border-b border-black/6 pb-8 lg:grid-cols-[1.15fr_0.85fr]">
                     <div>
                       <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-black/[0.02] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
-                        <MessageSquareText className="h-4 w-4" />
+                        <FileInput className="h-4 w-4" />
                         Generated blueprint
                       </div>
 
@@ -227,7 +227,7 @@ export default function HomeAutomationPreview({
                       <div className="rounded-[1.75rem] border border-black/8 bg-black/[0.02] p-5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                            <Puzzle className="h-5 w-5" />
+                            <Cable className="h-5 w-5" />
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-foreground">
@@ -290,7 +290,7 @@ export default function HomeAutomationPreview({
                       <div className="rounded-[1.75rem] border border-black/8 bg-white p-5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                            <PlugZap className="h-5 w-5" />
+                            <Settings className="h-5 w-5" />
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-foreground">

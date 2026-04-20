@@ -16,13 +16,6 @@ export default function NavbarClient({
 }: {
   isAuthenticated: boolean;
 }) {
-  /* LOGIC EXPLAINED:
-  The homepage needed two strict modes:
-  1. Public Home shows the marketing header.
-  2. Authenticated Home shows no public header at all.
-  This component now renders only for the logged-out homepage and keeps the
-  header limited to the exact links and actions requested.
-  */
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -47,20 +40,20 @@ export default function NavbarClient({
       <div
         className={`mx-auto max-w-[1180px] rounded-2xl transition-all duration-300 ${
           scrolled
-            ? "glass-nav shadow-[0_10px_24px_rgba(0,0,0,0.5)]"
-            : "bg-white/5 shadow-[0_4px_18px_rgba(0,0,0,0.2)] backdrop-blur-sm"
+            ? "glass-nav shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+            : "bg-white/[0.03] shadow-[0_4px_18px_rgba(0,0,0,0.2)] backdrop-blur-sm"
         }`}
       >
         <div className="flex items-center justify-between px-4 py-2 md:px-5">
           <BrandMark compact showName />
 
-          <div className="hidden items-center gap-7 text-[0.95rem] font-medium text-foreground/72 lg:flex">
+          <div className="hidden items-center gap-7 text-[0.95rem] font-medium text-foreground/70 lg:flex">
             {navigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`link-hover rounded-md px-1 py-1 transition-colors ${
-                  pathname === item.href ? "text-foreground" : "text-foreground/72"
+                className={`rounded-md px-1 py-1 transition-colors duration-200 hover:text-foreground ${
+                  pathname === item.href ? "text-foreground" : "text-foreground/70"
                 }`}
               >
                 {item.label}
@@ -71,13 +64,13 @@ export default function NavbarClient({
           <div className="hidden items-center gap-4 lg:flex">
             <Link
               href="/login"
-              className="text-sm font-semibold text-white/70 transition-colors hover:text-white"
+              className="text-sm font-semibold text-white/60 transition-colors duration-200 hover:text-white"
             >
               Log in
             </Link>
             <Link
               href="/signup"
-              className="btn-dark button-hover inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_6px_18px_rgba(28,28,28,0.12)] md:px-6"
+              className="btn-dark inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_4px_16px_rgba(255,255,255,0.06)] transition-all duration-200 md:px-6"
             >
               Sign up
             </Link>
@@ -86,15 +79,20 @@ export default function NavbarClient({
           <button
             type="button"
             onClick={() => setOpen((current) => !current)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/8 bg-white/5 text-white shadow-[0_4px_16px_rgba(0,0,0,0.2)] transition-colors lg:hidden"
             aria-label={open ? "Close navigation menu" : "Open navigation menu"}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
+        {/* Scroll glow line */}
+        {scrolled && (
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
+        )}
+
         {open ? (
-          <div className="border-t border-white/10 px-4 pb-4 pt-3 lg:hidden">
+          <div className="border-t border-white/8 px-4 pb-4 pt-3 lg:hidden">
             <div className="space-y-2">
               {navigation.map((item) => (
                 <Link
@@ -102,7 +100,7 @@ export default function NavbarClient({
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:bg-white/5 hover:text-foreground ${
-                    pathname === item.href ? "text-foreground" : "text-foreground/72"
+                    pathname === item.href ? "text-foreground" : "text-foreground/70"
                   }`}
                 >
                   {item.label}
@@ -114,14 +112,14 @@ export default function NavbarClient({
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/8 bg-white/5 px-5 text-sm font-semibold text-white transition-all hover:bg-white/10"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
                 onClick={() => setOpen(false)}
-                className="btn-dark button-hover inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
+                className="btn-dark inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
               >
                 Sign up
               </Link>

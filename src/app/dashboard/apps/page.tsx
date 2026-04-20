@@ -3,22 +3,24 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  AppWindow,
-  Bot,
+  Globe,
+  BrainCircuit,
   CheckCircle2,
   Database,
-  Link2,
+  Contact,
   LoaderCircle,
   Mail,
-  MessageCircleMore,
-  PlugZap,
-  Rows3,
-  ShieldCheck,
-  WalletCards,
+  MessageCircle,
+  Hash,
+  ClipboardList,
+  Table,
+  Building2,
+  CreditCard,
   Webhook,
   Search,
   Zap,
   ArrowUpRight,
+  Cable,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { ConnectionStatus } from "@/lib/automation";
@@ -42,13 +44,13 @@ const integrationMeta: Record<
     title: "Google",
     description: "Use Google apps to store, route, and notify across workflows.",
     capability: "Sheets, forms, and workspace actions",
-    icon: AppWindow,
+    icon: Globe,
   },
   whatsapp: {
     title: "WhatsApp",
     description: "Send follow-ups and customer notifications from automations.",
     capability: "Outbound message automation",
-    icon: MessageCircleMore,
+    icon: MessageCircle,
   },
   email: {
     title: "Email",
@@ -60,7 +62,7 @@ const integrationMeta: Record<
     title: "Slack",
     description: "Push team notifications when important events happen.",
     capability: "Internal alert routing",
-    icon: PlugZap,
+    icon: Hash,
   },
   hubspot: {
     title: "HubSpot",
@@ -72,13 +74,13 @@ const integrationMeta: Record<
     title: "Salesforce",
     description: "Trigger enterprise CRM actions from AI-generated workflows.",
     capability: "Enterprise CRM sync",
-    icon: ShieldCheck,
+    icon: Building2,
   },
   stripe: {
     title: "Stripe",
     description: "React to payments, customers, and subscription events.",
     capability: "Billing event automation",
-    icon: WalletCards,
+    icon: CreditCard,
   },
   webhook: {
     title: "Webhook",
@@ -90,19 +92,19 @@ const integrationMeta: Record<
     title: "Forms",
     description: "Use form submissions as a structured trigger source.",
     capability: "Lead capture intake",
-    icon: Rows3,
+    icon: ClipboardList,
   },
   sheets: {
     title: "Sheets",
     description: "Append records to reporting sheets during automation runs.",
     capability: "Structured data storage",
-    icon: Rows3,
+    icon: Table,
   },
   crm: {
     title: "CRM",
     description: "Generic CRM support for lead creation and follow-up flows.",
     capability: "Lead management",
-    icon: Link2,
+    icon: Contact,
   },
 };
 
@@ -221,7 +223,7 @@ export default function ConnectedAppsPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1">
-          <PlugZap className="h-3 w-3 text-accent" />
+          <Cable className="h-3 w-3 text-accent" />
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-accent">Integrations</span>
         </div>
         <h1 className="text-3xl font-bold tracking-[-0.04em] text-white">
@@ -247,7 +249,7 @@ export default function ConnectedAppsPage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-2xl border border-white/[0.06] bg-[#111] p-5"
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_8px_24px_rgba(0,0,0,0.4)]"
             >
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">
                 {stat.label}
@@ -288,13 +290,13 @@ export default function ConnectedAppsPage() {
       ) : null}
 
       {loading ? (
-        <div className="rounded-[2rem] border border-white/[0.06] bg-[#111] px-6 py-16 text-center text-white/45">
+        <div className="rounded-[2rem] border border-white/[0.06] bg-white/[0.02] px-6 py-16 text-center text-white/45">
           <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-accent" />
           <p className="mt-4">Loading integrations...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-[2rem] border border-white/[0.06] bg-[#111] px-6 py-16 text-center">
-          <PlugZap className="mx-auto h-10 w-10 text-white/15" />
+        <div className="rounded-[2rem] border border-white/[0.06] bg-white/[0.02] px-6 py-16 text-center">
+          <Cable className="mx-auto h-10 w-10 text-white/15" />
           <p className="mt-4 text-white/40 font-medium">No integrations found</p>
           <p className="mt-1.5 text-sm text-white/25">
             {searchQuery ? "Try a different search term." : "No integrations are available yet."}
@@ -307,7 +309,7 @@ export default function ConnectedAppsPage() {
               title: entry.integration,
               description: "Connect this service to use it in generated workflows.",
               capability: "Automation integration",
-              icon: Bot,
+              icon: BrainCircuit,
             };
             const Icon = meta.icon;
             const isConnected = entry.status === "connected";
@@ -318,7 +320,7 @@ export default function ConnectedAppsPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04, duration: 0.3 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-white/[0.12] hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-white/[0.1] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_6px_20px_rgba(0,0,0,0.35)]"
               >
                 {/* Hover gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none" />
