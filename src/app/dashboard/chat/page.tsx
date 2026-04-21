@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, MessageSquare, Mail, BarChart3, FileSpreadsheet, Zap } from "lucide-react";
+import { ArrowUp, MessageSquare, Mail, BarChart3, FileSpreadsheet, Zap, Brain } from "lucide-react";
 import { motion } from "framer-motion";
 
 const suggestions = [
@@ -47,6 +47,7 @@ const suggestions = [
 export default function ChatEntryPage() {
   const [prompt, setPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ultraThinking, setUltraThinking] = useState(false);
   const router = useRouter();
 
   const handleSubmit = (event?: React.FormEvent) => {
@@ -124,10 +125,35 @@ export default function ChatEntryPage() {
               </button>
             </div>
 
-            <div className="mt-4 border-t border-white/8 pt-3">
+            <div className="mt-4 border-t border-white/8 pt-3 flex items-center justify-between">
               <p className="text-xs font-medium text-white/34">
                 Type your automation and press enter
               </p>
+
+              {/* Ultra Thinking Toggle */}
+              <button
+                type="button"
+                onClick={() => setUltraThinking((v) => !v)}
+                className={`group relative inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] transition-all duration-300 ${
+                  ultraThinking
+                    ? "border-violet-500/40 bg-violet-500/10 text-violet-300 shadow-[0_0_12px_rgba(139,92,246,0.25)]"
+                    : "border-white/[0.08] bg-white/[0.03] text-white/35 hover:border-white/[0.14] hover:text-white/60"
+                }`}
+                aria-label="Toggle Ultra Thinking mode"
+                aria-pressed={ultraThinking}
+              >
+                {/* Animated glow dot */}
+                <span className="relative flex h-1.5 w-1.5">
+                  {ultraThinking && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+                  )}
+                  <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+                    ultraThinking ? "bg-violet-400" : "bg-white/20"
+                  }`} />
+                </span>
+                <Brain className="h-3 w-3" />
+                Ultra Thinking
+              </button>
             </div>
           </div>
         </form>

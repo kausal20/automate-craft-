@@ -95,12 +95,12 @@ export function InteractiveCanvas({
           animate={{ width: "40%", opacity: 1 }}
           exit={{ width: "0%", opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="relative h-full shrink-0 overflow-hidden border-l border-white/[0.04] bg-[#080808]"
+          className="relative h-full shrink-0 overflow-hidden border-l border-white/[0.04] bg-gradient-to-b from-[#0a0a0c] to-[#060608]"
         >
           <div className="flex h-full w-full flex-col">
 
             {/* Panel Header */}
-            <div className="flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0a]/80 backdrop-blur-sm">
+            <div className="flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0c]/90 backdrop-blur-md">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-white/[0.06] to-white/[0.02] shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-white/[0.06]">
                   <Workflow className="h-3.5 w-3.5 text-white/40" />
@@ -139,9 +139,11 @@ export function InteractiveCanvas({
             {/* Node Graph */}
             <div className="flex-1 overflow-y-auto px-5 py-8 relative custom-scrollbar">
               {/* Dot grid background */}
-              <div className="absolute inset-0 pointer-events-none opacity-40" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0)", backgroundSize: "24px 24px" }} />
-              {/* Center radial glow */}
-              <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.03)_0%,transparent_60%)]" />
+              <div className="absolute inset-0 pointer-events-none opacity-30" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0)", backgroundSize: "20px 20px" }} />
+              {/* Center radial glow — breathing */}
+              <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.04)_0%,transparent_55%)] animate-breathe" />
+              {/* Top-left accent wash */}
+              <div className="absolute -top-20 -left-20 h-40 w-40 rounded-full bg-accent/[0.04] blur-[60px] pointer-events-none" />
 
               <div className="relative flex flex-col items-center max-w-sm mx-auto">
                 <AnimatePresence>
@@ -160,19 +162,19 @@ export function InteractiveCanvas({
                         <motion.div
                           initial={{ opacity: 0, y: 16, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{ duration: 0.3, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                          transition={{ duration: 0.35, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
                           className="w-full group"
                         >
                           {/* 3D Card with shadow layer */}
                           <div className="relative">
                             {isActive && (
-                              <div className="absolute inset-0 rounded-2xl bg-accent/[0.06] blur-xl translate-y-1" />
+                              <div className="absolute inset-0 rounded-2xl bg-accent/[0.08] blur-xl translate-y-1 animate-breathe" />
                             )}
-                            <div className={`relative flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 ${
+                            <div className={`node-card relative flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 hover:translate-y-[-2px] ${
                               isActive
-                                ? "border-accent/25 bg-gradient-to-br from-[#0f1420] to-[#0c0c0c] shadow-[0_8px_32px_rgba(59,130,246,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                                ? "border-accent/30 bg-gradient-to-br from-[#0f1520] via-[#0d1018] to-[#0a0c10] shadow-[0_8px_32px_rgba(59,130,246,0.12),inset_0_1px_0_rgba(255,255,255,0.05)] animate-border-glow"
                                 : isCompleted
-                                  ? "border-white/[0.06] bg-gradient-to-br from-[#0e0e0e] to-[#0a0a0a] shadow-[0_4px_16px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.02)] hover:border-white/[0.1]"
+                                  ? "border-white/[0.06] bg-gradient-to-br from-[#0f0f11] to-[#0a0a0c] shadow-[0_6px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]"
                                   : "border-white/[0.04] bg-[#0a0a0a]"
                             }`}>
                               {/* Node icon with type-specific gradient */}
@@ -227,14 +229,14 @@ export function InteractiveCanvas({
                           </div>
                         </motion.div>
 
-                        {/* Connector with flowing particle */}
+                        {/* Connector with flowing particle + glow */}
                         {!isLastVisible && (
-                          <div className="relative h-8 w-px my-1 overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-b from-white/12 via-white/6 to-white/[0.03]" />
+                          <div className="relative h-10 w-px my-1 overflow-hidden connection-line-glow">
+                            <div className="absolute inset-0 bg-gradient-to-b from-accent/20 via-white/8 to-white/[0.03]" />
                             <motion.div
-                              className="absolute left-1/2 h-4 w-[2px] -translate-x-1/2 bg-gradient-to-b from-accent/50 to-transparent rounded-full"
-                              animate={{ top: ["-16px", "100%"] }}
-                              transition={{ duration: 1.2, repeat: Infinity, ease: "linear", repeatDelay: 0.3 }}
+                              className="absolute left-1/2 h-5 w-[2px] -translate-x-1/2 bg-gradient-to-b from-accent/60 via-accent/30 to-transparent rounded-full shadow-[0_0_6px_rgba(59,130,246,0.4)]"
+                              animate={{ top: ["-20px", "100%"] }}
+                              transition={{ duration: 1.4, repeat: Infinity, ease: "linear", repeatDelay: 0.2 }}
                             />
                           </div>
                         )}
@@ -299,25 +301,31 @@ export function InteractiveCanvas({
             </div>
 
             {/* Panel Footer — Test / Deploy */}
-            <div className="shrink-0 border-t border-white/[0.04] bg-[#0a0a0a]/80 backdrop-blur-sm px-5 py-4 flex items-center gap-3">
+            <div className="shrink-0 border-t border-white/[0.04] bg-[#0a0a0c]/90 backdrop-blur-md px-5 py-4 flex items-center gap-3">
               {/* Test button */}
               <button
                 onClick={onTest}
                 disabled={isTesting || hasTested || isDeploying || hasDeployed}
-                className="group relative flex items-center gap-2 rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] px-5 py-3 text-[13px] font-semibold text-white transition-all duration-200 hover:border-white/[0.15] hover:shadow-[0_4px_16px_rgba(0,0,0,0.3)] active:translate-y-[1px] disabled:opacity-25 disabled:cursor-not-allowed shadow-[0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                className="group relative flex items-center gap-2 rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] px-5 py-3 text-[13px] font-semibold text-white transition-all duration-200 hover:border-white/[0.15] hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:translate-y-[-1px] active:translate-y-[1px] disabled:opacity-25 disabled:cursor-not-allowed shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]"
               >
                 {isTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 text-white/50" />}
                 Test
               </button>
 
-              {/* Deploy button */}
+              {/* Deploy button — PRIMARY FOCUS POINT with glow */}
               <button
                 onClick={onDeploy}
                 disabled={!hasTested || isDeploying || hasDeployed}
-                className="group relative flex-1 flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-[13px] font-bold text-black transition-all duration-200 shadow-[0_4px_16px_rgba(255,255,255,0.1),0_1px_0_rgba(255,255,255,0.3)_inset] hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] hover:translate-y-[-1px] active:translate-y-[1px] active:shadow-[0_2px_8px_rgba(255,255,255,0.06)] disabled:opacity-25 disabled:cursor-not-allowed disabled:translate-y-0"
+                className={`group relative flex-1 flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[13px] font-bold transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed disabled:translate-y-0 overflow-hidden ${
+                  hasDeployed
+                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shadow-[0_0_20px_rgba(52,211,153,0.1)]"
+                    : "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_20px_rgba(59,130,246,0.3),0_1px_0_rgba(255,255,255,0.15)_inset] hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)] hover:translate-y-[-1px] active:translate-y-[1px]"
+                }`}
               >
                 {/* Shine */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-black/[0.04] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 overflow-hidden" />
+                {!hasDeployed && (
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                )}
                 {isDeploying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
                 {hasDeployed ? "Deployed ✓" : "Deploy Live"}
               </button>

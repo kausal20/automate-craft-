@@ -182,15 +182,15 @@ export default function LetsTalkPage() {
   const errors = attemptedNext ? getErrors() : {};
 
   const inputClasses = (hasError?: boolean) => `
-    w-full h-[52px] bg-[#111] border ${hasError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-accent/60'}
+    w-full h-[52px] bg-[#111113] border ${hasError ? 'border-red-500/50 focus:border-red-500' : 'border-white/[0.08] focus:border-accent/50'}
     rounded-xl px-4 text-[15px] text-white outline-none transition-all duration-200
-    focus:ring-2 ${hasError ? 'focus:ring-red-500/10' : 'focus:ring-accent/10'} hover:border-white/20
+    focus:ring-2 ${hasError ? 'focus:ring-red-500/10' : 'focus:ring-accent/10'} focus:shadow-[0_0_16px_rgba(59,130,246,0.06)] hover:border-white/15
   `;
 
   const textareaClasses = (hasError?: boolean) => `
-    w-full min-h-[120px] bg-[#111] border ${hasError ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-accent/60'}
+    w-full min-h-[120px] bg-[#111113] border ${hasError ? 'border-red-500/50 focus:border-red-500' : 'border-white/[0.08] focus:border-accent/50'}
     rounded-xl px-4 py-4 text-[15px] text-white outline-none transition-all duration-200
-    focus:ring-2 ${hasError ? 'focus:ring-red-500/10' : 'focus:ring-accent/10'} hover:border-white/20 resize-none
+    focus:ring-2 ${hasError ? 'focus:ring-red-500/10' : 'focus:ring-accent/10'} focus:shadow-[0_0_16px_rgba(59,130,246,0.06)] hover:border-white/15 resize-none
   `;
 
   if (submitted) {
@@ -253,7 +253,7 @@ export default function LetsTalkPage() {
 
       {/* Main Fixed-Width Container */}
       <div className="w-full max-w-[720px] px-4 md:px-6 mx-auto relative">
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-[24px] shadow-2xl relative flex flex-col overflow-hidden">
+        <div className="bg-[#0c0c0e] border border-white/[0.06] rounded-[24px] shadow-[0_16px_50px_rgba(0,0,0,0.6)] relative flex flex-col overflow-hidden">
           
           {/* Progress Indicator */}
           <div className="h-1.5 w-full bg-white/5 relative">
@@ -516,7 +516,7 @@ export default function LetsTalkPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex items-center gap-2 h-12 px-8 rounded-xl bg-white text-black font-bold text-[15px] hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-95"
+                  className="flex items-center gap-2 h-12 px-8 rounded-xl bg-gradient-to-r from-accent to-blue-600 text-white font-bold text-[15px] hover:shadow-[0_8px_28px_rgba(59,130,246,0.35)] transition-all duration-200 shadow-[0_4px_16px_rgba(59,130,246,0.25)] hover:translate-y-[-1px] active:scale-95 active:translate-y-0"
                 >
                   Continue <ArrowRight className="h-4 w-4" />
                 </button>
@@ -525,7 +525,7 @@ export default function LetsTalkPage() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="flex items-center gap-2 h-12 px-8 rounded-xl bg-accent text-white font-bold text-[15px] hover:bg-accent/90 transition-all shadow-[0_0_30px_rgba(79,142,247,0.3)] disabled:opacity-50 disabled:active:scale-100 active:scale-95"
+                  className="flex items-center gap-2 h-12 px-8 rounded-xl bg-gradient-to-r from-accent to-blue-600 text-white font-bold text-[15px] transition-all duration-200 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)] hover:translate-y-[-1px] disabled:opacity-50 disabled:active:scale-100 active:scale-95"
                 >
                   {loading ? (
                     <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

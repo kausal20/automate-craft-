@@ -30,11 +30,11 @@ export function ProgressCard({ steps }: { steps: string[] }) {
         {/* 3D shadow */}
         <div className="absolute inset-0 rounded-2xl bg-accent/[0.03] translate-y-1 blur-xl" />
 
-        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#111] to-[#0c0c0c] shadow-[0_12px_40px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#111] to-[#0c0c0c] shadow-[0_12px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.04)]">
           {/* Animated progress bar */}
           <div className="relative h-[3px] bg-white/[0.03] overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-accent/60 via-cyan-400/60 to-accent/60"
+              className="h-full bg-gradient-to-r from-accent/60 via-blue-400/60 to-accent/60 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
               initial={{ width: "0%" }}
               animate={{ width: `${Math.max(progress, 15)}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -48,12 +48,12 @@ export function ProgressCard({ steps }: { steps: string[] }) {
 
           <div className="p-5">
             {/* Ambient glow */}
-            <div className="absolute -top-10 -left-10 h-24 w-24 rounded-full bg-accent/8 blur-[35px] pointer-events-none" />
+            <div className="absolute -top-10 -left-10 h-24 w-24 rounded-full bg-accent/[0.06] blur-[35px] pointer-events-none" />
 
             <div className="relative flex items-center gap-3.5 mb-4">
               {/* 3D Icon with orbiting dot */}
               <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-accent/15 to-cyan-500/8 ring-1 ring-accent/12 shadow-[0_4px_12px_rgba(59,130,246,0.1),inset_0_1px_0_rgba(255,255,255,0.06)]" />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-accent/15 to-blue-500/8 ring-1 ring-accent/15 shadow-[0_4px_12px_rgba(59,130,246,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]" />
                 <motion.div className="absolute -inset-1">
                   <motion.div
                     className="absolute h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(59,130,246,0.7)]"
@@ -89,7 +89,7 @@ export function ProgressCard({ steps }: { steps: string[] }) {
                     <AnimatePresence mode="wait">
                       {isCompleted ? (
                         <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
-                          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/15">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-500/10 ring-1 ring-emerald-500/20 shadow-[0_0_8px_rgba(52,211,153,0.08)]">
                             <CheckCircle2 className="h-3 w-3 text-emerald-400" />
                           </div>
                         </motion.div>

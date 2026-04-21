@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Sparkles, X, ChevronDown } from "lucide-react";
+import { Check, Sparkles, X, ChevronDown, Brain } from "lucide-react";
 import PageIntro from "@/components/PageIntro";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -64,6 +64,7 @@ const plans: Plan[] = [
       "CRM and WhatsApp workflows",
       "Multiple tool connections",
       "Faster execution speed",
+      "__ultra_thinking__",
     ],
     cta: "Get Started",
     highlighted: true,
@@ -83,6 +84,7 @@ const plans: Plan[] = [
       "Conditional logic flows",
       "High execution priority",
       "Large scale automation",
+      "__ultra_thinking__",
     ],
     cta: "Get Started",
   },
@@ -101,12 +103,13 @@ const plans: Plan[] = [
       "Custom integrations support",
       "Dedicated account manager",
       "Priority support access",
+      "__ultra_thinking__",
     ],
     cta: "Contact Us",
   },
 ];
 
-function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatPrice }: { plan: Plan, billingCycle: "monthly" | "yearly", subscribing: string | null, onSubscribe: (planId: string) => void, index: number, formatPrice: (v: number) => string }) {
+function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatPrice, isSelected, onSelect }: { plan: Plan, billingCycle: "monthly" | "yearly", subscribing: string | null, onSubscribe: (planId: string) => void, index: number, formatPrice: (v: number) => string, isSelected: boolean, onSelect: () => void }) {
   const [selectedTierIndex, setSelectedTierIndex] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -132,23 +135,42 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, ease: "easeOut" }}
-      whileHover={{ y: -4 }}
-      className={`relative flex flex-col justify-between rounded-2xl p-8 transition-all duration-300 ${
-        plan.highlighted
-          ? "border border-accent/30 bg-[#0d1117] shadow-[0_0_40px_rgba(59,130,246,0.08),0_12px_40px_rgba(0,0,0,0.5)]"
-          : "border border-white/[0.06] bg-[#0f0f11] shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:border-white/[0.1] hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
+      whileHover={{ y: isSelected ? 0 : -4 }}
+      onClick={onSelect}
+      className={`relative flex flex-col rounded-2xl p-8 transition-all duration-300 cursor-pointer ${
+        isSelected
+          ? "border-2 border-accent bg-[#0d1117] shadow-[0_0_0_4px_rgba(79,142,247,0.12),0_0_50px_rgba(59,130,246,0.18),0_12px_40px_rgba(0,0,0,0.6)] scale-[1.01]"
+          : plan.highlighted
+            ? "border border-accent/30 bg-[#0d1117] shadow-[0_0_40px_rgba(59,130,246,0.08),0_12px_40px_rgba(0,0,0,0.5)]"
+            : "border border-white/[0.06] bg-[#0f0f11] shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:border-white/[0.14] hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
       }`}
     >
-      {/* Highlighted ambient glow */}
-      {plan.highlighted && (
+      {/* Selection ambient glow overlay */}
+      {isSelected && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-60 rounded-full opacity-50"
-          style={{ background: "radial-gradient(ellipse, rgba(59,130,246,0.12) 0%, transparent 70%)" }}
+          className="pointer-events-none absolute inset-0 rounded-2xl"
+          style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(79,142,247,0.07) 0%, transparent 65%)" }}
         />
       )}
 
-      {plan.highlighted && (
+      {/* Highlighted ambient glow */}
+      {(plan.highlighted || isSelected) && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-60 rounded-full opacity-50"
+          style={{ background: `radial-gradient(ellipse, ${isSelected ? "rgba(79,142,247,0.18)" : "rgba(59,130,246,0.12)"} 0%, transparent 70%)` }}
+        />
+      )}
+
+      {/* Selected badge */}
+      {isSelected && (
+        <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-full bg-accent/20 border border-accent/40 px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-accent shadow-[0_0_16px_rgba(79,142,247,0.3)] z-20">
+          ✓ Selected
+        </div>
+      )}
+
+      {!isSelected && plan.highlighted && (
         <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)] z-20">
           Most Popular
         </div>
@@ -255,23 +277,41 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
 
         <div className="space-y-4">
           <div className="text-[10px] font-semibold text-white/30 mb-2 uppercase tracking-[0.18em]">Includes:</div>
-          {plan.features.map((feature) => (
-            <div key={feature} className="flex items-start gap-3">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent/50" />
-              <span className="text-sm font-medium text-white/65">
-                 {feature}
-              </span>
-            </div>
-          ))}
+          {plan.features.map((feature) => {
+            if (feature === "__ultra_thinking__") {
+              return (
+                <div key="ultra_thinking" className="flex items-center gap-3 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2 -mx-1">
+                  <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-30" />
+                    <Brain className="h-4 w-4 text-violet-400" />
+                  </div>
+                  <span className="text-sm font-bold text-violet-300">
+                    Ultra Thinking
+                  </span>
+                  <span className="ml-auto rounded-full bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
+                    New
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <div key={feature} className="flex items-start gap-3">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent/50" />
+                <span className="text-sm font-medium text-white/65">
+                  {feature}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       <div className="mt-10">
         <button
-          onClick={handleSubscribeClick}
+          onClick={(e) => { e.stopPropagation(); handleSubscribeClick(); }}
           disabled={subscribing !== null}
           className={`w-full rounded-xl py-3.5 text-sm font-bold transition-all duration-200 disabled:opacity-50 ${
-            plan.highlighted
+            isSelected || plan.highlighted
               ? "bg-accent text-white hover:bg-[#4a8cf7] shadow-[0_4px_20px_rgba(59,130,246,0.25)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.35)] hover:-translate-y-0.5"
               : plan.name === "Enterprise"
                 ? "bg-white/[0.04] border border-white/[0.08] text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
@@ -289,6 +329,7 @@ export default function PricingPage() {
   const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const { formatPrice } = useGeoPricing();
 
   const handleSubscribe = async (actualPlanId: string) => {
@@ -376,6 +417,8 @@ export default function PricingPage() {
               subscribing={subscribing} 
               onSubscribe={handleSubscribe} 
               formatPrice={formatPrice}
+              isSelected={selectedPlan === plan.idBase}
+              onSelect={() => setSelectedPlan(plan.idBase)}
             />
           ))}
         </div>

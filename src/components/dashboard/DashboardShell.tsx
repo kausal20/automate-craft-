@@ -19,6 +19,7 @@ import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
 import { SettingsModal } from "@/components/dashboard/SettingsModal";
 import { CreditsDropdown } from "@/components/CreditsDropdown";
+import { FloatingParticles } from "@/components/FloatingParticles";
 
 type RecentItem = {
   id: string;
@@ -149,10 +150,11 @@ export default function DashboardShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0a0a0a]">
+      <FloatingParticles count={8} />
       {!isChatWorkspace && (
       <aside 
-        className={`fixed bottom-0 left-0 top-0 ${sidebarWidth} flex shrink-0 flex-col border-r z-40 transition-all duration-300 ease-in-out border-white/[0.04] bg-[#0c0c0e] ${
-          isCollapsed ? "cursor-pointer hover:bg-white/[0.02]" : ""
+        className={`fixed bottom-0 left-0 top-0 ${sidebarWidth} flex shrink-0 flex-col border-r z-40 transition-all duration-300 ease-in-out border-white/[0.04] bg-gradient-to-b from-[#0c0c0e] to-[#09090b] ${
+          isCollapsed ? "cursor-pointer hover:bg-white/[0.015]" : ""
         }`}
         onClick={(e) => {
           if (!isCollapsed) return;
@@ -162,7 +164,7 @@ export default function DashboardShell({
         }}
       >
         {/* Top Header / Logo Toggle */}
-        <div className={`flex h-16 items-center border-b ${isCollapsed ? "justify-center" : "px-6"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`}>
+        <div className={`flex h-16 items-center border-b ${isCollapsed ? "justify-center" : "px-6"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/[0.04]"}`}>
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="group relative flex items-center rounded-xl transition-transform duration-200 active:scale-[0.99]"
@@ -188,16 +190,16 @@ export default function DashboardShell({
                   pathname === item.href
                     ? isChatWorkspace
                       ? "bg-black/[0.04] text-foreground"
-                      : "bg-white/[0.06] text-foreground"
+                      : "bg-accent/[0.08] text-foreground ring-glow-accent"
                     : isChatWorkspace
                       ? "text-foreground/60 hover:bg-black/[0.04] hover:text-foreground"
-                      : "text-foreground/50 hover:bg-white/[0.04] hover:text-foreground"
+                      : "text-foreground/45 hover:bg-white/[0.04] hover:text-foreground/80"
                 }`}
               >
                 {pathname === item.href && !isCollapsed && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-full bg-accent" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2.5px] rounded-full bg-accent shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                 )}
-                <item.icon className="h-4 w-4 shrink-0" />
+                <item.icon className={`h-4 w-4 shrink-0 ${pathname === item.href ? "text-accent" : ""}`} />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
             ))}
@@ -334,34 +336,35 @@ export default function DashboardShell({
         </div>
 
         {/* User Footer */}
-        <div className={`relative border-t ${isCollapsed ? "p-2" : "p-4"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`} ref={userMenuRef}>
+        <div className={`relative border-t ${isCollapsed ? "p-2" : "p-4"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/[0.04]"}`} ref={userMenuRef}>
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className={`flex w-full items-center rounded-xl transition-colors ${
+            className={`flex w-full items-center rounded-xl transition-all duration-200 ${
               isCollapsed ? "justify-center p-1.5" : "gap-3 p-2"
-            } ${isChatWorkspace ? "hover:bg-black/[0.04]" : "hover:bg-white/5"}`}
+            } ${isChatWorkspace ? "hover:bg-black/[0.04]" : "hover:bg-white/[0.04]"}`}
           >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-bold text-black uppercase ring-2 ring-accent/20 shadow-[0_0_12px_rgba(59,130,246,0.1)]`}>
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-cyan-500 text-[11px] font-bold text-white uppercase shadow-[0_0_16px_rgba(59,130,246,0.2)]">
               {user.name?.[0] || user.email[0]}
+              <div className="absolute -inset-[1.5px] rounded-full border border-accent/25" />
             </div>
             {!isCollapsed && (
               <div className="flex-1 text-left min-w-0">
-                <p className="text-xs font-bold text-foreground/80 truncate">{user.name || "User"}</p>
-                <p className="text-[10px] font-medium text-foreground/40 truncate">{user.email}</p>
+                <p className="text-[13px] font-semibold text-foreground/85 truncate">{user.name || "User"}</p>
+                <p className="text-[10px] font-medium text-foreground/35 truncate">{user.email}</p>
               </div>
             )}
           </button>
 
           {/* User Dropdown */}
           {isUserMenuOpen && (
-            <div className={`absolute bottom-full mb-2 overflow-hidden rounded-xl border shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 ${
-              isChatWorkspace ? "border-[#E5E7EB] bg-white" : "border-white/5 bg-[#1a1a1a]"
+            <div className={`absolute bottom-full mb-2 overflow-hidden rounded-xl border shadow-[0_20px_50px_rgba(0,0,0,0.7)] animate-in fade-in slide-in-from-bottom-2 duration-200 ${
+              isChatWorkspace ? "border-[#E5E7EB] bg-white" : "border-white/[0.06] bg-[#111113]/95 backdrop-blur-xl"
             } ${
               isCollapsed ? "left-2 w-[160px]" : "left-4 right-4"
             }`}>
               <div className="p-1.5 underline-none">
                 <button
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 transition-all ${isChatWorkspace ? "hover:bg-black/[0.04] hover:text-foreground" : "hover:bg-white/5 hover:text-foreground"}`}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${isChatWorkspace ? "text-foreground/70 hover:bg-black/[0.04] hover:text-foreground" : "text-foreground/60 hover:bg-white/[0.05] hover:text-foreground"}`}
                   onClick={() => {
                     setIsUserMenuOpen(false);
                     setShowSettingsModal(true);
@@ -371,7 +374,7 @@ export default function DashboardShell({
                   Profile
                 </button>
                 <button
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground/70 transition-all ${isChatWorkspace ? "hover:bg-black/[0.04] hover:text-foreground" : "hover:bg-white/5 hover:text-foreground"}`}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${isChatWorkspace ? "text-foreground/70 hover:bg-black/[0.04] hover:text-foreground" : "text-foreground/60 hover:bg-white/[0.05] hover:text-foreground"}`}
                   onClick={() => {
                     setIsUserMenuOpen(false);
                     setShowSettingsModal(true);
@@ -380,10 +383,10 @@ export default function DashboardShell({
                   <Settings className="h-4 w-4" />
                   Settings
                 </button>
-                <div className={`my-1 border-t ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/5"}`} />
+                <div className={`my-1 border-t ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/[0.04]"}`} />
                 <button
                   onClick={handleSignOut}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 transition-colors"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 hover:text-red-400 hover:bg-red-500/[0.06] transition-all duration-200"
                   data-static-hover
                 >
                   <LogOut className="h-4 w-4" />

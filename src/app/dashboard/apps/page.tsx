@@ -249,16 +249,15 @@ export default function ConnectedAppsPage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_8px_24px_rgba(0,0,0,0.4)]"
-            >
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">
+              className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-5 backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-250 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
                 {stat.label}
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <span className={`text-3xl font-bold tabular-nums ${stat.color}`}>
                   {stat.value}
                 </span>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${stat.bg} ring-1 ${stat.ring}`}>
+                <div className={`flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br ${stat.bg} ring-1 ${stat.ring} shadow-[0_2px_8px_rgba(0,0,0,0.2)]`}>
                   <Zap className={`h-3.5 w-3.5 ${stat.color}`} />
                 </div>
               </div>
@@ -277,7 +276,7 @@ export default function ConnectedAppsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search integrations..."
-              className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#111] pl-11 pr-4 text-[14px] text-white outline-none transition-all placeholder:text-white/25 focus:border-accent/30 focus:ring-1 focus:ring-accent/15"
+              className="h-11 w-full rounded-xl border border-white/[0.08] bg-[#111113] pl-11 pr-4 text-[14px] text-white outline-none transition-all duration-200 placeholder:text-white/25 focus:border-accent/30 focus:ring-2 focus:ring-accent/10 focus:shadow-[0_0_20px_rgba(59,130,246,0.06)]"
             />
           </div>
         </div>
@@ -320,14 +319,14 @@ export default function ConnectedAppsPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04, duration: 0.3 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-white/[0.1] hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_6px_20px_rgba(0,0,0,0.35)]"
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-6 transition-all duration-250 hover:-translate-y-1.5 hover:border-white/[0.12] hover:shadow-[0_16px_50px_rgba(0,0,0,0.6)] backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.02)_inset,0_8px_24px_rgba(0,0,0,0.4)]"
               >
                 {/* Hover gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none" />
 
                 <div className="relative">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/15">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/15 to-accent/[0.05] text-accent ring-1 ring-accent/15 shadow-[0_4px_12px_rgba(59,130,246,0.08)]">
                       <Icon className="h-6 w-6" />
                     </div>
                     <span
@@ -341,7 +340,7 @@ export default function ConnectedAppsPage() {
                     </span>
                   </div>
 
-                  <h2 className="mt-5 text-xl font-semibold text-white">
+                  <h2 className="mt-5 text-xl font-semibold text-white tracking-tight">
                     {meta.title}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-white/45">
@@ -366,10 +365,10 @@ export default function ConnectedAppsPage() {
                   <button
                     onClick={() => void handleConnect(entry.integration)}
                     disabled={isConnected || connecting === entry.integration}
-                    className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all duration-250 ${
                       isConnected
-                        ? "bg-emerald-400/10 text-emerald-400 ring-1 ring-emerald-400/20"
-                        : "bg-gradient-to-r from-accent to-cyan-500 text-white hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(59,130,246,0.25)]"
+                        ? "bg-emerald-400/10 text-emerald-400 ring-1 ring-emerald-400/20 shadow-[0_0_16px_rgba(52,211,153,0.06)]"
+                        : "bg-gradient-to-r from-accent to-blue-600 text-white hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(59,130,246,0.3)] shadow-[0_2px_10px_rgba(59,130,246,0.15)]"
                     } disabled:cursor-not-allowed disabled:opacity-70`}
                   >
                     {connecting === entry.integration ? (

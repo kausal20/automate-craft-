@@ -36,25 +36,25 @@ export function ReadyCard({
     >
       <div className="relative group">
         {/* 3D shadow layer */}
-        <div className="absolute inset-0 rounded-2xl bg-emerald-500/[0.03] translate-y-1 blur-xl transition-all duration-300 group-hover:translate-y-2 group-hover:blur-2xl" />
+        <div className="absolute inset-0 rounded-2xl bg-accent/[0.04] translate-y-1 blur-xl transition-all duration-300 group-hover:translate-y-2 group-hover:blur-2xl" />
 
-        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#111] to-[#0c0c0c] shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]">
-          {/* Emerald accent line */}
-          <div className="h-[3px] bg-gradient-to-r from-emerald-500/50 via-emerald-400/60 to-cyan-400/50" />
+        <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#111] to-[#0c0c0c] shadow-[0_16px_48px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.04)]">
+          {/* Accent line */}
+          <div className="h-[3px] bg-gradient-to-r from-accent/50 via-blue-400/60 to-cyan-400/50" />
 
           {/* Ambient glows */}
-          <div className="absolute -top-12 -left-12 h-24 w-24 rounded-full bg-emerald-500/8 blur-[40px] pointer-events-none" />
-          <div className="absolute -bottom-8 -right-8 h-20 w-20 rounded-full bg-accent/5 blur-[30px] pointer-events-none" />
+          <div className="absolute -top-12 -left-12 h-24 w-24 rounded-full bg-accent/8 blur-[40px] pointer-events-none" />
+          <div className="absolute -bottom-8 -right-8 h-20 w-20 rounded-full bg-blue-500/5 blur-[30px] pointer-events-none" />
 
           <div className="relative px-6 py-5">
             {/* Header */}
             <div className="flex items-center gap-3.5 mb-4">
               <div className="relative">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-500/[0.04] shadow-[0_4px_12px_rgba(52,211,153,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-emerald-500/15">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-accent/15 to-accent/[0.04] shadow-[0_4px_12px_rgba(59,130,246,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-accent/15">
+                  <CheckCircle2 className="h-5 w-5 text-accent" />
                 </div>
                 <motion.div
-                  className="absolute -inset-0.5 rounded-xl border border-emerald-500/15"
+                  className="absolute -inset-0.5 rounded-xl border border-accent/15"
                   animate={{ opacity: [0.3, 0.6, 0.3] }}
                   transition={{ duration: 2.5, repeat: Infinity }}
                 />
@@ -65,9 +65,9 @@ export function ReadyCard({
                 <p className="text-[12px] text-white/35 mt-0.5">{description}</p>
               </div>
 
-              <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-1.5 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.06)]">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80">Ready</span>
+              <div className="flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/[0.06] px-3 py-1.5 shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.08)]">
+                <div className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_rgba(59,130,246,0.5)]" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-accent/80">Ready</span>
               </div>
             </div>
 
@@ -104,7 +104,7 @@ export function ReadyCard({
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] px-3 py-2 text-emerald-400/70"
+                className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] px-3 py-2 text-emerald-400/70 shadow-[0_0_12px_rgba(52,211,153,0.04)]"
               >
                 <FileCheck2 className="h-3.5 w-3.5" />
                 <span className="text-[12px] font-medium">Tests passed without errors</span>

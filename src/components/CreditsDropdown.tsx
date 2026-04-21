@@ -141,7 +141,7 @@ export function CreditsDropdown() {
       {/* TRIGGER BUTTON — always visible */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-[34px] items-center gap-2 rounded-full bg-[#3B82F6] px-3 py-1 shadow-[0_10px_24px_rgba(59,130,246,0.28)] transition-all duration-200 hover:bg-[#4a8cf7] hover:shadow-[0_12px_28px_rgba(59,130,246,0.34)] active:scale-95"
+        className="flex h-[34px] items-center gap-2 rounded-full bg-gradient-to-r from-accent to-blue-600 px-3 py-1 shadow-[0_4px_16px_rgba(59,130,246,0.3),0_10px_24px_rgba(59,130,246,0.15)] transition-all duration-200 hover:shadow-[0_6px_22px_rgba(59,130,246,0.4)] hover:translate-y-[-1px] active:scale-95 active:translate-y-0"
       >
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
           {loading ? (
@@ -157,7 +157,7 @@ export function CreditsDropdown() {
 
       {/* DROPDOWN PANEL */}
       {isOpen && (
-        <div className="absolute right-0 top-[120%] w-[300px] origin-top-right rounded-[16px] border border-white/[0.08] bg-[#0c0c0e]/95 backdrop-blur-xl p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset,0_20px_50px_rgba(0,0,0,0.6)] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 top-[120%] w-[300px] origin-top-right rounded-[16px] border border-white/[0.08] bg-[#0c0c0e]/95 backdrop-blur-2xl p-4 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset,0_24px_60px_rgba(0,0,0,0.7)] animate-in fade-in slide-in-from-top-2 duration-200">
           
           {/* HEADER */}
           <div className="flex items-start justify-between mb-4">
@@ -218,7 +218,7 @@ export function CreditsDropdown() {
                 setIsOpen(false);
                 setIsBuyCreditsOpen(true);
               }}
-              className="w-full rounded-xl bg-[#3B82F6] py-2.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(59,130,246,0.28)]"
+              className="w-full rounded-xl bg-gradient-to-r from-accent to-blue-600 py-2.5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all duration-200 hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px] active:translate-y-[1px]"
             >
               Buy More Credits
             </button>

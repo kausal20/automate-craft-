@@ -329,7 +329,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                     {fields.map((_, i) => (
                       <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/[0.04]">
                         <motion.div
-                          className={`h-full rounded-full ${i < filledCount ? "bg-gradient-to-r from-accent to-cyan-400" : ""}`}
+                          className={`h-full rounded-full ${i < filledCount ? "bg-gradient-to-r from-accent to-blue-500 shadow-[0_0_4px_rgba(59,130,246,0.2)]" : ""}`}
                           initial={{ width: "0%" }}
                           animate={{ width: i < filledCount ? "100%" : "0%" }}
                           transition={{ duration: 0.3, delay: i * 0.04 }}
@@ -344,10 +344,10 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                 <button
                   type="submit"
                   disabled={status === "submitting"}
-                  className="group relative flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-xl bg-white text-[14px] font-bold text-black transition-all duration-200 shadow-[0_4px_12px_rgba(255,255,255,0.1),0_1px_0_rgba(255,255,255,0.3)_inset] hover:shadow-[0_8px_24px_rgba(255,255,255,0.15),0_1px_0_rgba(255,255,255,0.3)_inset] hover:translate-y-[-1px] active:translate-y-[1px] active:shadow-[0_2px_6px_rgba(255,255,255,0.08)] disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0"
+                  className="group relative flex h-12 w-full items-center justify-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-r from-accent to-blue-600 text-[14px] font-bold text-white transition-all duration-200 shadow-[0_4px_16px_rgba(59,130,246,0.25),0_1px_0_rgba(255,255,255,0.1)_inset] hover:shadow-[0_8px_28px_rgba(59,130,246,0.35)] hover:translate-y-[-1px] active:translate-y-[1px] active:shadow-[0_2px_8px_rgba(59,130,246,0.15)] disabled:opacity-40 disabled:cursor-not-allowed disabled:translate-y-0"
                 >
                   {/* Shine sweep */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/[0.04] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                   <AnimatePresence mode="wait">
                     {status === "submitting" ? (
                       <motion.div key="loading" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>

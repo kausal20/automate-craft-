@@ -543,7 +543,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       <div className="relative flex h-full flex-1 flex-col min-w-0">
 
         {/* Header */}
-        <div className="flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0a]">
+        <div className="flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0a]/90 backdrop-blur-md">
           <div className="relative flex items-center" ref={dropdownRef}>
             <div className="flex items-center gap-1">
               {isEditingTitle ? (
@@ -630,7 +630,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
         {/* Messages area */}
         <div className="relative flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto">
+          <div className="h-full overflow-y-auto chat-bg-gradient">
             <div className="mx-auto max-w-3xl px-5 pb-40 pt-6">
 
               {/* Empty state */}
@@ -639,24 +639,24 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="flex flex-col items-center justify-center pt-[20vh]"
+                  className="flex flex-col items-center justify-center pt-[18vh]"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/[0.06] mb-4">
-                    <MessageSquarePlus className="h-5 w-5 text-white/30" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/[0.06] ring-1 ring-accent/[0.08] mb-5 shadow-[0_0_30px_rgba(59,130,246,0.06)]">
+                    <MessageSquarePlus className="h-6 w-6 text-accent/40" />
                   </div>
-                  <h3 className="text-[15px] font-semibold text-white/70 mb-1">Start a new automation</h3>
-                  <p className="text-[13px] text-white/30 mb-8 text-center max-w-[280px]">
+                  <h3 className="text-[16px] font-semibold text-white/80 mb-1.5">Start a new automation</h3>
+                  <p className="text-[13px] text-white/30 mb-10 text-center max-w-[300px] leading-relaxed">
                     Describe what you want to automate and we&apos;ll build it for you.
                   </p>
-                  <div className="grid grid-cols-2 gap-2 w-full max-w-[400px]">
+                  <div className="grid grid-cols-2 gap-2.5 w-full max-w-[420px]">
                     {SUGGESTION_CHIPS.map((chip) => (
                       <button
                         key={chip.label}
                         onClick={() => handleSuggestionClick(chip.label)}
-                        className="group flex items-center gap-2.5 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 text-left transition-all duration-200 hover:bg-white/[0.04] hover:border-white/[0.08]"
+                        className="group flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3 text-left transition-all duration-250 hover:bg-accent/[0.04] hover:border-accent/15 hover:shadow-[0_4px_20px_rgba(59,130,246,0.06)]"
                       >
-                        <chip.icon className="h-3.5 w-3.5 text-white/20 group-hover:text-accent/50 transition-colors shrink-0" />
-                        <span className="text-[12px] text-white/40 group-hover:text-white/65 transition-colors leading-snug">{chip.label}</span>
+                        <chip.icon className="h-3.5 w-3.5 text-white/20 group-hover:text-accent/60 transition-colors duration-250 shrink-0" />
+                        <span className="text-[12px] text-white/40 group-hover:text-white/70 transition-colors duration-250 leading-snug">{chip.label}</span>
                       </button>
                     ))}
                   </div>
@@ -680,7 +680,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                         onMouseEnter={() => setHoveredMsgId(msg.id)}
                         onMouseLeave={() => setHoveredMsgId(null)}
                       >
-                        <div className="rounded-2xl rounded-br-md bg-white/[0.05] border border-white/[0.06] px-4 py-3 text-[14px] leading-relaxed text-white/85 whitespace-pre-wrap">
+                        <div className="rounded-2xl rounded-br-md bg-accent/[0.06] border border-accent/10 px-4 py-3 text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap shadow-[0_4px_16px_rgba(59,130,246,0.06)]">
                           {msg.content}
                         </div>
 
@@ -841,11 +841,12 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         </div>
 
         {/* ─── Floating Input Bar ─── */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/95 to-transparent px-5 pb-5 pt-12 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/97 to-transparent px-5 pb-5 pt-14 pointer-events-none">
           <form
             onSubmit={handleSubmit}
-            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111]/90 backdrop-blur-xl px-4 py-3 shadow-[0_-4px_30px_rgba(0,0,0,0.3)] transition-all duration-200 pointer-events-auto
-              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-white/[0.1]"}
+            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111113]/90 backdrop-blur-xl px-4 py-3 transition-all duration-250 pointer-events-auto
+              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-accent/20 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.06)]"}
+              shadow-[0_-4px_40px_rgba(0,0,0,0.4)]
             `}
           >
             <textarea
@@ -959,7 +960,11 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                 <button
                   type="submit"
                   disabled={(!inputText.trim() && attachedFiles.length === 0) || isInputDisabled}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-black disabled:opacity-15 disabled:bg-white/[0.06] disabled:text-white transition-all active:scale-95"
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 active:scale-95 ${
+                    (!inputText.trim() && attachedFiles.length === 0) || isInputDisabled
+                      ? "bg-white/[0.06] text-white/20"
+                      : "bg-gradient-to-br from-accent to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)] hover:shadow-[0_6px_18px_rgba(59,130,246,0.4)]"
+                  }`}
                   aria-label="Send message"
                 >
                   <ArrowUp className="h-3.5 w-3.5 stroke-[2.5]" />
