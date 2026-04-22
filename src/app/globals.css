@@ -60,39 +60,30 @@ select {
   font: inherit;
 }
 
-/* ═══════════════════════════════════════════
-   GLOBAL MICRO INTERACTIONS
-   ═══════════════════════════════════════════ */
-button,
-input,
-textarea,
-select,
-a {
-  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+/* ── Global Micro-Interactions ── */
+button, input, select, textarea, a, .card-surface, .card-glass {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.2s;
 }
 
-button:hover:not(:disabled) {
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+/* Buttons -> Glow on hover (excluded on elements that might conflict) */
+button:not(:disabled):not([data-static-hover]):hover {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none !important;
-  border-color: rgba(59, 130, 246, 0.5) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 4px 15px rgba(59, 130, 246, 0.1) !important;
+/* Inputs -> Blue focus ring */
+input:not(.prompt-textarea):focus,
+textarea:not(.prompt-textarea):focus,
+select:not(.prompt-textarea):focus {
+  outline: none;
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
 
-/* Generic card lifts */
-div[class*="shadow-lg"]:hover,
-div[class*="shadow-xl"]:hover,
-div[class*="shadow-2xl"]:hover {
-  transform: translateY(-2px);
-}
-div[class*="shadow-lg"],
-div[class*="shadow-xl"],
-div[class*="shadow-2xl"] {
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+/* Cards -> Slight lift */
+.card-surface:hover, .card-glass:hover {
+  transform: translateY(-3px);
 }
 
 .minimal-number-input {
@@ -104,6 +95,30 @@ div[class*="shadow-2xl"] {
 .minimal-number-input::-webkit-inner-spin-button {
   margin: 0;
   -webkit-appearance: none;
+}
+
+/* LOGIC EXPLAINED:
+The prompt textarea was still showing a browser-provided inner focus rectangle
+in some environments, even though the outer composer already has its own focus
+styling. This utility removes the native border, outline, appearance, and
+shadow so only the intended prompt-box chrome is visible.
+*/
+.prompt-textarea {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0 !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.prompt-textarea:focus,
+.prompt-textarea:focus-visible {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 ::selection {

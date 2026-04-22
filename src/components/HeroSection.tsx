@@ -293,6 +293,10 @@ export default function HeroSection({
                         </div>
                       ) : null}
 
+                      {/* LOGIC EXPLAINED:
+                      The textarea keeps the custom outer prompt-box focus state,
+                      but drops any native browser focus rectangle by using the
+                      shared `prompt-textarea` reset class. */}
                       <textarea
                         ref={promptRef}
                         rows={1}
@@ -306,7 +310,7 @@ export default function HeroSection({
                             if (canSubmit) handleSubmit();
                           }
                         }}
-                        className="caret-accent min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-white outline-none sm:min-h-[78px] sm:text-[1.05rem]"
+                        className="prompt-textarea caret-accent min-h-[72px] w-full resize-none border-none bg-transparent text-[1rem] leading-[1.55] text-white outline-none sm:min-h-[78px] sm:text-[1.05rem]"
                       />
                     </div>
 

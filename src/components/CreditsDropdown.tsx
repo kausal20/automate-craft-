@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Coins, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -28,6 +27,7 @@ export function CreditsDropdown() {
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<CreditsData>(DEFAULT_CREDITS);
+  const [animateValue, setAnimateValue] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -136,6 +136,18 @@ export function CreditsDropdown() {
   const remaining = credits.totalCredits - credits.monthlyUsage;
   const remainingStr = Math.max(remaining, 0).toFixed(2);
   const usagePercent = credits.totalCredits > 0 ? Math.min((credits.monthlyUsage / credits.totalCredits) * 100, 100) : 0;
+  const previousRemainingStr = useRef(remainingStr);
+
+  useEffect(() => {
+    if (previousRemainingStr.current !== remainingStr && !loading) {
+      setAnimateValue(true);
+      const timer = setTimeout(() => setAnimateValue(false), 600);
+      previousRemainingStr.current = remainingStr;
+      return () => clearTimeout(timer);
+    } else if (loading) {
+      previousRemainingStr.current = remainingStr;
+    }
+  }, [remainingStr, loading]);
 
   return (
     <div className="relative z-50 flex" ref={dropdownRef}>
@@ -152,15 +164,9 @@ export function CreditsDropdown() {
               <Coins className="h-3 w-3 text-white" />
             )}
           </span>
-          <motion.span
-            key={remainingStr}
-            initial={{ scale: 1.2, textShadow: "0 0 12px rgba(59,130,246,0.8)" }}
-            animate={{ scale: 1, textShadow: "0 0 0px rgba(59,130,246,0)" }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="text-sm font-bold text-white tracking-wide"
-          >
+          <span className={`text-sm font-bold tracking-wide transition-all duration-300 ${animateValue ? "scale-110 text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "text-white"}`}>
             {remainingStr}
-          </motion.span>
+          </span>
         </button>
         {/* Tooltip */}
         <div className="pointer-events-none absolute right-0 top-[calc(100%+8px)] opacity-0 group-hover/credits:opacity-100 transition-opacity duration-200 z-40">

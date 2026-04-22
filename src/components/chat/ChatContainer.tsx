@@ -968,11 +968,14 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/97 to-transparent px-5 pb-5 pt-14 pointer-events-none">
           <form
             onSubmit={handleSubmit}
-            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111113]/90 backdrop-blur-xl px-4 py-3 transition-all duration-300 pointer-events-auto
-              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] hover:border-white/[0.1] focus-within:border-accent/40 focus-within:-translate-y-1 focus-within:shadow-[0_12px_40px_rgba(59,130,246,0.15),0_0_0_2px_rgba(59,130,246,0.1)]"}
+            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111113]/90 backdrop-blur-xl px-4 py-3 transition-all duration-250 pointer-events-auto
+              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-accent/20 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.06)]"}
               shadow-[0_-4px_40px_rgba(0,0,0,0.4)]
             `}
           >
+            {/* LOGIC EXPLAINED:
+            The workspace composer uses the same textarea reset as the homepage
+            so browser-native focus borders do not create a second inner box. */}
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
@@ -984,7 +987,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
               }}
               placeholder={isInputDisabled ? "Thinking..." : "Describe your automation..."}
               disabled={isInputDisabled}
-              className="caret-accent w-full min-h-[44px] max-h-[160px] resize-none bg-transparent text-[14px] text-white outline-none placeholder:text-white/20 disabled:cursor-not-allowed"
+              className="prompt-textarea caret-accent w-full min-h-[44px] max-h-[160px] resize-none bg-transparent text-[14px] text-white outline-none placeholder:text-white/20 disabled:cursor-not-allowed"
             />
 
             {/* Bottom Actions */}
