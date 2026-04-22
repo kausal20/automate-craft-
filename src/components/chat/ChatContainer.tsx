@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil, Zap, MessageSquarePlus, Workflow, Mail, FileSpreadsheet, PanelRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { InteractiveCanvas, type FlowNode } from "./InteractiveCanvas";
-import { FormCard, type FieldDef } from "./FormCard";
+import { FormCard, type FieldDef, type FieldValue } from "./FormCard";
 import { ProgressCard } from "./ProgressCard";
 import { ReadyCard } from "./ReadyCard";
 
@@ -23,12 +23,50 @@ type Message = {
   form?: FormDef;
   isReadyCard?: boolean;
   isFormSubmitted?: boolean;
-  formValues?: Record<string, any>;
+  formValues?: Record<string, FieldValue>;
   timestamp?: number;
 };
 
 type ChatSequenceStep = "boot" | "wait_message" | "ready" | "deployed";
 type WorkspaceState = "understanding" | "collecting_inputs" | "ready_to_build" | "canvas_visible";
+
+type StoredChat = {
+  chatTitle?: string;
+  isStarred?: boolean;
+  messages?: Message[];
+  step?: ChatSequenceStep;
+  workspaceState?: WorkspaceState;
+  nodes?: FlowNode[];
+};
+
+type SpeechRecognitionResultEventLike = {
+  results: {
+    [index: number]: {
+      0: {
+        transcript: string;
+      };
+    };
+  };
+};
+
+type SpeechRecognitionErrorEventLike = {
+  error?: string;
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+};
 
 interface ChatContainerProps {
   chatId: string;
@@ -87,11 +125,11 @@ function generateTitle(prompt: string): string {
   return resultWords.join(" ");
 }
 
-function readStoredChat(chatId: string) {
+function readStoredChat(chatId: string): StoredChat | null {
   if (typeof window === "undefined") return null;
   try {
     const saved = localStorage.getItem(`chat_${chatId}`);
-    return saved ? JSON.parse(saved) : null;
+    return saved ? (JSON.parse(saved) as StoredChat) : null;
   } catch {
     return null;
   }
@@ -119,11 +157,14 @@ const SUGGESTION_CHIPS = [
 ];
 
 function renderStructuredAiContent(content: string) {
+  if (!content) return null;
   const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
-  const headingMatch = lines[0]?.match(/^\*\*(.*?)\*\*$/);
+  
+  const isHeadingLine = lines[0]?.startsWith("**");
+  const headingMatch = lines[0]?.match(/^\*\*(.*?)(?:\*\*|$)/);
   const heading = headingMatch ? headingMatch[1] : null;
 
-  const remaining = headingMatch ? lines.slice(1) : lines;
+  const remaining = isHeadingLine ? lines.slice(1) : lines;
   const bullets = remaining
     .filter((line) => line.startsWith("- "))
     .map((line) => line.replace(/^- /, ""));
@@ -163,6 +204,32 @@ function renderStructuredAiContent(content: string) {
       )}
     </div>
   );
+}
+
+function StreamContent({ content, timestamp }: { content: string, timestamp?: number }) {
+  const [displayed, setDisplayed] = useState("");
+  
+  useEffect(() => {
+    const isNew = Date.now() - (timestamp || 0) < 2000;
+    if (!isNew) {
+      setDisplayed(content);
+      return;
+    }
+
+    let index = 0;
+    const speed = 10;
+    const timer = setInterval(() => {
+      index += 3;
+      if (index > content.length) index = content.length;
+      setDisplayed(content.slice(0, index));
+      if (index === content.length) {
+        clearInterval(timer);
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [content, timestamp]);
+
+  return renderStructuredAiContent(displayed);
 }
 
 export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
@@ -246,6 +313,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [isAiTyping, setIsAiTyping] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [hasTested, setHasTested] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -255,7 +323,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const [ultraThinking, setUltraThinking] = useState(false);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
@@ -272,16 +340,18 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const browserWindow = window as SpeechRecognitionWindow;
+      const SpeechRecognition =
+        browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = false;
         recognitionRef.current.interimResults = false;
-        recognitionRef.current.onresult = (event: any) => {
+        recognitionRef.current.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
           setInputText(prev => prev ? `${prev} ${transcript}` : transcript);
         };
-        recognitionRef.current.onerror = (event: any) => {
+        recognitionRef.current.onerror = (event) => {
           console.error("Speech recognition error", event.error);
           setIsRecording(false);
         };
@@ -385,10 +455,10 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       setWorkspaceState("collecting_inputs");
       addMessage(
         "ai",
-        "**Automation Structure Ready**\nI've configured an AI form handler to push data forward.\n\nPlease complete the setup below to finalize your execution flow.",
+        "**Automation Breakdown**\n- Trigger detected: Form Submission\n- Action detected: Send Notification",
         "collecting_inputs",
         {
-          title: "WhatsApp Configuration",
+          title: "Setup Configuration",
           description: "Enter the target destination details",
           fields: [
             { key: "phone", label: "Target Phone Number", type: "text", placeholder: "+1 (555) 000-0000", defaultValue: defaultPhone },
@@ -405,10 +475,10 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleFormSubmit = async (messageId: string, values: Record<string, any>) => {
+  const handleFormSubmit = async (messageId: string, values: Record<string, FieldValue>) => {
     setMessages(p => p.map(m => m.id === messageId ? { ...m, isFormSubmitted: true, formValues: values } : m));
 
-    let inputSummary = values.phone || "the specified target";
+    const inputSummary = values.phone || "the specified target";
 
     if (ultraThinking) {
       addMessage("system", "Using advanced reasoning mode...");
@@ -417,20 +487,28 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
     if (step === "wait_message") {
       setWorkspaceState("ready_to_build");
-      addMessage("system", "Building your automation...");
+      
+      addMessage("thinking", "Building your automation...");
       setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "Configured via GPT-4o" } : x));
 
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Building your automation...\n✓ Applying configuration");
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active" } : x));
 
-      await new Promise(r => setTimeout(r, 1500));
-      removeMessageByRole("system");
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Building your automation...\n✓ Applying configuration\n✓ Connecting action nodes");
+
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      
       setWorkspaceState("canvas_visible");
 
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${inputSummary}` } : x));
       addMessage(
         "ai",
-        "Automation Ready",
+        "**Automation Ready**\nThe workflow has been built successfully.",
         "canvas_visible",
         undefined,
         true
@@ -474,20 +552,28 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
     if (step === "wait_message") {
       setWorkspaceState("ready_to_build");
-      addMessage("system", "Building your automation...");
+      
+      addMessage("thinking", "Building your automation...");
       setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "Configured via GPT-4o" } : x));
 
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Building your automation...\n✓ Applying configuration");
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active" } : x));
 
-      await new Promise(r => setTimeout(r, 1500));
-      removeMessageByRole("system");
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Building your automation...\n✓ Applying configuration\n✓ Connecting action nodes");
+
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      
       setWorkspaceState("canvas_visible");
 
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${input}` } : x));
       addMessage(
         "ai",
-        "Automation Ready",
+        "**Automation Ready**\nThe workflow has been built successfully.",
         "canvas_visible",
         undefined,
         true
@@ -495,18 +581,34 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       setStep("ready");
 
     } else if (step === "ready" || step === "deployed") {
-      await new Promise(r => setTimeout(r, 800));
-      addMessage("ai", "**Modification Applied**\nKeep in mind that live modifications to the pipeline will require running tests again!");
+      setWorkspaceState("ready_to_build");
+      addMessage("thinking", "Analyzing your automation...");
+      setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active", detail: "Updating target..." } : x));
+      
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Request understood");
+
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Request understood\n✓ Action modification generated");
+
+      await new Promise(r => setTimeout(r, 1000));
+      removeMessageByRole("thinking");
+
       setHasTested(false);
       setHasDeployed(false);
 
-      setWorkspaceState("ready_to_build");
-      setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active", detail: "Updating target..." } : x));
-
-      await new Promise(r => setTimeout(r, 1500));
       setWorkspaceState("canvas_visible");
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: "Updated action node" } : x));
 
+      addMessage(
+        "ai",
+        "**Modification Applied**\nThe pipeline has been updated. Running tests is recommended.",
+        "canvas_visible",
+        undefined,
+        true
+      );
       setStep("ready");
     }
   };
@@ -543,7 +645,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       <div className="relative flex h-full flex-1 flex-col min-w-0">
 
         {/* Header */}
-        <div className="flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0a]/90 backdrop-blur-md">
+        <div className="relative z-50 flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0a]/90 backdrop-blur-md">
           <div className="relative flex items-center" ref={dropdownRef}>
             <div className="flex items-center gap-1">
               {isEditingTitle ? (
@@ -729,9 +831,9 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                         )}
 
                         {/* AI text content — with accent left border */}
-                        {!msg.form && !msg.isReadyCard && (
-                          <div className="border-l-2 border-accent/20 pl-4 py-1">
-                            {renderStructuredAiContent(msg.content)}
+                        {msg.content && (
+                          <div className="border-l-2 border-accent/20 pl-4 py-1 mb-3">
+                            <StreamContent content={msg.content} timestamp={msg.timestamp} />
                             {msg.timestamp && (
                               <span className="mt-2 block text-[10px] text-white/15">{formatRelativeTime(msg.timestamp)}</span>
                             )}
@@ -835,6 +937,28 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                   </motion.div>
                 ))}
               </AnimatePresence>
+
+              {isAiTyping && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 flex justify-start"
+                >
+                  <div className="w-full">
+                    <div className="border-l-2 border-accent/20 pl-4 py-2 flex items-center gap-1.5">
+                      {[0, 1, 2].map((i) => (
+                        <motion.div
+                          key={`typing-${i}`}
+                          className="h-[5px] w-[5px] rounded-full bg-accent/60"
+                          animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
+                          transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               <div ref={messagesEndRef} className="h-4" />
             </div>
           </div>
@@ -844,8 +968,8 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/97 to-transparent px-5 pb-5 pt-14 pointer-events-none">
           <form
             onSubmit={handleSubmit}
-            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111113]/90 backdrop-blur-xl px-4 py-3 transition-all duration-250 pointer-events-auto
-              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-accent/20 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.06)]"}
+            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111113]/90 backdrop-blur-xl px-4 py-3 transition-all duration-300 pointer-events-auto
+              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] hover:border-white/[0.1] focus-within:border-accent/40 focus-within:-translate-y-1 focus-within:shadow-[0_12px_40px_rgba(59,130,246,0.15),0_0_0_2px_rgba(59,130,246,0.1)]"}
               shadow-[0_-4px_40px_rgba(0,0,0,0.4)]
             `}
           >

@@ -5,13 +5,16 @@ export default function Footer() {
   return (
     <footer className="relative bg-[#09090b]">
       {/* Gradient separator line */}
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
+      
+      {/* Subtle ambient glow */}
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-32 w-96 rounded-full bg-accent/[0.03] blur-[60px]" />
 
       <div className="site-container py-20">
         <div className="grid gap-14 md:grid-cols-[1.2fr_0.8fr]">
           <div className="max-w-sm">
             <BrandMark compact={false} showName />
-            <p className="mt-4 text-sm leading-7 text-white/40">
+            <p className="mt-4 text-sm leading-7 text-white/35">
               Our platform helps teams turn manual work into clear, dependable
               AI automations.
             </p>
@@ -84,9 +87,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-white/[0.06] pt-7 text-sm text-white/30 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-3 border-t border-white/[0.04] pt-7 text-sm text-white/25 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} AutomateCraft. All rights reserved.</p>
-          <p>Built for modern business workflows.</p>
+          <p className="text-white/20">Built for modern business workflows.</p>
         </div>
       </div>
     </footer>

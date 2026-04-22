@@ -27,6 +27,10 @@ type WorkflowResponse = {
 };
 
 type IntegrationState = Record<string, ConnectionStatus>;
+type IntegrationResponseItem = {
+  integration: string;
+  status: ConnectionStatus;
+};
 
 export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
   const searchParams = useSearchParams();
@@ -55,7 +59,7 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
         if (!response.ok) return;
         const json = await response.json();
         const nextStatus: IntegrationState = {};
-        (json.integrations ?? []).forEach((integration: any) => {
+        ((json.integrations ?? []) as IntegrationResponseItem[]).forEach((integration) => {
           nextStatus[integration.integration] = integration.status;
         });
         setIntegrationStatus(nextStatus);

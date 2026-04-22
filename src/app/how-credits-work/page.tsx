@@ -139,7 +139,7 @@ export default function HowCreditsWorkPage() {
              
              <p className="mt-8 text-[13px] text-white/40 md:text-left text-center flex items-center gap-2 max-w-fit mx-auto md:mx-0 bg-white/5 px-4 py-2 rounded-full border border-white/5">
                 <ShieldCheck className="h-4 w-4" />
-                You don't need to worry about calculations — the system handles it automatically.
+                 You don&apos;t need to worry about calculations — the system handles it automatically.
              </p>
           </div>
 
@@ -195,7 +195,7 @@ export default function HowCreditsWorkPage() {
           
           <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4 leading-tight drop-shadow-md">
             Build smarter. <br/> Use only what you need. <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-blue-400">Scale when you're ready.</span>
+             <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-blue-400">Scale when you&apos;re ready.</span>
             <span className="opacity-90 inline-block ml-2 group-hover:animate-bounce-slow">🔥</span>
           </h3>
           

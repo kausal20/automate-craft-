@@ -60,6 +60,41 @@ select {
   font: inherit;
 }
 
+/* ═══════════════════════════════════════════
+   GLOBAL MICRO INTERACTIONS
+   ═══════════════════════════════════════════ */
+button,
+input,
+textarea,
+select,
+a {
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+button:hover:not(:disabled) {
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 4px 15px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Generic card lifts */
+div[class*="shadow-lg"]:hover,
+div[class*="shadow-xl"]:hover,
+div[class*="shadow-2xl"]:hover {
+  transform: translateY(-2px);
+}
+div[class*="shadow-lg"],
+div[class*="shadow-xl"],
+div[class*="shadow-2xl"] {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .minimal-number-input {
   appearance: textfield;
   -moz-appearance: textfield;
@@ -128,6 +163,34 @@ select {
   background: rgba(9, 9, 11, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px) saturate(130%);
+}
+
+/* ── Chat ambient background ── */
+.chat-bg-gradient {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+}
+
+/* ── Node cards (workflow builder) ── */
+.node-card {
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms ease;
+}
+
+.node-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Connection line glow ── */
+.connection-line-glow {
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.15);
 }
 
 /* ── Liquid glass effects ── */

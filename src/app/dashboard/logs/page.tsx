@@ -66,26 +66,32 @@ function formatDuration(start: string, end: string | null) {
 
 function getStatusStyles(status: AutomationRun["status"]) {
   if (status === "success") {
-    return "bg-green-50 text-green-700 border-green-100";
+    return "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400";
   }
 
   if (status === "error") {
-    return "bg-red-50 text-red-600 border-red-100";
+    return "border-red-500/20 bg-red-500/[0.08] text-red-400";
   }
 
-  return "bg-amber-50 text-amber-700 border-amber-100";
+  return "border-amber-500/20 bg-amber-500/[0.08] text-amber-400";
 }
 
 function getLevelStyles(level: RunLogEntry["level"]) {
   if (level === "success") {
-    return "bg-green-50 text-green-700";
+    return "bg-emerald-500/[0.08] text-emerald-400";
   }
 
   if (level === "error") {
-    return "bg-red-50 text-red-600";
+    return "bg-red-500/[0.08] text-red-400";
   }
 
-  return "bg-black/[0.04] text-foreground/64";
+  return "bg-white/[0.04] text-white/40";
+}
+
+function getStatusDot(status: AutomationRun["status"]) {
+  if (status === "success") return "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]";
+  if (status === "error") return "bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]";
+  return "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse";
 }
 
 export default function LogsPage() {
@@ -164,10 +170,10 @@ export default function LogsPage() {
     <div className="mx-auto max-w-7xl p-8">
       <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-[-0.04em] text-foreground">
+          <h1 className="text-3xl font-bold tracking-[-0.04em] text-white">
             Execution Logs
           </h1>
-          <p className="mt-2 text-foreground/58">
+          <p className="mt-2 text-white/40">
             Review every automation run, inspect step-by-step logs, and spot
             failures quickly.
           </p>
@@ -175,32 +181,32 @@ export default function LogsPage() {
 
         <button
           onClick={() => void loadLogs()}
-          className="inline-flex h-11 items-center justify-center rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 text-sm font-semibold text-white/60 transition-all hover:border-white/[0.14] hover:text-white hover:translate-y-[-1px]"
         >
-          Refresh logs
+          Refresh
         </button>
       </div>
 
       <div className="mb-8 grid gap-4 md:grid-cols-4">
         <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Total runs</p>
-          <p className="mt-2 text-3xl font-bold text-foreground">{stats.total}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Total runs</p>
+          <p className="mt-3 text-3xl font-bold text-white">{stats.total}</p>
         </div>
         <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Successful</p>
-          <p className="mt-2 text-3xl font-bold text-green-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Successful</p>
+          <p className="mt-3 text-3xl font-bold text-emerald-400">
             {stats.successCount}
           </p>
         </div>
         <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Failed</p>
-          <p className="mt-2 text-3xl font-bold text-red-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Failed</p>
+          <p className="mt-3 text-3xl font-bold text-red-400">
             {stats.errorCount}
           </p>
         </div>
         <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-sm font-medium text-foreground/56">Running now</p>
-          <p className="mt-2 text-3xl font-bold text-amber-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Running now</p>
+          <p className="mt-3 text-3xl font-bold text-amber-400">
             {stats.runningCount}
           </p>
         </div>
@@ -209,13 +215,13 @@ export default function LogsPage() {
       <div className="card-surface rounded-[2rem] p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full max-w-xl">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/36" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by automation name or log message"
-              className="w-full rounded-2xl border border-black/8 bg-white px-11 py-3 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15"
+              className="w-full rounded-xl border border-white/[0.06] bg-white/[0.03] px-11 py-3 text-sm text-white outline-none transition-all placeholder:text-white/20 focus:border-accent/30 focus:bg-white/[0.05] focus:ring-2 focus:ring-accent/10"
             />
           </div>
 
@@ -224,13 +230,12 @@ export default function LogsPage() {
               <button
                 key={option}
                 onClick={() => setStatusFilter(option)}
-                className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all ${
+                className={`inline-flex h-9 items-center justify-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
                   statusFilter === option
-                    ? "btn-dark"
-                    : "border border-black/8 bg-white text-foreground/68 hover:-translate-y-0.5"
+                    ? "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.25)]"
+                    : "border border-white/[0.06] bg-white/[0.02] text-white/40 hover:border-white/[0.12] hover:text-white/70"
                 }`}
               >
-                <Filter className="mr-2 h-4 w-4" />
                 {option === "all" ? "All" : option}
               </button>
             ))}
@@ -277,32 +282,26 @@ export default function LogsPage() {
                       <span
                         className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getStatusStyles(run.status)}`}
                       >
-                        {run.status === "success" ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : run.status === "error" ? (
-                          <XCircle className="h-4 w-4" />
-                        ) : (
-                          <Clock3 className="h-4 w-4" />
-                        )}
+                        <span className={`h-1.5 w-1.5 rounded-full ${getStatusDot(run.status)}`} />
                         {run.status}
                       </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
+                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/25">
                         {run.triggerSource} trigger
                       </span>
                     </div>
 
-                    <h2 className="mt-4 text-xl font-semibold text-foreground">
+                    <h2 className="mt-4 text-xl font-semibold text-white">
                       {run.automationName}
                     </h2>
 
-                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-foreground/58">
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/35">
                       <span>Started: {formatTimestamp(run.createdAt)}</span>
                       <span>Duration: {formatDuration(run.createdAt, run.finishedAt)}</span>
                       <span>{run.logs.length} log entries</span>
                     </div>
 
                     {run.errorMessage ? (
-                      <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600">
+                      <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/[0.08] px-3 py-1.5 text-sm font-medium text-red-400">
                         <AlertCircle className="h-4 w-4" />
                         {run.errorMessage}
                       </p>
@@ -313,7 +312,7 @@ export default function LogsPage() {
                     onClick={() =>
                       setExpandedId((current) => (current === run.id ? null : run.id))
                     }
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 text-sm font-semibold text-white/60 transition-all hover:border-white/[0.14] hover:text-white hover:translate-y-[-1px]"
                   >
                     {isExpanded ? (
                       <>
@@ -330,33 +329,33 @@ export default function LogsPage() {
                 </div>
 
                 {isExpanded ? (
-                  <div className="mt-6 grid gap-5 border-t border-black/6 pt-6 lg:grid-cols-[1.25fr_0.75fr]">
+                  <div className="mt-6 grid gap-5 border-t border-white/[0.04] pt-6 lg:grid-cols-[1.25fr_0.75fr]">
                     <div>
-                      <h3 className="text-sm font-bold uppercase tracking-[0.22em] text-foreground/40">
+                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/25">
                         Step Logs
                       </h3>
                       <div className="mt-4 space-y-3">
                         {run.logs.map((entry, entryIndex) => (
                           <div
                             key={`${run.id}-${entryIndex}`}
-                            className="rounded-[1.35rem] border border-black/8 bg-black/[0.02] p-4"
+                            className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4"
                           >
                             <div className="flex flex-wrap items-center gap-3">
                               <span
-                                className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getLevelStyles(entry.level)}`}
+                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${getLevelStyles(entry.level)}`}
                               >
                                 {entry.level}
                               </span>
-                              <span className="text-xs text-foreground/42">
+                              <span className="text-xs text-white/25">
                                 {formatTimestamp(entry.at)}
                               </span>
                               {entry.stepName ? (
-                                <span className="text-xs font-medium text-foreground/56">
+                                <span className="text-xs font-medium text-white/40">
                                   {entry.stepName}
                                 </span>
                               ) : null}
                             </div>
-                            <p className="mt-3 text-sm leading-6 text-foreground/72">
+                            <p className="mt-3 text-sm leading-6 text-white/60">
                               {entry.message}
                             </p>
                           </div>
@@ -364,21 +363,21 @@ export default function LogsPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-5">
-                      <div className="rounded-[1.5rem] border border-black/8 bg-white p-5">
-                        <h3 className="text-sm font-bold uppercase tracking-[0.22em] text-foreground/40">
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
                           Trigger Payload
                         </h3>
-                        <pre className="mt-4 overflow-x-auto rounded-2xl bg-black/[0.03] p-4 text-xs leading-6 text-foreground/68">
+                        <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-[11px] leading-6 text-white/50 font-mono">
 {JSON.stringify(run.payload, null, 2)}
                         </pre>
                       </div>
 
-                      <div className="rounded-[1.5rem] border border-black/8 bg-white p-5">
-                        <h3 className="text-sm font-bold uppercase tracking-[0.22em] text-foreground/40">
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
                           Result
                         </h3>
-                        <pre className="mt-4 overflow-x-auto rounded-2xl bg-black/[0.03] p-4 text-xs leading-6 text-foreground/68">
+                        <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-[11px] leading-6 text-white/50 font-mono">
 {JSON.stringify(run.result ?? { message: "No result payload." }, null, 2)}
                         </pre>
                       </div>

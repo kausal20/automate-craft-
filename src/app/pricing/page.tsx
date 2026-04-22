@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Sparkles, X, ChevronDown, Brain } from "lucide-react";
-import PageIntro from "@/components/PageIntro";
+import { Brain, Check, ChevronDown, Sparkles, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import PageIntro from "@/components/PageIntro";
 import { useGeoPricing } from "@/hooks/useGeoPricing";
 
 type CreditTier = {
@@ -109,9 +109,34 @@ const plans: Plan[] = [
   },
 ];
 
-function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatPrice, isSelected, onSelect }: { plan: Plan, billingCycle: "monthly" | "yearly", subscribing: string | null, onSubscribe: (planId: string) => void, index: number, formatPrice: (v: number) => string, isSelected: boolean, onSelect: () => void }) {
+function PlanCard({
+  plan,
+  billingCycle,
+  subscribing,
+  onSubscribe,
+  index,
+  formatPrice,
+  isSelected,
+  onSelect,
+}: {
+  plan: Plan;
+  billingCycle: "monthly" | "yearly";
+  subscribing: string | null;
+  onSubscribe: (planId: string) => void;
+  index: number;
+  formatPrice: (value: number) => string;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
   const [selectedTierIndex, setSelectedTierIndex] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const isRecommended = Boolean(plan.highlighted);
+  const isGoldSelected = isRecommended && isSelected;
+  const showRecommendedBadge = isRecommended && (isSelected || isHovered || isFocused);
+  const showSelectedBadge = isSelected && !isRecommended;
+  const showCardBadge = showRecommendedBadge || showSelectedBadge;
 
   const activeTier = plan.creditTiers ? plan.creditTiers[selectedTierIndex] : null;
   const currentPriceMonthly = activeTier ? formatPrice(activeTier.priceMonthlyInr) : plan.priceMonthlyLabel;
@@ -124,109 +149,153 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
       onSubscribe(plan.idBase);
       return;
     }
-    const actualPlanId = billingCycle === "yearly" 
-      ? `${plan.idBase}${activeTier ? activeTier.idSuffix : ''}_yearly`
-      : `${plan.idBase}${activeTier ? activeTier.idSuffix : ''}`;
+
+    const actualPlanId = billingCycle === "yearly"
+      ? `${plan.idBase}${activeTier ? activeTier.idSuffix : ""}_yearly`
+      : `${plan.idBase}${activeTier ? activeTier.idSuffix : ""}`;
+
     onSubscribe(actualPlanId);
   };
+
+  const handleSelectFromKeyboard = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    onSelect();
+  };
+
+  const badgeClassName = isGoldSelected
+    ? "border border-[#ffe876]/60 bg-[#ffe876]/14 text-[#ffe876] shadow-[0_0_18px_rgba(255,232,118,0.22)]"
+    : isSelected
+      ? "border border-[#3b82f6]/40 bg-[#3b82f6]/18 text-[#3b82f6] shadow-[0_0_18px_rgba(59,130,246,0.24)]"
+      : "border border-[#ffe876]/45 bg-[#ffe876]/12 text-[#ffe876] shadow-[0_0_16px_rgba(255,232,118,0.14)]";
+
+  const cardClassName = isSelected
+    ? isGoldSelected
+      ? "border-2 border-[#ffe876] bg-[#0d1117] -translate-y-1.5 shadow-[0_0_0_3px_rgba(255,232,118,0.08),0_18px_44px_rgba(0,0,0,0.6)] focus-visible:ring-2 focus-visible:ring-[#ffe876] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+      : "border-2 border-[#3b82f6] bg-[#0d1117] -translate-y-1.5 shadow-[0_0_0_3px_rgba(59,130,246,0.1),0_18px_44px_rgba(0,0,0,0.6)] focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+    : isRecommended
+      ? "border border-white/[0.06] bg-[#0d1117] shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:-translate-y-1.5 hover:border-[#ffe876] hover:shadow-[0_0_0_3px_rgba(255,232,118,0.15),0_24px_48px_rgba(255,232,118,0.15)] active:-translate-y-1 focus-visible:-translate-y-1.5 focus-visible:border-[#ffe876] focus-visible:ring-2 focus-visible:ring-[#ffe876] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
+      : "border border-white/[0.06] bg-gradient-to-b from-[#111113] to-[#0d0d0f] shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:-translate-y-1.5 hover:border-[#3b82f6] hover:shadow-[0_0_0_3px_rgba(59,130,246,0.08),0_18px_44px_rgba(0,0,0,0.58)] active:-translate-y-1 focus-visible:-translate-y-1.5 focus-visible:border-[#3b82f6] focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]";
 
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, ease: "easeOut" }}
-      whileHover={{ y: isSelected ? 0 : -4 }}
+      whileHover={isRecommended ? { y: -16, scale: 1.03 } : { y: -10, scale: 1.018 }}
+      whileTap={{ scale: 0.992 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
       onClick={onSelect}
-      className={`relative flex flex-col rounded-2xl p-8 transition-all duration-300 cursor-pointer ${
-        isSelected
-          ? "border-2 border-accent bg-[#0d1117] shadow-[0_0_0_4px_rgba(79,142,247,0.12),0_0_50px_rgba(59,130,246,0.18),0_12px_40px_rgba(0,0,0,0.6)] scale-[1.01]"
-          : plan.highlighted
-            ? "border border-accent/30 bg-[#0d1117] shadow-[0_0_40px_rgba(59,130,246,0.08),0_12px_40px_rgba(0,0,0,0.5)]"
-            : "border border-white/[0.06] bg-[#0f0f11] shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:border-white/[0.14] hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
-      }`}
+      onKeyDown={handleSelectFromKeyboard}
+      onFocusCapture={() => setIsFocused(true)}
+      onBlurCapture={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          return;
+        }
+
+        setIsFocused(false);
+      }}
+      role="radio"
+      aria-checked={isSelected}
+      aria-label={`${plan.name} plan`}
+      tabIndex={0}
+      className={`relative flex flex-col rounded-2xl p-8 transition-all duration-200 cursor-pointer focus-visible:outline-none ${cardClassName}`}
     >
-      {/* Selection ambient glow overlay */}
       {isSelected && (
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 rounded-2xl"
-          style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(79,142,247,0.07) 0%, transparent 65%)" }}
+          style={{
+            background: isGoldSelected
+              ? "radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.08) 0%, transparent 65%)"
+              : "radial-gradient(ellipse at 50% 0%, rgba(79,142,247,0.07) 0%, transparent 65%)",
+          }}
         />
       )}
 
-      {/* Highlighted ambient glow */}
-      {(plan.highlighted || isSelected) && (
+      {showCardBadge && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-60 rounded-full opacity-50"
-          style={{ background: `radial-gradient(ellipse, ${isSelected ? "rgba(79,142,247,0.18)" : "rgba(59,130,246,0.12)"} 0%, transparent 70%)` }}
+          className="pointer-events-none absolute -top-20 left-1/2 h-40 w-60 -translate-x-1/2 rounded-full opacity-50"
+          style={{
+            background: `radial-gradient(ellipse, ${
+              isGoldSelected
+                ? "rgba(255,232,118,0.16)"
+                : isSelected
+                  ? "rgba(79,142,247,0.18)"
+                  : "rgba(255,232,118,0.12)"
+            } 0%, transparent 70%)`,
+          }}
         />
       )}
 
-      {/* Selected badge */}
-      {isSelected && (
-        <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-full bg-accent/20 border border-accent/40 px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-accent shadow-[0_0_16px_rgba(79,142,247,0.3)] z-20">
-          ✓ Selected
-        </div>
-      )}
-
-      {!isSelected && plan.highlighted && (
-        <div className="absolute -top-[14px] left-1/2 -translate-x-1/2 rounded-full bg-accent/10 border border-accent/20 px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-accent shadow-[0_0_12px_rgba(59,130,246,0.15)] z-20">
-          Most Popular
+      {showCardBadge && (
+        <div className={`absolute -top-[14px] left-1/2 z-20 -translate-x-1/2 rounded-full px-4 py-1 text-[10px] font-bold uppercase tracking-wider ${badgeClassName}`}>
+          {showRecommendedBadge ? "Recommended" : "Selected"}
         </div>
       )}
 
       <div>
-        <h3 className={`text-xl font-bold tracking-tight ${plan.highlighted ? "text-accent" : "text-white"}`}>
+        <h3 className={`text-xl font-bold tracking-tight ${plan.highlighted ? "text-[#ffe876]" : "text-white"}`}>
           {plan.name}
         </h3>
         <p className="mt-2 text-sm text-white/35">{plan.audience}</p>
-        <div className="mt-6 mb-2">
+
+        <div className="mb-2 mt-6">
           {billingCycle === "yearly" && plan.name !== "Enterprise" && (
-            <div className="text-sm font-semibold text-white/25 line-through decoration-white/15 mb-1">
+            <div className="mb-1 text-sm font-semibold text-white/25 line-through decoration-white/15">
               {currentPriceMonthly}
             </div>
           )}
-          <div className="flex items-end flex-wrap gap-2">
+
+          <div className="flex flex-wrap items-end gap-2">
             <span className="text-[2.5rem] font-bold leading-none tracking-tight text-white">
               {currentPrice}
             </span>
             {plan.name !== "Enterprise" && (
-              <span className="text-sm font-medium text-white/35 pb-1">/ month</span>
+              <span className="pb-1 text-sm font-medium text-white/35">/ month</span>
             )}
             {billingCycle === "yearly" && plan.name !== "Enterprise" && (
-              <div className="ml-auto bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap mb-1 flex-shrink-0">
+              <div className="mb-1 ml-auto flex-shrink-0 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold whitespace-nowrap text-emerald-400">
                 Save 20%
               </div>
             )}
           </div>
         </div>
-        
-        <div className="h-5 mb-4">
-         {billingCycle === "yearly" && plan.name !== "Enterprise" && (
+
+        <div className="mb-4 h-5">
+          {billingCycle === "yearly" && plan.name !== "Enterprise" && (
             <span className="text-xs font-semibold text-white/25">
               {currentBilledYearly}
             </span>
-         )}
+          )}
         </div>
 
         {plan.creditTiers && (
-          <div className="relative mt-2 mb-6">
-            <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`w-full flex items-center justify-between rounded-xl border bg-white/[0.03] px-4 py-3 text-sm text-white transition-all duration-200 relative z-10 ${
-                isDropdownOpen ? "border-accent/30 bg-accent/[0.04]" : "border-white/[0.08] hover:border-white/[0.12] hover:bg-white/[0.04]"
+          <div className="relative mb-6 mt-2">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsDropdownOpen((current) => !current);
+              }}
+              className={`relative z-10 flex w-full items-center justify-between rounded-xl border bg-white/[0.03] px-4 py-3 text-sm text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
+                isDropdownOpen ? "border-[#3b82f6]/30 bg-[#3b82f6]/[0.04]" : "border-white/[0.08] hover:border-white/[0.12] hover:bg-white/[0.04]"
               }`}
             >
               <div className="flex items-center gap-3">
-                <div className="h-4 w-4 rounded-full border border-white/15 flex items-center justify-center">
+                <div className="flex h-4 w-4 items-center justify-center rounded-full border border-white/15">
                   <div className="h-1.5 w-1.5 rounded-full bg-accent" />
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="font-semibold text-[14px]">
-                    {billingCycle === "yearly" ? parseInt(activeTier!.credits.replace(',', '')) * 12 : activeTier!.credits} credits
+                  <span className="text-[14px] font-semibold">
+                    {billingCycle === "yearly" ? parseInt(activeTier!.credits.replace(",", ""), 10) * 12 : activeTier!.credits} credits
                   </span>
-                  <span className="text-white/35 text-xs">/ {billingCycle === "yearly" ? 'yr' : 'month'}</span>
+                  <span className="text-xs text-white/35">/ {billingCycle === "yearly" ? "yr" : "month"}</span>
                 </div>
               </div>
               <ChevronDown className={`h-4 w-4 text-white/35 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`} />
@@ -235,31 +304,33 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
             {isDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsDropdownOpen(false)} />
-                <div className="absolute top-[calc(100%+6px)] left-0 right-0 z-50 rounded-xl border border-white/[0.08] bg-[#111113] p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.7)] overflow-hidden backdrop-blur-xl">
+                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-white/[0.08] bg-[#111113] p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.7)] backdrop-blur-xl">
                   {plan.creditTiers.map((tier, idx) => (
                     <button
                       key={idx}
-                      onClick={() => {
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
                         setSelectedTierIndex(idx);
                         setIsDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all duration-150 ${
-                        selectedTierIndex === idx 
-                          ? "bg-accent/[0.08] text-accent font-medium" 
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111113] ${
+                        selectedTierIndex === idx
+                          ? "bg-accent/[0.08] font-medium text-accent"
                           : "text-white/60 hover:bg-white/[0.04] hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${
+                        <div className={`flex h-4 w-4 items-center justify-center rounded-full border transition-colors ${
                           selectedTierIndex === idx ? "border-accent/40" : "border-white/15"
                         }`}>
                           {selectedTierIndex === idx && <div className="h-1.5 w-1.5 rounded-full bg-accent" />}
                         </div>
                         <div className="flex items-baseline gap-1">
                           <span>
-                            {billingCycle === "yearly" ? parseInt(tier.credits.replace(',', '')) * 12 : tier.credits} credits
+                            {billingCycle === "yearly" ? parseInt(tier.credits.replace(",", ""), 10) * 12 : tier.credits} credits
                           </span>
-                          <span className="opacity-40 text-xs">/ {billingCycle === "yearly" ? 'yr' : 'month'}</span>
+                          <span className="text-xs opacity-40">/ {billingCycle === "yearly" ? "yr" : "month"}</span>
                         </div>
                       </div>
                       {selectedTierIndex === idx && <Check className="h-4 w-4 text-accent" />}
@@ -271,16 +342,18 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
           </div>
         )}
 
-        <p className={`text-sm leading-relaxed text-white/50 ${plan.creditTiers ? 'mb-4' : 'mb-8'}`}>
+        <p className={`text-sm leading-relaxed text-white/50 ${plan.creditTiers ? "mb-4" : "mb-8"}`}>
           {plan.description}
         </p>
 
         <div className="space-y-4">
-          <div className="text-[10px] font-semibold text-white/30 mb-2 uppercase tracking-[0.18em]">Includes:</div>
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+            Includes:
+          </div>
           {plan.features.map((feature) => {
             if (feature === "__ultra_thinking__") {
               return (
-                <div key="ultra_thinking" className="flex items-center gap-3 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2 -mx-1">
+                <div key="ultra_thinking" className="mx-[-0.25rem] flex items-center gap-3 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2">
                   <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-30" />
                     <Brain className="h-4 w-4 text-violet-400" />
@@ -294,6 +367,7 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
                 </div>
               );
             }
+
             return (
               <div key={feature} className="flex items-start gap-3">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent/50" />
@@ -308,15 +382,19 @@ function PlanCard({ plan, billingCycle, subscribing, onSubscribe, index, formatP
 
       <div className="mt-10">
         <button
-          onClick={(e) => { e.stopPropagation(); handleSubscribeClick(); }}
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleSubscribeClick();
+          }}
           disabled={subscribing !== null}
-          className={`w-full rounded-xl py-3.5 text-sm font-bold transition-all duration-200 disabled:opacity-50 ${
+          className={`relative w-full overflow-hidden rounded-xl py-3.5 text-sm font-bold transition-all duration-200 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
             isSelected || plan.highlighted
-              ? "bg-accent text-white hover:bg-[#4a8cf7] shadow-[0_4px_20px_rgba(59,130,246,0.25)] hover:shadow-[0_8px_30px_rgba(59,130,246,0.35)] hover:-translate-y-0.5"
+              ? "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(59,130,246,0.4)]"
               : plan.name === "Enterprise"
-                ? "bg-white/[0.04] border border-white/[0.08] text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
-                : "bg-white text-black hover:bg-white/90 shadow-[0_4px_14px_0_rgba(255,255,255,0.06)] hover:-translate-y-0.5"
-          } relative overflow-hidden`}
+                ? "border border-white/[0.08] bg-white/[0.04] text-white hover:border-white/[0.12] hover:bg-white/[0.08]"
+                : "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_16px_rgba(59,130,246,0.2)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(59,130,246,0.3)]"
+          }`}
         >
           {subscribing && subscribing.startsWith(plan.idBase) ? "Processing..." : plan.cta}
         </button>
@@ -337,21 +415,22 @@ export default function PricingPage() {
       router.push("/lets-talk");
       return;
     }
-    
+
     setSubscribing(actualPlanId);
     try {
-      const res = await fetch("/api/subscribe", {
+      const response = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: actualPlanId }),
       });
-      if (res.status === 401) {
+
+      if (response.status === 401) {
         router.push("/signup");
-      } else if (res.ok) {
+      } else if (response.ok) {
         router.push("/dashboard");
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setSubscribing(null);
     }
@@ -359,12 +438,11 @@ export default function PricingPage() {
 
   return (
     <main className="relative min-h-screen pt-6">
-      {/* Close button */}
-      <div className="mx-auto max-w-[1400px] px-6 relative h-0 flex justify-end">
-        <div className="relative top-2 md:top-6 z-50">
+      <div className="relative mx-auto flex h-0 max-w-[1400px] justify-end px-6">
+        <div className="relative top-2 z-50 md:top-6">
           <Link
             href="/"
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.04] border border-white/[0.06] text-white/60 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/[0.06] bg-white/[0.04] text-white/60 transition-all duration-200 hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
             aria-label="Close pricing and return"
           >
             <X className="h-5 w-5" />
@@ -378,28 +456,30 @@ export default function PricingPage() {
         description="Choose the plan that fits your business needs. Upgrade anytime as you grow."
       />
 
-      <div className="flex justify-center mb-16">
-        <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] ring-1 ring-white/[0.06]">
+      <div className="mb-16 flex justify-center">
+        <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-1 ring-1 ring-white/[0.06]">
           <button
+            type="button"
             onClick={() => setBillingCycle("monthly")}
-            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
-              billingCycle === "monthly" 
-                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.08)]" 
+            className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
+              billingCycle === "monthly"
+                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.08)]"
                 : "text-white/35 hover:text-white/60"
             }`}
           >
             Monthly
           </button>
           <button
+            type="button"
             onClick={() => setBillingCycle("yearly")}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
-              billingCycle === "yearly" 
-                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.08)]" 
+            className={`flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b] ${
+              billingCycle === "yearly"
+                ? "bg-white text-black shadow-[0_2px_8px_rgba(255,255,255,0.08)]"
                 : "text-white/35 hover:text-white/60"
             }`}
           >
             Yearly
-            <span className="px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[0.65rem] uppercase tracking-wider font-bold">
+            <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-accent">
               Save 20%
             </span>
           </button>
@@ -407,15 +487,15 @@ export default function PricingPage() {
       </div>
 
       <section className="mx-auto max-w-[1400px] px-6 pb-24">
-        <div className="grid gap-6 lg:grid-cols-4">
-          {plans.map((plan, i) => (
-            <PlanCard 
-              key={plan.name} 
-              plan={plan} 
-              index={i}
-              billingCycle={billingCycle} 
-              subscribing={subscribing} 
-              onSubscribe={handleSubscribe} 
+        <div className="grid gap-6 lg:grid-cols-4" role="radiogroup" aria-label="Pricing plans">
+          {plans.map((plan, index) => (
+            <PlanCard
+              key={plan.name}
+              plan={plan}
+              index={index}
+              billingCycle={billingCycle}
+              subscribing={subscribing}
+              onSubscribe={handleSubscribe}
               formatPrice={formatPrice}
               isSelected={selectedPlan === plan.idBase}
               onSelect={() => setSelectedPlan(plan.idBase)}
@@ -423,31 +503,82 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* How Credits Work Link */}
         <div className="mt-20 flex justify-center">
-          <Link 
-            href="/how-credits-work" 
-            className="group relative inline-flex items-center gap-4 rounded-2xl bg-white/[0.02] px-8 py-5 ring-1 ring-white/[0.06] hover:ring-accent/25 shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)]"
+          <Link
+            href="/how-credits-work"
+            className="group relative inline-flex items-center gap-4 rounded-2xl bg-white/[0.02] px-8 py-5 ring-1 ring-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4)] hover:ring-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b82f6] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]"
           >
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-accent/0 via-accent/[0.03] to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-            
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/15 group-hover:bg-accent/15 transition-colors duration-200">
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-accent/0 via-accent/[0.03] to-accent/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/15 transition-colors duration-200 group-hover:bg-accent/15">
               <Sparkles className="h-6 w-6" />
             </div>
-            
+
             <div className="flex flex-col text-left">
               <span className="text-[17px] font-bold text-white transition-all duration-200">
                 Wondering how credits work?
               </span>
-              <span className="text-[14px] text-white/40 mt-0.5">
+              <span className="mt-0.5 text-[14px] text-white/40">
                 Learn exactly how simple and fair our pricing is.
               </span>
             </div>
-            
-            <div className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] text-white/40 group-hover:bg-accent group-hover:text-white transition-all duration-200 transform group-hover:scale-110">
-              <span className="font-bold -mt-0.5">→</span>
+
+            <div className="ml-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] text-white/40 transition-all duration-200 group-hover:scale-110 group-hover:bg-accent group-hover:text-white">
+              <span className="font-bold">→</span>
             </div>
           </Link>
+        </div>
+
+        <div className="mx-auto mt-24 max-w-4xl">
+          <div className="mb-12 text-center">
+            <h2 className="mb-4 text-3xl font-bold tracking-tight text-white">Frequently Asked Questions</h2>
+            <p className="text-white/40">Everything you need to know about the product and billing.</p>
+          </div>
+
+          <div className="grid gap-4">
+            {[
+              {
+                q: "What happens if I run out of credits?",
+                a: "If you exhaust your monthly credits, your automations will pause. You can purchase credit packs anytime to keep them running or upgrade your tier immediately. Unused credits roll over for up to 3 months.",
+              },
+              {
+                q: "How are credits calculated?",
+                a: "You are only charged for what you actually use. Creating a workflow costs 5 credits once. Running a workflow costs 1 base credit plus specific integration costs.",
+              },
+              {
+                q: "Can I cancel my subscription anytime?",
+                a: "Absolutely. You can cancel, upgrade, or downgrade your plan at any time from your settings page. If you cancel, you will keep your active tier until the end of your billing cycle.",
+              },
+              {
+                q: "What is Ultra Thinking mode?",
+                a: "For complex automation requests, Ultra Thinking routes your prompt to advanced reasoning models. It performs deeper logical analysis and generates more robust blueprints before deploying.",
+              },
+              {
+                q: "Do you offer refunds?",
+                a: "Yes. We offer a 14-day, no-questions-asked refund policy for your first subscription charge if you are not satisfied with the product performance.",
+              },
+            ].map((faq, index) => (
+              <div key={index} className="rounded-[1.5rem] border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-white/[0.01] p-6 lg:p-8">
+                <h3 className="text-[1.1rem] font-semibold tracking-tight text-white">{faq.q}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-white/45">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-20 flex flex-col items-center justify-center gap-6 border-t border-white/[0.06] pt-12 text-center text-sm font-medium tracking-wide text-white/30 sm:flex-row sm:gap-12">
+          <div className="flex items-center gap-3">
+            <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
+            Secure Checkout
+          </div>
+          <div className="flex items-center gap-3">
+            <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+            Stripe Encrypted
+          </div>
+          <div className="flex items-center gap-3">
+            <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Cancel Anytime
+          </div>
         </div>
       </section>
     </main>

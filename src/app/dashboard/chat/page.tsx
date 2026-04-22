@@ -44,6 +44,14 @@ const suggestions = [
   },
 ];
 
+function createChatId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID().slice(0, 8);
+  }
+
+  return `${performance.now().toString(36).replace(".", "")}`.slice(0, 8);
+}
+
 export default function ChatEntryPage() {
   const [prompt, setPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,14 +66,14 @@ export default function ChatEntryPage() {
     }
 
     setIsSubmitting(true);
-    const chatId = Math.random().toString(36).slice(2, 10);
+    const chatId = createChatId();
     router.push(`/dashboard/chat/${chatId}?prompt=${encodeURIComponent(prompt.trim())}`);
   };
 
   const handleSuggestionClick = (text: string) => {
     setPrompt(text);
     setIsSubmitting(true);
-    const chatId = Math.random().toString(36).slice(2, 10);
+    const chatId = createChatId();
     router.push(`/dashboard/chat/${chatId}?prompt=${encodeURIComponent(text)}`);
   };
 

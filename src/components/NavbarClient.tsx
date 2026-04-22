@@ -40,7 +40,7 @@ export default function NavbarClient({
       <div
         className={`mx-auto max-w-[1180px] rounded-2xl transition-all duration-300 ${
           scrolled
-            ? "glass-nav shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+            ? "glass-nav shadow-[0_10px_30px_rgba(0,0,0,0.6)]"
             : "bg-white/[0.03] shadow-[0_4px_18px_rgba(0,0,0,0.2)] backdrop-blur-sm"
         }`}
       >
@@ -70,7 +70,7 @@ export default function NavbarClient({
             </Link>
             <Link
               href="/signup"
-              className="btn-dark inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full px-5 text-sm font-semibold shadow-[0_4px_16px_rgba(255,255,255,0.06)] transition-all duration-200 md:px-6"
+              className="inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all duration-200 hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px] active:translate-y-0 md:px-6"
             >
               Sign up
             </Link>
@@ -88,7 +88,7 @@ export default function NavbarClient({
 
         {/* Scroll glow line */}
         {scrolled && (
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
         )}
 
         {open ? (
@@ -119,7 +119,7 @@ export default function NavbarClient({
               <Link
                 href="/signup"
                 onClick={() => setOpen(false)}
-                className="btn-dark inline-flex h-11 w-full items-center justify-center rounded-full px-5 text-sm font-semibold transition-all"
+              className="inline-flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all"
               >
                 Sign up
               </Link>

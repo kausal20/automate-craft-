@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import BrandMark from "@/components/BrandMark";
 
 function GoogleIcon() {
@@ -35,12 +35,7 @@ type LoginModalProps = {
 };
 
 export function LoginModal({ isOpen, onClose, nextUrl }: LoginModalProps) {
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -53,7 +48,7 @@ export function LoginModal({ isOpen, onClose, nextUrl }: LoginModalProps) {
     };
   }, [isOpen]);
 
-  if (!mounted || !isOpen) return null;
+  if (!isOpen) return null;
 
   const targetNextUrl = nextUrl || pathname || '/';
 

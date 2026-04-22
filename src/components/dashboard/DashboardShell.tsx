@@ -67,6 +67,7 @@ export default function DashboardShell({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [recentChats, setRecentChats] = useState<ChatIndexEntry[]>([]);
+  const [starredChats, setStarredChats] = useState<ChatIndexEntry[]>([]);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -104,9 +105,10 @@ export default function DashboardShell({
     const sync = () => {
       const index = readChatIndex()
         .filter((entry) => entry && entry.chatId && entry.title)
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-        .slice(0, 5);
-      setRecentChats(index);
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        
+      setRecentChats(index.slice(0, 5));
+      setStarredChats(index.filter(e => e.isStarred));
     };
 
     sync();
@@ -140,7 +142,6 @@ export default function DashboardShell({
 
   const projectItems = [
     { name: "All Projects", href: "/dashboard/projects", icon: FolderOpen },
-    { name: "Starred", href: "#", icon: Star },
     { name: "Created by Me", href: "#", icon: User },
     { name: "Shared with Me", href: "#", icon: Users },
   ];
@@ -241,6 +242,36 @@ export default function DashboardShell({
                     {!isCollapsed && <span>{item.name}</span>}
                   </Link>
                 ))}
+
+                {!isCollapsed && starredChats.length > 0 && (
+                  <div className="pt-2 pb-1">
+                    <div className={`mb-1 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-widest ${isChatWorkspace ? "text-foreground/30" : "text-white/30"}`}>
+                      <Star className="h-3.5 w-3.5 opacity-60" />
+                      Starred Projects
+                    </div>
+                    <div className="space-y-1">
+                      {starredChats.map((chat) => (
+                        <Link
+                          key={`star-${chat.chatId}`}
+                          href={`/dashboard/chat/${chat.chatId}`}
+                          title={chat.title}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                            pathname === `/dashboard/chat/${chat.chatId}`
+                              ? isChatWorkspace
+                                ? "bg-black/[0.04] text-foreground"
+                                : "bg-white/5 text-foreground"
+                              : isChatWorkspace
+                                ? "text-foreground/50 hover:bg-black/[0.04] hover:text-foreground"
+                                : "text-foreground/50 hover:bg-white/5 hover:text-foreground"
+                          }`}
+                        >
+                          <Star className="h-3.5 w-3.5 shrink-0 text-accent fill-current" />
+                          <span className="truncate">{chat.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             {/* Apps Section */}

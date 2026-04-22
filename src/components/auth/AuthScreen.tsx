@@ -539,11 +539,17 @@ export default function AuthScreen({
                     <>
                       <form onSubmit={handleSubmit} className="space-y-3">
                         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" autoComplete="email" autoFocus className={inputCls} />
-                        <div className="relative">
+                        <div className="relative mb-1">
                           <input required type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} placeholder="Password" autoComplete="current-password" className={`${inputCls} pr-16`} />
                           <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/50 transition-colors" aria-label={showPassword ? "Hide password" : "Show password"}>
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
+                        </div>
+                        <div className="flex justify-between items-center mb-4">
+                          <div />
+                          <Link href="/forgot-password" className="text-xs font-medium text-accent hover:text-accent/80 transition-colors">
+                            Forgot password?
+                          </Link>
                         </div>
                         <button type="submit" disabled={loading} className={primaryBtnCls}>
                           {loading ? (<><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</>) : (<>Sign in <ArrowRight className="h-4 w-4 ml-1" /></>)}

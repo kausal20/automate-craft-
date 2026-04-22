@@ -4,26 +4,28 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, CheckCircle2, ChevronDown, Loader2, Circle, SlidersHorizontal, Shield, Zap } from "lucide-react";
 
+export type FieldValue = string | number | boolean;
+
 export type FieldDef = {
   key: string;
   label: string;
   type: "text" | "number" | "select" | "toggle";
   placeholder?: string;
   options?: { label: string; value: string }[];
-  defaultValue?: any;
+  defaultValue?: FieldValue;
 };
 
 export type FormCardProps = {
   title: string;
   description: string;
   fields: FieldDef[];
-  onSubmit: (values: Record<string, any>) => void;
-  summaryText?: (values: Record<string, any>) => string;
+  onSubmit: (values: Record<string, FieldValue>) => void;
+  summaryText?: (values: Record<string, FieldValue>) => string;
 };
 
 export function FormCard({ title, description, fields, onSubmit, summaryText }: FormCardProps) {
-  const [values, setValues] = useState<Record<string, any>>(() => {
-    const initial: Record<string, any> = {};
+  const [values, setValues] = useState<Record<string, FieldValue>>(() => {
+    const initial: Record<string, FieldValue> = {};
     fields.forEach((f) => {
       if (f.defaultValue !== undefined) {
         initial[f.key] = f.defaultValue;
@@ -49,7 +51,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
     onSubmit(values);
   };
 
-  const updateValue = (key: string, val: any) => {
+  const updateValue = (key: string, val: FieldValue) => {
     setValues((prev) => ({ ...prev, [key]: val }));
   };
 
@@ -218,7 +220,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                         }`}>
                           <input
                             type={field.type}
-                            value={values[field.key]}
+                            value={String(values[field.key] ?? "")}
                             onFocus={() => setActiveField(field.key)}
                             onBlur={() => handleFieldBlur(index)}
                             onChange={(e) => updateValue(field.key, e.target.value)}
@@ -245,7 +247,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                           isActive ? "shadow-[0_0_0_2px_rgba(59,130,246,0.2),0_4px_16px_rgba(59,130,246,0.06)]" : ""
                         }`}>
                           <select
-                            value={values[field.key]}
+                            value={String(values[field.key] ?? "")}
                             onFocus={() => setActiveField(field.key)}
                             onBlur={() => handleFieldBlur(index)}
                             onChange={(e) => {
@@ -281,14 +283,14 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                           <button
                             type="button"
                             onClick={() => {
-                              updateValue(field.key, !values[field.key]);
+                              updateValue(field.key, !Boolean(values[field.key]));
                               if (index + 1 >= revealedCount) {
                                 setRevealedCount(Math.min(index + 2, fields.length));
                               }
                             }}
                             disabled={status === "submitting"}
                             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
-                              values[field.key]
+                              Boolean(values[field.key])
                                 ? "bg-gradient-to-r from-accent to-cyan-500 shadow-[0_0_12px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.1)]"
                                 : "bg-white/[0.06] shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]"
                             }`}
@@ -296,12 +298,12 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                             <motion.span
                               className="pointer-events-none inline-block h-4.5 w-4.5 rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
                               style={{ width: 18, height: 18 }}
-                              animate={{ x: values[field.key] ? 22 : 2 }}
+                              animate={{ x: Boolean(values[field.key]) ? 22 : 2 }}
                               transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             />
                           </button>
-                          <span className={`text-[13px] transition-colors ${values[field.key] ? "text-accent/80" : "text-white/30"}`}>
-                            {values[field.key] ? "Enabled" : "Disabled"}
+                          <span className={`text-[13px] transition-colors ${Boolean(values[field.key]) ? "text-accent/80" : "text-white/30"}`}>
+                            {Boolean(values[field.key]) ? "Enabled" : "Disabled"}
                           </span>
                         </div>
                       ) : null}

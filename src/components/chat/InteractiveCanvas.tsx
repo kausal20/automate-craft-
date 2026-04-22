@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Loader2, Workflow, Zap, Send, Terminal, ShieldCheck, Play, Rocket, PanelRightClose, Link as LinkIcon, Activity } from "lucide-react";
+import { CheckCircle2, Loader2, Workflow, Zap, Send, Terminal, Play, Rocket, PanelRightClose, Link as LinkIcon, Activity } from "lucide-react";
 
 export type FlowNode = {
   id: string;
@@ -59,7 +59,6 @@ export function InteractiveCanvas({
 
   useEffect(() => {
     if (isTesting) {
-      setLogs([]);
       const timeoutIds: NodeJS.Timeout[] = [];
       const steps = [
         { t: "Initializing test environment...", delay: 200, status: "info" as const },
@@ -70,9 +69,10 @@ export function InteractiveCanvas({
         { t: "Test completed without errors.", delay: 2500, status: "success" as const }
       ];
 
+      timeoutIds.push(setTimeout(() => setLogs([]), 0));
       steps.forEach((step) => {
         const id = setTimeout(() => {
-          setLogs(prev => [...prev, { id: Math.random().toString(), text: step.t, status: step.status }]);
+          setLogs(prev => [...prev, { id: `${step.delay}-${step.t}`, text: step.t, status: step.status }]);
         }, step.delay);
         timeoutIds.push(id);
       });
@@ -168,11 +168,11 @@ export function InteractiveCanvas({
                           {/* 3D Card with shadow layer */}
                           <div className="relative">
                             {isActive && (
-                              <div className="absolute inset-0 rounded-2xl bg-accent/[0.08] blur-xl translate-y-1 animate-breathe" />
+                              <div className="absolute -inset-1 rounded-2xl bg-blue-500/20 blur-xl animate-pulse pointer-events-none" />
                             )}
-                            <div className={`node-card relative flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 hover:translate-y-[-2px] ${
+                            <div className={`node-card relative z-10 flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-[2px] ${
                               isActive
-                                ? "border-accent/30 bg-gradient-to-br from-[#0f1520] via-[#0d1018] to-[#0a0c10] shadow-[0_8px_32px_rgba(59,130,246,0.12),inset_0_1px_0_rgba(255,255,255,0.05)] animate-border-glow"
+                                ? "border-blue-500/40 bg-gradient-to-br from-[#0f1520] via-[#0d1018] to-[#0a0c10] shadow-[0_0_30px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,0.05)]"
                                 : isCompleted
                                   ? "border-white/[0.06] bg-gradient-to-br from-[#0f0f11] to-[#0a0a0c] shadow-[0_6px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]"
                                   : "border-white/[0.04] bg-[#0a0a0a]"
@@ -181,9 +181,9 @@ export function InteractiveCanvas({
                               <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${typeColor} ring-1 shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-all`}>
                                 {isActive ? (
                                   <div className="relative">
-                                    <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                                    <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
                                     <motion.div
-                                      className="absolute -inset-3 rounded-xl border border-accent/20"
+                                      className="absolute -inset-3 rounded-xl border border-blue-500/30"
                                       animate={{ rotate: 360 }}
                                       transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
                                     />
@@ -193,7 +193,7 @@ export function InteractiveCanvas({
 
                               <div className="flex-1 min-w-0">
                                 <p className={`text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5 ${
-                                  isActive ? "text-accent/60" : "text-white/20"
+                                  isActive ? "text-blue-400/80" : "text-white/20"
                                 }`}>
                                   {node.type}
                                 </p>
@@ -216,9 +216,9 @@ export function InteractiveCanvas({
                                 )}
                                 {isActive && (
                                   <div className="relative flex h-7 w-7 items-center justify-center">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(59,130,246,0.6)]" />
+                                    <div className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
                                     <motion.div
-                                      className="absolute inset-0 rounded-full border border-accent/25"
+                                      className="absolute inset-0 rounded-full border border-blue-500/30"
                                       animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0, 0.4] }}
                                       transition={{ duration: 1.5, repeat: Infinity }}
                                     />
@@ -231,13 +231,15 @@ export function InteractiveCanvas({
 
                         {/* Connector with flowing particle + glow */}
                         {!isLastVisible && (
-                          <div className="relative h-10 w-px my-1 overflow-hidden connection-line-glow">
-                            <div className="absolute inset-0 bg-gradient-to-b from-accent/20 via-white/8 to-white/[0.03]" />
-                            <motion.div
-                              className="absolute left-1/2 h-5 w-[2px] -translate-x-1/2 bg-gradient-to-b from-accent/60 via-accent/30 to-transparent rounded-full shadow-[0_0_6px_rgba(59,130,246,0.4)]"
-                              animate={{ top: ["-20px", "100%"] }}
-                              transition={{ duration: 1.4, repeat: Infinity, ease: "linear", repeatDelay: 0.2 }}
-                            />
+                          <div className="relative h-10 w-px my-1 overflow-hidden z-0">
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-white/[0.03]" />
+                            {(isActive || isTesting || (nodes[index + 1]?.status === "active")) && (
+                              <motion.div
+                                className="absolute left-1/2 h-5 w-[2px] -translate-x-1/2 bg-gradient-to-b from-blue-500 via-blue-400 to-transparent rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                                animate={{ top: ["-20px", "100%"] }}
+                                transition={{ duration: 1.4, repeat: Infinity, ease: "linear", repeatDelay: 0.1 }}
+                              />
+                            )}
                           </div>
                         )}
                       </React.Fragment>

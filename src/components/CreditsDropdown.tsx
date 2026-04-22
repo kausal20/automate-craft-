@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Coins, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -139,21 +140,35 @@ export function CreditsDropdown() {
   return (
     <div className="relative z-50 flex" ref={dropdownRef}>
       {/* TRIGGER BUTTON — always visible */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex h-[34px] items-center gap-2 rounded-full bg-gradient-to-r from-accent to-blue-600 px-3 py-1 shadow-[0_4px_16px_rgba(59,130,246,0.3),0_10px_24px_rgba(59,130,246,0.15)] transition-all duration-200 hover:shadow-[0_6px_22px_rgba(59,130,246,0.4)] hover:translate-y-[-1px] active:scale-95 active:translate-y-0"
-      >
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
-          {loading ? (
-            <Loader2 className="h-3 w-3 animate-spin text-white" />
-          ) : (
-            <Coins className="h-3 w-3 text-white" />
-          )}
-        </span>
-        <span className="text-sm font-bold text-white tracking-wide">
-          {remainingStr}
-        </span>
-      </button>
+      <div className="group/credits relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex h-[34px] items-center gap-2 rounded-full bg-gradient-to-r from-accent to-blue-600 px-3 py-1 shadow-[0_4px_16px_rgba(59,130,246,0.3),0_10px_24px_rgba(59,130,246,0.15)] transition-all duration-200 hover:shadow-[0_6px_22px_rgba(59,130,246,0.4)] hover:translate-y-[-1px] active:scale-95 active:translate-y-0"
+        >
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20">
+            {loading ? (
+              <Loader2 className="h-3 w-3 animate-spin text-white" />
+            ) : (
+              <Coins className="h-3 w-3 text-white" />
+            )}
+          </span>
+          <motion.span
+            key={remainingStr}
+            initial={{ scale: 1.2, textShadow: "0 0 12px rgba(59,130,246,0.8)" }}
+            animate={{ scale: 1, textShadow: "0 0 0px rgba(59,130,246,0)" }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="text-sm font-bold text-white tracking-wide"
+          >
+            {remainingStr}
+          </motion.span>
+        </button>
+        {/* Tooltip */}
+        <div className="pointer-events-none absolute right-0 top-[calc(100%+8px)] opacity-0 group-hover/credits:opacity-100 transition-opacity duration-200 z-40">
+          <div className="whitespace-nowrap rounded-lg border border-white/[0.08] bg-[#111113]/95 backdrop-blur-xl px-3 py-1.5 text-[11px] font-medium text-white/50 shadow-[0_8px_20px_rgba(0,0,0,0.5)]">
+            Each automation run uses credits
+          </div>
+        </div>
+      </div>
 
       {/* DROPDOWN PANEL */}
       {isOpen && (

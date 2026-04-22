@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 type Particle = {
   id: number;
@@ -17,19 +17,17 @@ type Particle = {
  * Particles drift upward slowly with varying sizes and opacities.
  */
 export function FloatingParticles({ count = 12 }: { count?: number }) {
-  const [particles, setParticles] = useState<Particle[]>([]);
-
-  useEffect(() => {
-    const generated: Particle[] = Array.from({ length: count }, (_, i) => ({
+  const particles = useMemo<Particle[]>(
+    () => Array.from({ length: count }, (_, i) => ({
       id: i,
-      left: `${Math.random() * 100}%`,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 25 + 20,
-      delay: Math.random() * 15,
-      type: Math.random() > 0.6 ? "blue" : "white",
-    }));
-    setParticles(generated);
-  }, [count]);
+      left: `${((i * 37) % 100) + 0.5}%`,
+      size: ((i * 13) % 3) + 1,
+      duration: ((i * 11) % 25) + 20,
+      delay: (i * 7) % 15,
+      type: i % 3 === 0 ? "blue" : "white",
+    })),
+    [count],
+  );
 
   if (particles.length === 0) return null;
 

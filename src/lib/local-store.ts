@@ -20,6 +20,8 @@ export type LocalUserRecord = {
   planCredits: number;
   extraCredits: number;
   onboarded?: boolean;
+  role?: string;
+  companySize?: string;
 };
 
 export type UsageLogRecord = {

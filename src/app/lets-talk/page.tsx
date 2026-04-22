@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, CheckCircle2, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
@@ -75,7 +75,10 @@ export default function LetsTalkPage() {
   const [attemptedNext, setAttemptedNext] = useState(false);
 
   // Update field
-  const updateForm = (field: keyof ConsultationFormState, value: any) => {
+  const updateForm = <Key extends keyof ConsultationFormState>(
+    field: Key,
+    value: ConsultationFormState[Key],
+  ) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -155,7 +158,7 @@ export default function LetsTalkPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-    } catch (e) {
+    } catch {
       // Demo purposes
     }
 
@@ -207,7 +210,7 @@ export default function LetsTalkPage() {
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-white mb-4">Request Received</h2>
           <p className="text-white/60 leading-relaxed mb-10 text-lg">
-            Thanks! We'll review your requirements and get back to you soon.
+            Thanks! We&apos;ll review your requirements and get back to you soon.
           </p>
           <Link href="/" className="inline-flex h-14 px-8 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold transition-all">
             Return to Homepage

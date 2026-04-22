@@ -67,7 +67,7 @@ function renderFieldInput(
   onChange: (nextValue: string) => void,
 ) {
   const commonClassName =
-    "w-full rounded-2xl border border-black/8 bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-all focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:bg-black/[0.03] disabled:text-foreground/42";
+    "w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3.5 text-sm text-white outline-none transition-all focus:border-accent/40 focus:bg-white/[0.05] focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:bg-white/[0.02] disabled:text-white/30 placeholder:text-white/20";
 
   if (field.type === "textarea") {
     return (
@@ -147,20 +147,22 @@ export default function HomeAutomationPreview({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 bg-white pb-12"
+          className="relative z-10 bg-[#09090b] pb-12"
         >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="card-surface overflow-hidden rounded-[2.5rem] border border-white/70 p-6 sm:p-8 lg:p-10">
+            <div className="relative overflow-hidden rounded-[2.5rem] border border-white/[0.06] bg-gradient-to-b from-[#111113] to-[#0d0d0f] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.7)] sm:p-8 lg:p-10">
+              {/* Ambient glow */}
+              <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-32 w-80 rounded-full bg-accent/[0.05] blur-[60px]" />
               {isGenerating ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="relative mb-7 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-accent/10 text-accent">
+                  <div className="relative mb-7 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-accent/10 text-accent ring-1 ring-accent/15">
                     <BrainCircuit className="h-10 w-10 animate-pulse" />
-                    <div className="absolute inset-0 animate-ping rounded-[1.75rem] bg-accent/14 opacity-70" />
+                    <div className="absolute inset-0 animate-ping rounded-[1.75rem] bg-accent/10 opacity-60" />
                   </div>
-                  <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
+                  <h2 className="text-3xl font-semibold tracking-[-0.04em] text-white">
                     Building your automation plan
                   </h2>
-                  <p className="mt-3 max-w-2xl text-base leading-7 text-foreground/58">
+                  <p className="mt-3 max-w-2xl text-base leading-7 text-white/35">
                     Understanding the workflow, selecting the right
                     integrations, and shaping the setup form you will actually
                     need to launch it.
@@ -168,25 +170,25 @@ export default function HomeAutomationPreview({
                 </div>
               ) : (
                 <>
-                  <div className="grid gap-10 border-b border-black/6 pb-8 lg:grid-cols-[1.15fr_0.85fr]">
+                  <div className="grid gap-10 border-b border-white/[0.05] pb-8 lg:grid-cols-[1.15fr_0.85fr]">
                     <div>
-                      <div className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-black/[0.02] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-accent/15 bg-accent/[0.06] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-accent">
                         <FileInput className="h-4 w-4" />
                         Generated blueprint
                       </div>
 
-                      <h2 className="mt-6 text-3xl font-semibold tracking-[-0.055em] text-foreground sm:text-4xl">
+                      <h2 className="mt-6 text-3xl font-semibold tracking-[-0.055em] text-white sm:text-4xl">
                         {result?.workflow.name || "Automation draft"}
                       </h2>
-                      <p className="mt-4 max-w-2xl text-base leading-8 text-foreground/60">
+                      <p className="mt-4 max-w-2xl text-base leading-8 text-white/50">
                         {result?.workflow.description}
                       </p>
 
-                      <div className="mt-7 rounded-[1.75rem] border border-accent/15 bg-accent/[0.05] p-5">
+                      <div className="mt-7 rounded-[1.75rem] border border-accent/15 bg-accent/[0.06] p-5">
                         <p className="text-xs font-bold uppercase tracking-[0.22em] text-accent">
                           Trigger
                         </p>
-                        <p className="mt-2 text-lg font-semibold text-foreground">
+                        <p className="mt-2 text-lg font-semibold text-white">
                           {result?.workflow.trigger}
                         </p>
                       </div>
@@ -195,22 +197,22 @@ export default function HomeAutomationPreview({
                         {result?.workflow.steps.map((step, index) => (
                           <div
                             key={`${step.name}-${index}`}
-                            className="flex gap-4 rounded-[1.6rem] border border-black/8 bg-white p-5"
+                            className="flex gap-4 rounded-[1.6rem] border border-white/[0.06] bg-white/[0.02] p-5"
                           >
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-black/8 bg-black/[0.03] text-sm font-semibold text-foreground/62">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent/15 bg-accent/[0.08] text-sm font-bold text-accent">
                               {index + 1}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-bold uppercase tracking-[0.18em] text-foreground/38">
+                              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/25">
                                 {step.type}
                               </p>
-                              <p className="mt-2 text-lg font-semibold text-foreground">
+                              <p className="mt-2 text-lg font-semibold text-white">
                                 {step.name}
                               </p>
-                              <div className="mt-3 space-y-1.5 text-sm leading-6 text-foreground/60">
+                              <div className="mt-3 space-y-1.5 text-sm leading-6 text-white/45">
                                 {Object.entries(step.details).map(([key, value]) => (
                                   <p key={key}>
-                                    <span className="font-semibold text-foreground/72">
+                                    <span className="font-semibold text-white/60">
                                       {key}:
                                     </span>{" "}
                                     {value}
@@ -224,16 +226,16 @@ export default function HomeAutomationPreview({
                     </div>
 
                     <div className="space-y-6">
-                      <div className="rounded-[1.75rem] border border-black/8 bg-black/[0.02] p-5">
+                      <div className="rounded-[1.75rem] border border-white/[0.06] bg-white/[0.02] p-5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/15 text-accent">
                             <Cable className="h-5 w-5" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-foreground">
+                            <p className="text-sm font-semibold text-white">
                               Required integrations
                             </p>
-                            <p className="text-sm text-foreground/52">
+                            <p className="text-sm text-white/35">
                               Connect the services needed for this workflow.
                             </p>
                           </div>
@@ -247,13 +249,13 @@ export default function HomeAutomationPreview({
                             return (
                               <div
                                 key={integration}
-                                className="flex items-center justify-between rounded-[1.35rem] border border-black/8 bg-white p-4"
+                                className="flex items-center justify-between rounded-[1.35rem] border border-white/[0.06] bg-white/[0.02] p-4"
                               >
                                 <div>
-                                  <p className="font-semibold capitalize text-foreground">
+                                  <p className="font-semibold capitalize text-white">
                                     {integration}
                                   </p>
-                                  <p className="text-sm text-foreground/52">
+                                  <p className="text-sm text-white/35">
                                     {user
                                       ? isConnected
                                         ? "Connected"
@@ -269,16 +271,16 @@ export default function HomeAutomationPreview({
                                     isConnected ||
                                     connectionLoading === integration
                                   }
-                                  className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all ${
+                                  className={`inline-flex h-9 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all ${
                                     isConnected
-                                      ? "bg-green-50 text-green-700"
-                                      : "btn-dark hover:bg-[#2a2a2a]"
-                                  } disabled:cursor-not-allowed disabled:opacity-55`}
+                                      ? "border border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400"
+                                      : "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.2)]"
+                                  } disabled:cursor-not-allowed disabled:opacity-50`}
                                 >
                                   {connectionLoading === integration
                                     ? "Connecting..."
                                     : isConnected
-                                      ? "Connected"
+                                      ? "Connected ✓"
                                       : "Connect"}
                                 </button>
                               </div>
@@ -287,16 +289,16 @@ export default function HomeAutomationPreview({
                         </div>
                       </div>
 
-                      <div className="rounded-[1.75rem] border border-black/8 bg-white p-5">
+                      <div className="rounded-[1.75rem] border border-white/[0.06] bg-white/[0.02] p-5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/15 text-accent">
                             <Settings className="h-5 w-5" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-foreground">
+                            <p className="text-sm font-semibold text-white">
                               Setup form
                             </p>
-                            <p className="text-sm text-foreground/52">
+                            <p className="text-sm text-white/35">
                               AI-generated from the workflow requirements.
                             </p>
                           </div>
@@ -305,7 +307,7 @@ export default function HomeAutomationPreview({
                         <div className="mt-5 space-y-4">
                           {result?.fieldDefinitions.map((field) => (
                             <div key={field.key}>
-                              <label className="mb-2 block text-sm font-semibold text-foreground">
+                              <label className="mb-2 block text-sm font-semibold text-white/70">
                                 {field.label}
                               </label>
                               {renderFieldInput(
@@ -314,7 +316,7 @@ export default function HomeAutomationPreview({
                                 !user,
                                 (nextValue) => onFieldChange(field.key, nextValue),
                               )}
-                              <p className="mt-2 text-xs leading-6 text-foreground/48">
+                              <p className="mt-2 text-xs leading-6 text-white/30">
                                 {field.helpText}
                               </p>
                             </div>
@@ -323,16 +325,16 @@ export default function HomeAutomationPreview({
                       </div>
 
                       {!user ? (
-                        <div className="rounded-[1.85rem] border border-black/8 bg-[#f8fbff] p-6">
+                        <div className="rounded-[1.85rem] border border-accent/15 bg-accent/[0.04] p-6">
                           <div className="flex items-start gap-3">
-                            <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                            <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 ring-1 ring-accent/15 text-accent">
                               <LockKeyhole className="h-5 w-5" />
                             </div>
                             <div>
-                              <h3 className="text-xl font-semibold tracking-[-0.03em] text-foreground">
+                              <h3 className="text-xl font-semibold tracking-[-0.03em] text-white">
                                 Ready to activate this automation?
                               </h3>
-                              <p className="mt-3 text-sm leading-7 text-foreground/60">
+                              <p className="mt-3 text-sm leading-7 text-white/40">
                                 You can preview the workflow before signing in.
                                 Create an account to connect apps, complete the
                                 setup form, and launch the automation.
@@ -343,7 +345,7 @@ export default function HomeAutomationPreview({
                           <div className="mt-5 flex flex-col gap-3">
                             <Link
                               href={`/signup?next=${encodeURIComponent(resumePath)}`}
-                              className="btn-dark inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold transition-all hover:-translate-y-0.5"
+                              className="inline-flex h-12 items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-6 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px]"
                             >
                               Create Account
                             </Link>
@@ -351,7 +353,7 @@ export default function HomeAutomationPreview({
                             <div className="grid gap-3 sm:grid-cols-2">
                               <Link
                                 href={`/login?next=${encodeURIComponent(resumePath)}`}
-                                className="inline-flex h-12 items-center justify-center rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
+                                className="inline-flex h-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] px-5 text-sm font-semibold text-white/70 transition-all hover:border-white/[0.14] hover:text-white hover:translate-y-[-1px]"
                               >
                                 Sign In
                               </Link>
@@ -367,20 +369,20 @@ export default function HomeAutomationPreview({
                       ) : (
                         <>
                           {error ? (
-                            <div className="rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+                            <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.08] px-5 py-4 text-sm font-medium text-red-400">
                               {error}
                             </div>
                           ) : null}
 
                           {successMessage ? (
-                            <div className="rounded-2xl border border-green-100 bg-green-50 px-5 py-4 text-sm font-medium text-green-700">
+                            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.08] px-5 py-4 text-sm font-medium text-emerald-400">
                               {successMessage}
                             </div>
                           ) : null}
 
-                          <div className="mb-4 rounded-xl border border-[#3B82F6]/10 bg-[#3B82F6]/[0.02] py-3 px-4 text-center">
-                            <p className="text-xs font-semibold text-[#6B7280]">
-                              Estimated usage: <span className="text-[#111111]">5 credits</span> to create • ~<span className="text-[#111111]">{
+                          <div className="mb-4 rounded-xl border border-accent/10 bg-accent/[0.04] py-3 px-4 text-center">
+                            <p className="text-xs font-semibold text-white/30">
+                              Estimated usage: <span className="text-accent">5 credits</span> to create • ~<span className="text-accent">{
                                 1 +
                                 (result?.workflow.integrations.includes("whatsapp") ? 2 : 0) +
                                 (result?.workflow.integrations.includes("email") ? 1 : 0) +
@@ -392,14 +394,14 @@ export default function HomeAutomationPreview({
                           <button
                             onClick={onActivate}
                             disabled={isSaving || !allIntegrationsConnected}
-                            className="btn-dark inline-flex h-14 w-full items-center justify-center gap-3 rounded-[1.2rem] px-8 text-base font-semibold shadow-[0_14px_32px_rgba(28,28,28,0.14)] transition-all duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-[1.2rem] bg-gradient-to-r from-accent to-blue-600 px-8 text-base font-semibold text-white shadow-[0_4px_20px_rgba(59,130,246,0.3)] transition-all duration-300 hover:shadow-[0_8px_32px_rgba(59,130,246,0.4)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CheckCircle2 className="h-5 w-5" />
                             {isSaving ? "Activating..." : "Activate Automation"}
                           </button>
 
                           {!allIntegrationsConnected ? (
-                            <p className="mt-3 text-center text-xs text-foreground/48">
+                            <p className="mt-3 text-center text-xs text-white/30">
                               Connect each required integration before activation.
                             </p>
                           ) : null}
@@ -407,7 +409,7 @@ export default function HomeAutomationPreview({
                           {successMessage ? (
                             <Link
                               href="/dashboard"
-                              className="inline-flex h-12 w-full items-center justify-center rounded-full border border-black/8 bg-white px-5 text-sm font-semibold text-foreground transition-all hover:-translate-y-0.5"
+                              className="inline-flex h-12 w-full items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] px-5 text-sm font-semibold text-white/70 transition-all hover:border-white/[0.14] hover:text-white hover:translate-y-[-1px]"
                             >
                               Open Dashboard
                             </Link>

@@ -52,14 +52,15 @@ export async function POST(request: NextRequest) {
           const localUser = db.users.find((u) => u.id === user.id);
           if (localUser) {
             localUser.name = fullName;
-            (localUser as any).role = role;
-            (localUser as any).companySize = companySize;
-            (localUser as any).onboarded = true;
+            localUser.role = role;
+            localUser.companySize = companySize;
+            localUser.onboarded = true;
           }
           return localUser;
         });
-      } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Could not update user" }, { status: 500 });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not update user";
+        return NextResponse.json({ error: message }, { status: 500 });
       }
     }
 

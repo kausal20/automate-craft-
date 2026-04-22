@@ -12,10 +12,9 @@ export default function BrandMark({
   href = "/",
   showName = false,
 }: BrandMarkProps) {
-  /* LOGIC EXPLAINED: The brand mark was keeping a bright blue text accent in the
-     dashboard header area, which added to the electric feel the user wanted removed.
-     This fix keeps the logo and brand intact while making the wordmark neutral white,
-     so hover states around it feel quieter and cleaner. */
+  /* LOGIC EXPLAINED: The wordmark should still read as one brand, but the user
+     wants the "Craft" half to carry the blue accent. Splitting the text into two
+     spans lets us color only that part without changing the logo or layout. */
   const content = (
     <div className="flex items-center gap-2.5">
       <div className="relative flex items-center justify-center">
@@ -31,7 +30,7 @@ export default function BrandMark({
       {showName && (
         <span className="text-[1.15rem] font-bold tracking-tight drop-shadow-sm">
           <span className="text-white">Automate</span>
-          <span className="text-white/78">Craft</span>
+          <span className="text-[#3b82f6]">Craft</span>
         </span>
       )}
     </div>
