@@ -435,11 +435,20 @@ export default function HeroSection({
 
       {/* ── How It Works — only for public visitors ── */}
       {!user && (
-        <>
+        <div className="relative overflow-hidden bg-[radial-gradient(120%_90%_at_50%_0%,rgba(59,130,246,0.12),transparent_42%),linear-gradient(180deg,#09090b_0%,#08080a_38%,#050507_100%)]">
+          {/* LOGIC EXPLAINED:
+          The public homepage felt visually cut off after the hero because the
+          lower sections switched to flatter isolated backgrounds. This wrapper
+          extends the same premium ambient backdrop through the rest of the
+          public page so the experience feels continuous from top to bottom. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#09090b] via-[#09090b]/80 to-transparent" />
+          <div className="pointer-events-none absolute left-[-12%] top-24 h-72 w-72 rounded-full bg-accent/[0.08] blur-[120px]" />
+          <div className="pointer-events-none absolute right-[-10%] top-[28rem] h-80 w-80 rounded-full bg-white/[0.04] blur-[140px]" />
+          <div className="pointer-events-none absolute bottom-[-8rem] left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-accent/[0.06] blur-[160px]" />
           {/* How it works */}
           <section className="relative py-28 overflow-hidden">
             {/* Background */}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#09090b] via-[#0a0a0d] to-[#09090b]" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#09090b]/35 to-transparent" />
             <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-px w-[60%] bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
 
             <div className="relative mx-auto max-w-6xl px-6 lg:px-8">
@@ -503,8 +512,12 @@ export default function HeroSection({
                     key={item.step}
                     initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
+                    animate={{ y: [0, -8 - i * 2, 0] }}
                     viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{
+                      opacity: { duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] },
+                      y: { duration: 7 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.35 },
+                    }}
                     className="group relative overflow-hidden rounded-[2rem] border border-white/[0.06] bg-gradient-to-b from-[#111113] to-[#0d0d0f] p-8 transition-all duration-300 hover:border-white/[0.1] hover:shadow-[0_20px_48px_rgba(0,0,0,0.6)]"
                     style={{ boxShadow: `0 0 60px ${item.glow}, 0 8px 32px rgba(0,0,0,0.4)` }}
                   >
@@ -559,7 +572,7 @@ export default function HeroSection({
 
           {/* Integration logos strip */}
           <section className="relative py-16 overflow-hidden">
-            <div className="pointer-events-none absolute inset-0 bg-[#08080a]" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#08080a]/55 to-[#060608]/75" />
             <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
 
@@ -602,7 +615,7 @@ export default function HeroSection({
               </div>
             </div>
           </section>
-        </>
+        </div>
       )}
     </>
   );
