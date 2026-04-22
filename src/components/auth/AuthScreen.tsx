@@ -318,7 +318,7 @@ export default function AuthScreen({
   const router = useRouter();
   const isSignup = mode === "signup";
 
-  const [loginStep, setLoginStep] = useState<"methods" | "email">("methods");
+  const [loginStep, setLoginStep] = useState<"methods" | "email" | "forgot-password">("methods");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -330,6 +330,10 @@ export default function AuthScreen({
   const [magicLoading, setMagicLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
   const [magicError, setMagicError] = useState<string | null>(null);
+
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   const googleHref = `/api/auth/oauth?provider=google&next=${encodeURIComponent(nextPath)}`;
 
@@ -393,6 +397,27 @@ export default function AuthScreen({
     }
   };
 
+  /* ─── Reset Password submit ─── */
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Could not send reset link.");
+      setResetSent(true);
+    } catch (err) {
+      setResetError(err instanceof Error ? err.message : "Could not send reset link.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const title = isSignup ? "Create your account" : "Welcome back";
 
   const inputCls =
@@ -442,14 +467,14 @@ export default function AuthScreen({
 
           {/* Error banner */}
           <AnimatePresence>
-            {(error || magicError) && (
+            {(error || magicError || resetError) && (
               <motion.div
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                 className="overflow-hidden rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3 text-center text-[0.825rem] font-medium text-red-400"
               >
-                {error || magicError}
+                {error || magicError || resetError}
               </motion.div>
             )}
           </AnimatePresence>
@@ -496,7 +521,7 @@ export default function AuthScreen({
                   </p>
                 </motion.div>
 
-              ) : (
+              ) : loginStep === "email" ? (
                 /* STEP 2: Email + Password + Magic Link */
                 <motion.div
                   key="step-email"
@@ -547,9 +572,9 @@ export default function AuthScreen({
                         </div>
                         <div className="flex justify-between items-center mb-4">
                           <div />
-                          <Link href="/forgot-password" className="text-xs font-medium text-accent hover:text-accent/80 transition-colors">
+                          <button type="button" onClick={() => { setLoginStep("forgot-password"); setError(null); setResetError(null); setResetSent(false); }} className="text-xs font-medium text-accent hover:text-accent/80 transition-colors">
                             Forgot password?
-                          </Link>
+                          </button>
                         </div>
                         <button type="submit" disabled={loading} className={primaryBtnCls}>
                           {loading ? (<><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</>) : (<>Sign in <ArrowRight className="h-4 w-4 ml-1" /></>)}
@@ -566,6 +591,61 @@ export default function AuthScreen({
                           {magicLoading ? (<><Loader2 className="h-4 w-4 animate-spin" /> Sending link...</>) : (<><Mail className="h-4 w-4" /> Send magic link instead</>)}
                         </button>
                         <p className="mt-2.5 text-center text-[0.7rem] text-white/20">Uses the email above — no password needed.</p>
+                      </form>
+                    </>
+                  )}
+                </motion.div>
+
+              ) : (
+                /* STEP 3: Forgot Password */
+                <motion.div
+                  key="step-forgot"
+                  initial={{ opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 24 }}
+                  transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => { setLoginStep("email"); setResetError(null); setResetSent(false); }}
+                    className="mb-6 flex items-center gap-1.5 text-[0.8rem] font-medium text-white/30 transition-colors hover:text-white/60"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to sign in
+                  </button>
+
+                  {resetSent ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col items-center py-4 text-center"
+                    >
+                      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#3b82f6]/10 ring-1 ring-[#3b82f6]/20">
+                        <CheckCircle2 className="h-8 w-8 text-[#3b82f6]" />
+                      </div>
+                      <h2 className="mb-2 text-lg font-semibold text-white">Check your email</h2>
+                      <p className="mb-1 text-sm text-white/40">We sent a password reset link to</p>
+                      <p className="mb-6 text-sm font-semibold text-[#3b82f6]">{email}</p>
+                      <p className="mb-4 text-xs text-white/25">Click the link in the email to reset your password.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setLoginStep("email"); }}
+                        className="text-sm font-medium text-white/30 hover:text-white/60 transition-colors"
+                      >
+                        Return to sign in
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <div className="mb-6">
+                        <h2 className="text-xl font-semibold text-white mb-2">Reset Password</h2>
+                        <p className="text-sm text-white/40">Enter your email address and we'll send you a link to reset your password.</p>
+                      </div>
+                      <form onSubmit={handleResetPassword} className="space-y-4">
+                        <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" autoComplete="email" autoFocus className={inputCls} />
+                        <button type="submit" disabled={resetLoading || !email} className={primaryBtnCls}>
+                          {resetLoading ? (<><Loader2 className="h-4 w-4 animate-spin" /> Sending...</>) : "Send reset link"}
+                        </button>
                       </form>
                     </>
                   )}

@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Pencil, Camera } from "lucide-react";
+import { X, Pencil, Camera, AlertTriangle } from "lucide-react";
 import type { AuthenticatedUser } from "@/lib/automation";
+import { useRouter } from "next/navigation";
 
 export function SettingsModal({
   isOpen,
@@ -20,6 +21,8 @@ export function SettingsModal({
   const [name, setName] = useState(user.name || "AutomateCraft user");
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const router = useRouter();
   
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +40,29 @@ export function SettingsModal({
       setName(tempName.trim());
     }
     setIsEditingName(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("Are you absolutely sure you want to delete your account? This action cannot be undone.")) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/auth/delete", { method: "POST" });
+      if (res.ok) {
+        onClose();
+        router.push("/");
+        router.refresh();
+      } else {
+        alert("Failed to delete account. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred while deleting your account.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -193,6 +219,30 @@ export function SettingsModal({
                               </div>
                             </button>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Danger Zone */}
+                      <div className="pt-8 border-t border-red-500/10 mt-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="max-w-[280px]">
+                            <h4 className="font-bold text-red-500 text-[15px] flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4" />
+                              Delete Account
+                            </h4>
+                            <p className="text-[13px] text-white/50 mt-1">
+                              Permanently remove your account and all associated data. This action is irreversible.
+                            </p>
+                          </div>
+                          <div className="flex-1 sm:max-w-[240px] flex justify-end">
+                            <button 
+                              onClick={handleDeleteAccount}
+                              disabled={isDeleting}
+                              className="flex items-center justify-center w-full sm:w-auto min-w-[200px] border border-red-500/20 bg-red-500/10 rounded-xl px-4 py-3 text-sm text-red-400 font-bold hover:bg-red-500/20 hover:text-red-300 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isDeleting ? "Deleting..." : "Delete Account"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                    </motion.div>

@@ -191,12 +191,17 @@ export default function HeroSection({
   const canSubmit = prompt.trim().length > 0;
 
   return (
-    <>
+    <div className="relative w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#141820] via-[#0a0c10] to-[#050507]">
       <section
         id="home"
-        className="relative flex min-h-screen items-center overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#141820] via-background to-background pb-10 pt-24 md:pb-14"
+        className="relative flex min-h-screen items-center overflow-hidden pb-10 pt-24 md:pb-14"
       >
         <HeroScene isPromptFocused={isPromptFocused} />
+        {!user && (
+          <>
+            <div className="pointer-events-none absolute bottom-[-9rem] left-1/2 h-72 w-[46rem] -translate-x-1/2 rounded-full bg-accent/[0.05] blur-[140px]" />
+          </>
+        )}
 
         <motion.div
           style={{ y: heroY, opacity: heroOpacity }}
@@ -411,17 +416,6 @@ export default function HeroSection({
               </motion.div>
             </motion.div>
 
-            {/* Credibility signal */}
-            {!user && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.6 }}
-                className="text-center text-[13px] text-white/25 font-medium tracking-wide"
-              >
-                Used by founders &amp; agencies to automate repetitive work
-              </motion.p>
-            )}
           </div>
         </motion.div>
       </section>
@@ -435,16 +429,11 @@ export default function HeroSection({
 
       {/* ── How It Works — only for public visitors ── */}
       {!user && (
-        <div className="relative overflow-hidden bg-[radial-gradient(120%_90%_at_50%_0%,rgba(59,130,246,0.12),transparent_42%),linear-gradient(180deg,#09090b_0%,#08080a_38%,#050507_100%)]">
-          {/* LOGIC EXPLAINED:
-          The public homepage felt visually cut off after the hero because the
-          lower sections switched to flatter isolated backgrounds. This wrapper
-          extends the same premium ambient backdrop through the rest of the
-          public page so the experience feels continuous from top to bottom. */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-[#09090b] via-[#09090b]/80 to-transparent" />
-          <div className="pointer-events-none absolute left-[-12%] top-24 h-72 w-72 rounded-full bg-accent/[0.08] blur-[120px]" />
-          <div className="pointer-events-none absolute right-[-10%] top-[28rem] h-80 w-80 rounded-full bg-white/[0.04] blur-[140px]" />
-          <div className="pointer-events-none absolute bottom-[-8rem] left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-accent/[0.06] blur-[160px]" />
+        <div className="relative overflow-hidden pt-12">
+          {/* Ambient light for the lower section */}
+          <div className="pointer-events-none absolute left-[-12%] top-24 h-72 w-72 rounded-full bg-accent/[0.06] blur-[120px]" />
+          <div className="pointer-events-none absolute right-[-10%] top-[28rem] h-80 w-80 rounded-full bg-white/[0.03] blur-[140px]" />
+          <div className="pointer-events-none absolute bottom-[-8rem] left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-accent/[0.04] blur-[160px]" />
           {/* How it works */}
           <section className="relative py-28 overflow-hidden">
             {/* Background */}
@@ -565,7 +554,7 @@ export default function HeroSection({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                   </svg>
                 </Link>
-                <p className="mt-4 text-[12px] text-white/20">100 free credits on signup · No card required</p>
+                <p className="mt-4 text-[12px] text-white/20">10 free credits on signup · No card required</p>
               </div>
             </div>
           </section>
@@ -617,6 +606,6 @@ export default function HeroSection({
           </section>
         </div>
       )}
-    </>
+    </div>
   );
 }

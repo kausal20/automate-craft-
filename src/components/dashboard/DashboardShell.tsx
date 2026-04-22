@@ -404,16 +404,6 @@ export default function DashboardShell({
                   <User className="h-4 w-4" />
                   Profile
                 </button>
-                <button
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${isChatWorkspace ? "text-foreground/70 hover:bg-black/[0.04] hover:text-foreground" : "text-foreground/60 hover:bg-white/[0.05] hover:text-foreground"}`}
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    setShowSettingsModal(true);
-                  }}
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </button>
                 <div className={`my-1 border-t ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/[0.04]"}`} />
                 <button
                   onClick={handleSignOut}
