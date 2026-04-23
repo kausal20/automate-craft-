@@ -559,6 +559,37 @@ export default function HeroSection({
             </div>
           </section>
 
+          {/* Social proof counters */}
+          <section className="relative py-12 overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#09090b]/25 to-transparent" />
+            <div className="relative mx-auto max-w-6xl px-6 lg:px-8">
+              <div className="grid grid-cols-3 gap-4 md:gap-8">
+                {[
+                  { value: "3,200+", label: "Automations built" },
+                  { value: "85",     label: "Countries active" },
+                  { value: "99.9%",  label: "Execution uptime" },
+                ].map((stat) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex flex-col items-center gap-1 text-center"
+                  >
+                    <span className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                      {stat.value}
+                    </span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/25">
+                      {stat.label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="mt-8 h-px w-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            </div>
+          </section>
+
           {/* Integration logos strip */}
           <section className="relative py-16 overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#08080a]/55 to-[#060608]/75" />

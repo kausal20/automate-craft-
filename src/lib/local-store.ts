@@ -175,7 +175,7 @@ function normalizeLocalDatabase(
       name: GUEST_USER_NAME,
       passwordHash: "guest-access-disabled",
       createdAt: new Date().toISOString(),
-      planCredits: 5000,
+      planCredits: 10,
       extraCredits: 0,
     });
   }

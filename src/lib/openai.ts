@@ -30,7 +30,7 @@ Rules:
 - Base the trigger, steps, and required fields on the user's prompt only.
 - Keep the trigger concise and business-relevant.
 - Return between 2 and 6 steps.
-- Only use these integrations: google, whatsapp, email, slack, hubspot, salesforce, stripe, webhook, forms, sheets, crm.
+- Only use these integrations: google, whatsapp, email, slack, hubspot, salesforce, razorpay, webhook, forms, sheets, crm.
 - Only use these requiredFields when needed: phoneNumber, message, formId, emailAddress, subject, sheetId, webhookUrl, leadSource, customerName, companyName.
 - setupFields must be a user-facing dynamic form tailored to the prompt.
 - setupFields should use specific labels like "Client WhatsApp number" or "Google Form connection" instead of vague generic names.

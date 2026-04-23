@@ -16,6 +16,8 @@ import {
   Bot,
   Workflow,
   ArrowRight,
+  Search,
+  Filter,
 } from "lucide-react";
 
 type ChatIndexEntry = {
@@ -55,6 +57,8 @@ export default function ProjectsPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [recentChats, setRecentChats] = useState<ChatIndexEntry[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">("all");
 
   useEffect(() => {
     try {
@@ -120,6 +124,15 @@ export default function ProjectsPage() {
     };
   }, [automations]);
 
+  const filteredAutomations = useMemo(() => {
+    return automations.filter((a) => {
+      const matchesStatus = statusFilter === "all" ? true : a.status === statusFilter;
+      const q = searchQuery.trim().toLowerCase();
+      const matchesSearch = q ? a.name.toLowerCase().includes(q) : true;
+      return matchesStatus && matchesSearch;
+    });
+  }, [automations, searchQuery, statusFilter]);
+
   const handleStatusChange = async (
     automationId: string,
     status: "active" | "paused",
@@ -170,14 +183,6 @@ export default function ProjectsPage() {
   };
 
   const handleDelete = async (automationId: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this automation? This action cannot be undone.",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setPendingId(automationId);
     setError(null);
 
@@ -287,6 +292,38 @@ export default function ProjectsPage() {
           New Automation
         </Link>
       </div>
+
+      {/* Search + Filter Bar */}
+      {!loading && automations.length > 0 && (
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative max-w-sm flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search automations..."
+              className="h-10 w-full rounded-xl border border-white/[0.08] bg-[#111113] pl-11 pr-4 text-sm text-white outline-none transition-all placeholder:text-white/25 focus:border-accent/30 focus:ring-2 focus:ring-accent/10"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-white/25" />
+            {(["all", "active", "paused"] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setStatusFilter(opt)}
+                className={`inline-flex h-9 items-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
+                  statusFilter === opt
+                    ? "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.25)]"
+                    : "border border-white/[0.06] bg-white/[0.02] text-white/40 hover:border-white/[0.12] hover:text-white/70"
+                }`}
+              >
+                {opt === "all" ? "All" : opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-10 grid gap-6 md:grid-cols-3">
         {/* Active Automations */}
@@ -428,9 +465,21 @@ export default function ProjectsPage() {
             </Link>
           </div>
         </div>
+      ) : filteredAutomations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-[2rem] border border-white/[0.06] bg-white/[0.02] py-20 text-center">
+          <Search className="mx-auto mb-4 h-10 w-10 text-white/15" />
+          <p className="text-base font-semibold text-white/50">No automations match</p>
+          <p className="mt-2 text-sm text-white/25">Try a different search term or status filter.</p>
+          <button
+            onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+            className="mt-6 inline-flex h-9 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-5 text-sm font-semibold text-white/50 transition-all hover:border-white/[0.14] hover:text-white/80"
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="space-y-5">
-          {automations.map((automation) => (
+          {filteredAutomations.map((automation) => (
             <article
               key={automation.id}
               className="card-surface rounded-[2rem] p-6"

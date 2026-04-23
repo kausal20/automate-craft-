@@ -7,7 +7,7 @@ export const supportedIntegrations = [
   "slack",
   "hubspot",
   "salesforce",
-  "stripe",
+  "razorpay",
   "webhook",
   "forms",
   "sheets",

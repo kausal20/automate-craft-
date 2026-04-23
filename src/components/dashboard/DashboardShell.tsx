@@ -11,9 +11,11 @@ import {
   Settings,
   User,
   Star,
-  Users,
   Cable,
   MessageSquare,
+  ScrollText,
+  Zap,
+  Settings2,
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
@@ -141,10 +143,17 @@ export default function DashboardShell({
   ];
 
   const projectItems = [
-    { name: "All Projects", href: "/dashboard/projects", icon: FolderOpen },
-    { name: "Created by Me", href: "#", icon: User },
-    { name: "Shared with Me", href: "#", icon: Users },
+    { name: "All Automations", href: "/dashboard/projects", icon: FolderOpen },
   ];
+
+  const workspaceItems = [
+    { name: "Connect Apps", href: "/dashboard/apps", icon: Cable },
+    { name: "Execution Logs", href: "/dashboard/logs", icon: ScrollText },
+    { name: "Credits & Usage", href: "/dashboard/credits", icon: Zap },
+    { name: "Settings", href: "/dashboard/settings", icon: Settings2 },
+  ];
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const sidebarWidth = isCollapsed ? "w-[80px]" : "w-[240px]";
   const mainMargin = isChatWorkspace ? "ml-0" : isCollapsed ? "ml-[80px]" : "ml-[240px]";
@@ -188,7 +197,7 @@ export default function DashboardShell({
                 className={`relative flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   isCollapsed ? "justify-center" : "gap-3"
                 } ${
-                  pathname === item.href
+                  isActive(item.href)
                     ? isChatWorkspace
                       ? "bg-black/[0.04] text-foreground"
                       : "bg-accent/[0.08] text-foreground ring-glow-accent"
@@ -197,10 +206,10 @@ export default function DashboardShell({
                       : "text-foreground/45 hover:bg-white/[0.04] hover:text-foreground/80"
                 }`}
               >
-                {pathname === item.href && !isCollapsed && (
+                {isActive(item.href) && !isCollapsed && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2.5px] rounded-full bg-accent shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
                 )}
-                <item.icon className={`h-4 w-4 shrink-0 ${pathname === item.href ? "text-accent" : ""}`} />
+                <item.icon className={`h-4 w-4 shrink-0 ${isActive(item.href) ? "text-accent" : ""}`} />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
             ))}
@@ -229,7 +238,7 @@ export default function DashboardShell({
                     className={`flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       isCollapsed ? "justify-center" : "gap-3"
                     } ${
-                      pathname === item.href
+                      isActive(item.href)
                         ? isChatWorkspace
                           ? "bg-black/[0.04] text-foreground"
                           : "bg-white/5 text-foreground"
@@ -274,13 +283,13 @@ export default function DashboardShell({
                 )}
               </div>
             </div>
-            {/* Apps Section */}
+            {/* Workspace Section */}
             <div className="mt-4">
               {!isCollapsed ? (
                 <div className="flex w-full items-center px-3 py-2 text-sm font-medium text-foreground/30 transition-all justify-between">
                   <div className="flex items-center gap-3">
-                    <Cable className="h-4 w-4 shrink-0 text-accent/50" />
-                    <span className={`uppercase tracking-widest text-[10px] font-bold ${isChatWorkspace ? "text-foreground/30" : "text-white/30"}`}>Integrations</span>
+                    <Settings className="h-4 w-4 shrink-0 text-accent/50" />
+                    <span className={`uppercase tracking-widest text-[10px] font-bold ${isChatWorkspace ? "text-foreground/30" : "text-white/30"}`}>Workspace</span>
                   </div>
                 </div>
               ) : (
@@ -288,60 +297,29 @@ export default function DashboardShell({
                   <div className={`h-px w-8 ${isChatWorkspace ? "bg-black/20" : "bg-white/20"}`} />
                 </div>
               )}
-              
-              <div className={`mt-1 space-y-1 ${!isCollapsed ? `ml-4 border-l ${isChatWorkspace ? "border-black/5" : "border-white/5"} pl-2` : "px-2"}`}>
-                <Link
-                  href="/dashboard/apps"
-                  title={isCollapsed ? "Connect Apps" : undefined}
-                  className={`flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isCollapsed ? "justify-center" : "gap-3"
-                  } ${
-                    pathname === "/dashboard/apps"
-                      ? isChatWorkspace
-                        ? "bg-black/[0.04] text-foreground"
-                        : "bg-white/5 text-foreground"
-                      : isChatWorkspace
-                        ? "text-foreground/50 hover:bg-black/[0.04] hover:text-foreground"
-                        : "text-foreground/50 hover:bg-white/5 hover:text-foreground"
-                  }`}
-                >
-                  <Cable className={`h-3.5 w-3.5 shrink-0 ${isCollapsed ? "h-4 w-4" : ""}`} />
-                  {!isCollapsed && <span>Connect Apps</span>}
-                </Link>
 
-                {!isCollapsed && recentChats.length > 0 && (
-                  <div className="pt-3">
-                    <div className={`mb-2 flex items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-widest ${isChatWorkspace ? "text-foreground/30" : "text-white/30"}`}>
-                      <MessageSquare className="h-3.5 w-3.5 opacity-60" />
-                      Recent Chats
-                    </div>
-                    <div className="space-y-1">
-                      {recentChats.map((chat) => (
-                        <Link
-                          key={chat.chatId}
-                          href={`/dashboard/chat/${chat.chatId}`}
-                          title={chat.title}
-                          className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                            pathname === `/dashboard/chat/${chat.chatId}`
-                              ? isChatWorkspace
-                                ? "bg-black/[0.04] text-foreground"
-                                : "bg-white/5 text-foreground"
-                              : isChatWorkspace
-                                ? "text-foreground/50 hover:bg-black/[0.04] hover:text-foreground"
-                                : "text-foreground/50 hover:bg-white/5 hover:text-foreground"
-                          }`}
-                        >
-                          {chat.isStarred ? (
-                            <Star className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                          ) : (
-                            <MessageSquare className="h-3.5 w-3.5 shrink-0 text-white/30" />
-                          )}
-                          <span className="truncate">{chat.title}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className={`mt-1 space-y-1 ${!isCollapsed ? `ml-4 border-l ${isChatWorkspace ? "border-black/5" : "border-white/5"} pl-2` : "px-2"}`}>
+                {workspaceItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    title={isCollapsed ? item.name : undefined}
+                    className={`flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      isCollapsed ? "justify-center" : "gap-3"
+                    } ${
+                      isActive(item.href)
+                        ? isChatWorkspace
+                          ? "bg-black/[0.04] text-foreground"
+                          : "bg-white/5 text-foreground"
+                        : isChatWorkspace
+                          ? "text-foreground/50 hover:bg-black/[0.04] hover:text-foreground"
+                          : "text-foreground/50 hover:bg-white/5 hover:text-foreground"
+                    }`}
+                  >
+                    <item.icon className={`h-3.5 w-3.5 shrink-0 ${isCollapsed ? "h-4 w-4" : ""}`} />
+                    {!isCollapsed && <span>{item.name}</span>}
+                  </Link>
+                ))}
               </div>
             </div>
           </nav>
@@ -365,6 +343,7 @@ export default function DashboardShell({
             </div>
           )}
         </div>
+
 
         {/* User Footer */}
         <div className={`relative border-t ${isCollapsed ? "p-2" : "p-4"} ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/[0.04]"}`} ref={userMenuRef}>

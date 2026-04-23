@@ -76,10 +76,10 @@ const integrationMeta: Record<
     capability: "Enterprise CRM sync",
     icon: Building2,
   },
-  stripe: {
-    title: "Stripe",
-    description: "React to payments, customers, and subscription events.",
-    capability: "Billing event automation",
+  razorpay: {
+    title: "Razorpay",
+    description: "React to payments, subscriptions, and order events from Indian payment flows.",
+    capability: "Payment event automation",
     icon: CreditCard,
   },
   webhook: {

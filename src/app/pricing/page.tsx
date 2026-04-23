@@ -33,6 +33,7 @@ type Plan = {
 const plans: Plan[] = [
   {
     idBase: "plan_starter",
+
     name: "Starter",
     audience: "For individuals starting out",
     description: "Perfect for beginners who want to automate simple tasks and explore AI automation.",
@@ -246,7 +247,7 @@ function PlanCard({
         <p className="mt-2 text-sm text-white/35">{plan.audience}</p>
 
         <div className="mb-2 mt-6">
-          {billingCycle === "yearly" && plan.name !== "Enterprise" && (
+          {billingCycle === "yearly" && plan.name !== "Enterprise" && plan.name !== "Free" && (
             <div className="mb-1 text-sm font-semibold text-white/25 line-through decoration-white/15">
               {currentPriceMonthly}
             </div>
@@ -256,10 +257,10 @@ function PlanCard({
             <span className="text-[2.5rem] font-bold leading-none tracking-tight text-white">
               {currentPrice}
             </span>
-            {plan.name !== "Enterprise" && (
+            {plan.name !== "Enterprise" && plan.name !== "Free" && (
               <span className="pb-1 text-sm font-medium text-white/35">/ month</span>
             )}
-            {billingCycle === "yearly" && plan.name !== "Enterprise" && (
+            {billingCycle === "yearly" && plan.name !== "Enterprise" && plan.name !== "Free" && (
               <div className="mb-1 ml-auto flex-shrink-0 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold whitespace-nowrap text-emerald-400">
                 Save 20%
               </div>
@@ -268,7 +269,7 @@ function PlanCard({
         </div>
 
         <div className="mb-4 h-5">
-          {billingCycle === "yearly" && plan.name !== "Enterprise" && (
+          {billingCycle === "yearly" && plan.name !== "Enterprise" && plan.name !== "Free" && (
             <span className="text-xs font-semibold text-white/25">
               {currentBilledYearly}
             </span>
@@ -528,58 +529,21 @@ export default function PricingPage() {
             </div>
           </Link>
         </div>
-
-        <div className="mx-auto mt-24 max-w-4xl">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-white">Frequently Asked Questions</h2>
-            <p className="text-white/40">Everything you need to know about the product and billing.</p>
-          </div>
-
-          <div className="grid gap-4">
-            {[
-              {
-                q: "What happens if I run out of credits?",
-                a: "If you exhaust your monthly credits, your automations will pause. You can purchase credit packs anytime to keep them running or upgrade your tier immediately. Unused credits roll over for up to 3 months.",
-              },
-              {
-                q: "How are credits calculated?",
-                a: "You are only charged for what you actually use. Creating a workflow costs 5 credits once. Running a workflow costs 1 base credit plus specific integration costs.",
-              },
-              {
-                q: "Can I cancel my subscription anytime?",
-                a: "Absolutely. You can cancel, upgrade, or downgrade your plan at any time from your settings page. If you cancel, you will keep your active tier until the end of your billing cycle.",
-              },
-              {
-                q: "What is Ultra Thinking mode?",
-                a: "For complex automation requests, Ultra Thinking routes your prompt to advanced reasoning models. It performs deeper logical analysis and generates more robust blueprints before deploying.",
-              },
-              {
-                q: "Do you offer refunds?",
-                a: "Yes. We offer a 14-day, no-questions-asked refund policy for your first subscription charge if you are not satisfied with the product performance.",
-              },
-            ].map((faq, index) => (
-              <div key={index} className="rounded-[1.5rem] border border-white/[0.06] bg-gradient-to-b from-white/[0.03] to-white/[0.01] p-6 lg:p-8">
-                <h3 className="text-[1.1rem] font-semibold tracking-tight text-white">{faq.q}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/45">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-20 flex flex-col items-center justify-center gap-6 border-t border-white/[0.06] pt-12 text-center text-sm font-medium tracking-wide text-white/30 sm:flex-row sm:gap-12">
+        <div className="mt-16 flex flex-col items-center justify-center gap-6 border-t border-white/[0.06] pt-12 text-center text-sm font-medium tracking-wide text-white/30 sm:flex-row sm:gap-12">
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
             Secure Checkout
           </div>
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
-            Stripe Encrypted
+            Razorpay Secured
           </div>
           <div className="flex items-center gap-3">
             <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             Cancel Anytime
           </div>
         </div>
+
       </section>
     </main>
   );

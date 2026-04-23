@@ -133,28 +133,68 @@ async function ensureSupabaseProfile(user: {
   log.debug("Ensuring Supabase profile exists for:", user.email);
   const supabaseAdmin = createSupabaseAdminClient();
 
-  await supabaseAdmin.from("profiles").upsert(
-    {
-      id: user.id,
-      email: user.email,
-      full_name: user.name,
-      plan_credits: 50,
-      extra_credits: 0,
-    },
-    {
-      onConflict: "id",
-      // Only update name/email on conflict, never overwrite existing credits
-      ignoreDuplicates: false,
-    },
-  );
-
-  // Ensure we don't overwrite existing credit values for returning users
-  // The upsert above sets defaults for NEW rows only; for existing rows,
-  // we only update the non-credit fields
-  await supabaseAdmin
+  // Check if the profile already exists
+  const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
-    .update({ email: user.email, full_name: user.name })
-    .eq("id", user.id);
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existingProfile) {
+    // Returning user — only update name/email, never overwrite credits
+    await supabaseAdmin
+      .from("profiles")
+      .update({ email: user.email, full_name: user.name })
+      .eq("id", user.id);
+    return;
+  }
+
+  // New user — create profile with 10 free welcome credits
+  const WELCOME_CREDITS = 10;
+
+  const { error: insertError } = await supabaseAdmin.from("profiles").insert({
+    id: user.id,
+    email: user.email,
+    full_name: user.name,
+    plan_credits: WELCOME_CREDITS,
+    extra_credits: 0,
+  });
+
+  if (insertError) {
+    log.error("Failed to create profile for new user", insertError);
+    // Fallback: try upsert in case of race condition
+    await supabaseAdmin.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email,
+        full_name: user.name,
+        plan_credits: WELCOME_CREDITS,
+        extra_credits: 0,
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+    return;
+  }
+
+  // Log the welcome bonus in credit_transactions
+  await supabaseAdmin.from("credit_transactions").insert({
+    user_id: user.id,
+    type: "grant",
+    amount: WELCOME_CREDITS,
+    balance_after: WELCOME_CREDITS,
+    description: "Welcome bonus — 10 free credits",
+    metadata: { source: "signup" },
+  });
+
+  // Log in usage_logs
+  await supabaseAdmin.from("usage_logs").insert({
+    user_id: user.id,
+    action: "Welcome bonus — 10 free credits",
+    credits_used: 0,
+    status: "Success",
+  });
+
+  log.info("New user profile created with 10 welcome credits:", user.email);
 }
 
 export async function syncSupabaseProfileFromCurrentSession() {
@@ -388,7 +428,7 @@ export async function signUpWithCredentials(input: {
       name: input.name,
       passwordHash: await bcrypt.hash(input.password, 10),
       createdAt: new Date().toISOString(),
-      planCredits: 500,
+      planCredits: 10,
       extraCredits: 0,
       onboarded: false,
     };

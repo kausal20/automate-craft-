@@ -15,9 +15,9 @@ type CreditsData = {
 };
 
 const DEFAULT_CREDITS: CreditsData = {
-  planCredits: 50,
+  planCredits: 10,
   extraCredits: 0,
-  totalCredits: 50,
+  totalCredits: 10,
   monthlyUsage: 0,
   hasSubscription: false,
 };
@@ -110,9 +110,9 @@ export function CreditsDropdown() {
 
       const data = await res.json();
       setCredits({
-        planCredits: data.planCredits ?? 50,
+        planCredits: data.planCredits ?? 10,
         extraCredits: data.extraCredits ?? 0,
-        totalCredits: data.totalCredits ?? 50,
+        totalCredits: data.totalCredits ?? 10,
         monthlyUsage: data.monthlyUsage ?? 0,
         hasSubscription: data.hasSubscription ?? false,
       });
