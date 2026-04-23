@@ -2,57 +2,35 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env, isOpenAccessMode, isSupabaseAuthEnabled } from "@/lib/env";
 
-const AUTH_PAGES = new Set(["/login", "/signup"]);
-const PROTECTED_PREFIXES = ["/dashboard", "/setup", "/onboarding"];
-const DEBUG_ENDPOINT = "http://127.0.0.1:7855/ingest/35f1ca99-d0a5-471f-8d2e-699878613661";
-const DEBUG_SESSION_ID = "76d521";
+/**
+ * Edge proxy (middleware) — runs before every request.
+ *
+ * Responsibilities:
+ * 1. Refresh the Supabase session cookie on every request so it never silently expires.
+ * 2. Redirect authenticated users away from public-auth pages (/, /login, /signup) → /dashboard.
+ * 3. Redirect unauthenticated users away from protected routes (/dashboard, /setup, /onboarding) → /login.
+ * 4. Redirect unverified users to /verify-email before they access protected routes.
+ *
+ * Uses supabase.auth.getUser() (validates JWT server-side) — never getSession().
+ */
 
-function postDebugLog(payload: {
-  runId: string;
-  hypothesisId: string;
-  location: string;
-  message: string;
-  data: Record<string, unknown>;
-}) {
-  // #region agent log
-  fetch(DEBUG_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": DEBUG_SESSION_ID,
-    },
-    body: JSON.stringify({
-      sessionId: DEBUG_SESSION_ID,
-      ...payload,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-}
+/** Pages that should redirect to /dashboard when a user is already logged in */
+const AUTH_PAGES = new Set(["/", "/login", "/signup"]);
+
+/** Route prefixes that require a verified, authenticated session */
+const PROTECTED_PREFIXES = ["/dashboard", "/setup", "/onboarding"];
 
 export async function proxy(request: NextRequest) {
-  postDebugLog({
-    runId: "baseline",
-    hypothesisId: "H2",
-    location: "src/proxy.ts:34",
-    message: "Proxy request received",
-    data: { pathname: request.nextUrl.pathname, method: request.method },
-  });
+  const pathname = request.nextUrl.pathname;
 
+  // In open-access mode, let everything through — server components handle auth
   if (isOpenAccessMode()) {
-    return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    });
+    return NextResponse.next({ request: { headers: request.headers } });
   }
 
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  let response = NextResponse.next({ request: { headers: request.headers } });
 
+  // If Supabase is not configured, fall back to server-component auth
   if (!isSupabaseAuthEnabled()) {
     return response;
   }
@@ -66,12 +44,9 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
+          // Propagate refreshed cookies to both the request and the response
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
+          response = NextResponse.next({ request: { headers: request.headers } });
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
@@ -80,52 +55,41 @@ export async function proxy(request: NextRequest) {
     },
   );
 
+  // getUser() contacts Supabase to validate the JWT — the only safe way to check auth at the edge
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
   const isVerified = Boolean(user?.email_confirmed_at);
-  postDebugLog({
-    runId: "baseline",
-    hypothesisId: "H2",
-    location: "src/proxy.ts:78",
-    message: "Proxy auth state resolved",
-    data: { pathname, hasUser: Boolean(user), isVerified },
-  });
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
-  if (!user && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
-    postDebugLog({
-      runId: "baseline",
-      hypothesisId: "H5",
-      location: "src/proxy.ts:87",
-      message: "Redirecting unauthenticated user to login",
-      data: { pathname },
-    });
+  // ── Unauthenticated user hitting a protected route → /login ──
+  if (!user && isProtected) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    if (pathname !== "/dashboard") {
+      loginUrl.searchParams.set("next", pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && !isVerified && PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+  // ── Authenticated but unverified user hitting a protected route → /verify-email ──
+  if (user && !isVerified && isProtected) {
     const verifyUrl = new URL("/verify-email", request.url);
-    if (user.email) {
-      verifyUrl.searchParams.set("email", user.email);
-    }
+    if (user.email) verifyUrl.searchParams.set("email", user.email);
     return NextResponse.redirect(verifyUrl);
   }
 
+  // ── Authenticated user hitting an auth/public page → /dashboard ──
   if (user && AUTH_PAGES.has(pathname)) {
     if (!isVerified) {
       const verifyUrl = new URL("/verify-email", request.url);
-      if (user.email) {
-        verifyUrl.searchParams.set("email", user.email);
-      }
+      if (user.email) verifyUrl.searchParams.set("email", user.email);
       return NextResponse.redirect(verifyUrl);
     }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // Pass through all other requests with refreshed session cookies
   return response;
 }
 

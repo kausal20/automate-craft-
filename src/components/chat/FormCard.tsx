@@ -1,8 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, CheckCircle2, ChevronDown, Loader2, Circle, SlidersHorizontal, Shield, Zap } from "lucide-react";
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
 
 export type FieldValue = string | number | boolean;
 
@@ -24,6 +36,7 @@ export type FormCardProps = {
 };
 
 export function FormCard({ title, description, fields, onSubmit, summaryText }: FormCardProps) {
+  const reducedMotion = useReducedMotion();
   const [values, setValues] = useState<Record<string, FieldValue>>(() => {
     const initial: Record<string, FieldValue> = {};
     fields.forEach((f) => {
@@ -138,18 +151,20 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                   <SlidersHorizontal className="h-5 w-5 text-accent" />
                 </div>
                 {/* Orbiting dot */}
-                <motion.div
-                  className="absolute -inset-1"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                >
-                  <div className="absolute top-0 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-0.5 rounded-full bg-accent/60 shadow-[0_0_6px_rgba(59,130,246,0.5)]" />
-                </motion.div>
+                {!reducedMotion && (
+                  <motion.div
+                    className="absolute -inset-1"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  >
+                    <div className="absolute top-0 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-0.5 rounded-full bg-accent/60 shadow-[0_0_6px_rgba(59,130,246,0.5)]" />
+                  </motion.div>
+                )}
               </div>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2.5 mb-1">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-accent/70">Integration Setup</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-accent/40">Phase 2 · Setup</span>
                   {/* Circular progress */}
                   <div className="relative h-5 w-5">
                     <svg className="h-5 w-5 -rotate-90" viewBox="0 0 20 20">
@@ -356,8 +371,8 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
                         <Loader2 className="h-4 w-4 animate-spin" />
                       </motion.div>
                     ) : (
-                      <motion.div key="idle" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="flex items-center gap-2">
-                        Continue
+                      <motion.div key="idle" initial={reducedMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="flex items-center gap-2">
+                        Configure
                         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                       </motion.div>
                     )}

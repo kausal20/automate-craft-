@@ -63,8 +63,7 @@ export default function DashboardShell({
      consistently visible across dashboard pages. */
   const pathname = usePathname();
   const router = useRouter();
-  const isChatWorkspace =
-    pathname === "/dashboard/chat" || pathname.startsWith("/dashboard/chat/");
+  const isChatWorkspace = pathname.startsWith("/dashboard/chat/");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [recents, setRecents] = useState<RecentItem[]>([]);
@@ -139,7 +138,7 @@ export default function DashboardShell({
   };
 
   const navItems = [
-    { name: "Home", href: "/", icon: LayoutDashboard },
+    { name: "Home", href: "/dashboard", icon: LayoutDashboard },
   ];
 
   const projectItems = [
@@ -153,7 +152,12 @@ export default function DashboardShell({
     { name: "Settings", href: "/dashboard/settings", icon: Settings2 },
   ];
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => {
+    if (href === "/dashboard" || href === "/") {
+      return pathname === "/dashboard" || pathname === "/";
+    }
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
   const sidebarWidth = isCollapsed ? "w-[80px]" : "w-[240px]";
   const mainMargin = isChatWorkspace ? "ml-0" : isCollapsed ? "ml-[80px]" : "ml-[240px]";

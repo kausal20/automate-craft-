@@ -2,17 +2,26 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil, Zap, MessageSquarePlus, Workflow, Mail, FileSpreadsheet, PanelRight } from "lucide-react";
+import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil, Zap, MessageSquarePlus, Workflow, Mail, FileSpreadsheet, PanelRight, Clock, Activity } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { InteractiveCanvas, type FlowNode } from "./InteractiveCanvas";
 import { FormCard, type FieldDef, type FieldValue } from "./FormCard";
 import { ProgressCard } from "./ProgressCard";
 import { ReadyCard } from "./ReadyCard";
+import { EngineAnalysisCard } from "./EngineAnalysisCard";
+import { ThinkingIndicator } from "./ThinkingIndicator";
+import { SystemStatusBar, type SystemPhase } from "./SystemStatusBar";
 
 type FormDef = {
   title: string;
   description: string;
   fields: FieldDef[];
+};
+
+type EngineCards = {
+  trigger: string;
+  action: string;
+  setupFields: string[];
 };
 
 type Message = {
@@ -25,6 +34,7 @@ type Message = {
   isFormSubmitted?: boolean;
   formValues?: Record<string, FieldValue>;
   timestamp?: number;
+  engineCards?: EngineCards;
 };
 
 type ChatSequenceStep = "boot" | "wait_message" | "ready" | "deployed";
@@ -156,6 +166,90 @@ const SUGGESTION_CHIPS = [
   { icon: Zap, label: "Connect WhatsApp to pipeline" },
 ];
 
+/* ── Recent Activity Panel ── */
+function RecentActivityPanel() {
+  const [recentChats, setRecentChats] = useState<ChatIndexEntry[]>([]);
+
+  useEffect(() => {
+    const entries = readChatIndex()
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 3);
+    setRecentChats(entries);
+  }, []);
+
+  if (recentChats.length === 0) return null;
+
+  const lastChat = recentChats[0];
+  const otherChats = recentChats.slice(1);
+
+  function timeAgo(dateStr: string) {
+    const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return "just now";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative z-10 w-full max-w-[420px] space-y-3"
+    >
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/15">Recent</span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+      </div>
+
+      {/* Last automation preview card */}
+      <a
+        href={`/dashboard/chat/${lastChat.chatId}`}
+        className="group flex items-center gap-3.5 rounded-xl border border-white/[0.06] bg-gradient-to-r from-white/[0.025] to-white/[0.01] px-4 py-3.5 transition-all duration-250 hover:border-accent/15 hover:bg-accent/[0.03] hover:shadow-[0_4px_20px_rgba(59,130,246,0.06)]"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/[0.06] ring-1 ring-accent/[0.08] group-hover:ring-accent/20 transition-all">
+          <Activity className="h-4 w-4 text-accent/50 group-hover:text-accent/80 transition-colors" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-white/70 truncate group-hover:text-white/90 transition-colors">
+            {lastChat.title}
+          </p>
+          <p className="text-[11px] text-white/25 mt-0.5">
+            {timeAgo(lastChat.updatedAt)} {lastChat.isStarred ? "· ★" : ""}
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center gap-1 rounded-md border border-white/[0.04] bg-white/[0.02] px-2 py-0.5">
+          <span className="text-[10px] font-medium text-white/25 group-hover:text-white/40 transition-colors">Open</span>
+        </div>
+      </a>
+
+      {/* Other recent items — compact list */}
+      {otherChats.length > 0 && (
+        <div className="space-y-1">
+          {otherChats.map((chat) => (
+            <a
+              key={chat.chatId}
+              href={`/dashboard/chat/${chat.chatId}`}
+              className="group flex items-center gap-2.5 rounded-lg px-3 py-2 transition-all duration-200 hover:bg-white/[0.03]"
+            >
+              <Clock className="h-3 w-3 text-white/12 shrink-0" />
+              <span className="text-[12px] text-white/30 truncate flex-1 group-hover:text-white/50 transition-colors">
+                {chat.title}
+              </span>
+              <span className="text-[10px] text-white/15 shrink-0">{timeAgo(chat.updatedAt)}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 function renderStructuredAiContent(content: string) {
   if (!content) return null;
   const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -211,15 +305,16 @@ function StreamContent({ content, timestamp }: { content: string, timestamp?: nu
   
   useEffect(() => {
     const isNew = Date.now() - (timestamp || 0) < 2000;
-    if (!isNew) {
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!isNew || prefersReduced) {
       setDisplayed(content);
       return;
     }
 
     let index = 0;
-    const speed = 10;
+    const speed = 18;
     const timer = setInterval(() => {
-      index += 3;
+      index += 2;
       if (index > content.length) index = content.length;
       setDisplayed(content.slice(0, index));
       if (index === content.length) {
@@ -414,8 +509,8 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     }
   }, [messages, step, workspaceState, nodes, chatTitle, isStarred, chatId]);
 
-  const addMessage = (role: Message["role"], content: string, state?: WorkspaceState, form?: FormDef, isReadyCard?: boolean) => {
-    setMessages(p => [...p, { id: Math.random().toString(36).substring(7), role, content, state, form, isReadyCard, timestamp: Date.now() }]);
+  const addMessage = (role: Message["role"], content: string, state?: WorkspaceState, form?: FormDef, isReadyCard?: boolean, engineCards?: EngineCards) => {
+    setMessages(p => [...p, { id: Math.random().toString(36).substring(7), role, content, state, form, isReadyCard, engineCards, timestamp: Date.now() }]);
   };
 
   const removeMessageByRole = (role: Message["role"]) => {
@@ -437,25 +532,40 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "active" } : x));
 
       removeMessageByRole("system");
-      addMessage("thinking", "Analyzing your automation...");
+
+      // Phase 1: Parse natural language
+      addMessage("thinking", "Analyzing your automation...\nParsing natural language input");
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Phase 2: Identify trigger
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\nIdentifying trigger event");
       await new Promise(r => setTimeout(r, 1200));
 
+      // Phase 3: Map action path
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Trigger detected");
+      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\nMapping action path");
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Phase 4: Resolve data schema
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\n✓ Action path mapped\nResolving data schema");
       await new Promise(r => setTimeout(r, 1000));
 
+      // Phase 5: Complete analysis
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Trigger detected\n✓ Action detected");
-      await new Promise(r => setTimeout(r, 1200));
+      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\n✓ Action path mapped\n✓ Data schema resolved");
+      await new Promise(r => setTimeout(r, 800));
 
       removeMessageByRole("thinking");
 
       const defaultPhone = initialPrompt?.match(/\+?\d{10,14}/)?.[0] || "";
 
+      // Phase 6: Show structured engine cards + form
       setWorkspaceState("collecting_inputs");
       addMessage(
         "ai",
-        "**Automation Breakdown**\n- Trigger detected: Form Submission\n- Action detected: Send Notification",
+        "",
         "collecting_inputs",
         {
           title: "Setup Configuration",
@@ -466,6 +576,12 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
             { key: "priority", label: "Alert Priority", type: "select", options: [{label: "Standard", value: "standard"}, {label: "High Priority", value: "high"}] },
             { key: "enableLogging", label: "Enable Audit Logging", type: "toggle", defaultValue: true }
           ]
+        },
+        false,
+        {
+          trigger: "New form submission",
+          action: "Send notification",
+          setupFields: ["Phone number", "Message content", "Priority level"]
         }
       );
       setStep("wait_message");
@@ -488,19 +604,23 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     if (step === "wait_message") {
       setWorkspaceState("ready_to_build");
       
-      addMessage("thinking", "Building your automation...");
+      addMessage("thinking", "Building your automation...\nInitializing workflow engine");
       setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "Configured via GPT-4o" } : x));
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1300));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Applying configuration");
+      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\nApplying configuration");
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active" } : x));
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1100));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Applying configuration\n✓ Connecting action nodes");
+      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\n✓ Configuration applied\nConnecting action nodes");
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1100));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\n✓ Configuration applied\n✓ Action nodes connected\nValidating pipeline");
+
+      await new Promise(r => setTimeout(r, 900));
       removeMessageByRole("thinking");
       
       setWorkspaceState("canvas_visible");
@@ -508,7 +628,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${inputSummary}` } : x));
       addMessage(
         "ai",
-        "**Automation Ready**\nThe workflow has been built successfully.",
+        "",
         "canvas_visible",
         undefined,
         true
@@ -553,19 +673,23 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     if (step === "wait_message") {
       setWorkspaceState("ready_to_build");
       
-      addMessage("thinking", "Building your automation...");
+      addMessage("thinking", "Building your automation...\nInitializing workflow engine");
       setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "Configured via GPT-4o" } : x));
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1300));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Applying configuration");
+      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\nApplying configuration");
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active" } : x));
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1100));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Applying configuration\n✓ Connecting action nodes");
+      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\n✓ Configuration applied\nConnecting action nodes");
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1100));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\n✓ Configuration applied\n✓ Action nodes connected\nValidating pipeline");
+
+      await new Promise(r => setTimeout(r, 900));
       removeMessageByRole("thinking");
       
       setWorkspaceState("canvas_visible");
@@ -573,7 +697,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${input}` } : x));
       addMessage(
         "ai",
-        "**Automation Ready**\nThe workflow has been built successfully.",
+        "",
         "canvas_visible",
         undefined,
         true
@@ -582,18 +706,22 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
     } else if (step === "ready" || step === "deployed") {
       setWorkspaceState("ready_to_build");
-      addMessage("thinking", "Analyzing your automation...");
+      addMessage("thinking", "Analyzing your automation...\nParsing modification request");
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active", detail: "Updating target..." } : x));
       
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1200));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Request understood");
+      addMessage("thinking", "Analyzing your automation...\n✓ Modification request parsed\nRecomputing action graph");
+
+      await new Promise(r => setTimeout(r, 1100));
+      removeMessageByRole("thinking");
+      addMessage("thinking", "Analyzing your automation...\n✓ Modification request parsed\n✓ Action graph recomputed\nApplying node changes");
 
       await new Promise(r => setTimeout(r, 1000));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Request understood\n✓ Action modification generated");
+      addMessage("thinking", "Analyzing your automation...\n✓ Modification request parsed\n✓ Action graph recomputed\n✓ Node changes applied\nRevalidating pipeline");
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 800));
       removeMessageByRole("thinking");
 
       setHasTested(false);
@@ -604,7 +732,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
       addMessage(
         "ai",
-        "**Modification Applied**\nThe pipeline has been updated. Running tests is recommended.",
+        "",
         "canvas_visible",
         undefined,
         true
@@ -615,10 +743,22 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
   const handleTest = async () => {
     setIsTesting(true);
-    await new Promise(r => setTimeout(r, 2500));
+    setIsPanelOpen(true);
+
+    // Step through each node sequentially
+    for (let i = 0; i < nodes.length; i++) {
+      setNodes(n => n.map((x, idx) =>
+        idx === i ? { ...x, status: "active" } : idx < i ? { ...x, status: "completed" } : x
+      ));
+      await new Promise(r => setTimeout(r, 800));
+    }
+    // Mark all as completed
+    setNodes(n => n.map(x => ({ ...x, status: "completed" })));
+    await new Promise(r => setTimeout(r, 400));
+
     setIsTesting(false);
     setHasTested(true);
-    addMessage("ai", "**Tests Passed**\nAll logical steps resolved without errors. You are ready to deploy.");
+    addMessage("ai", "**Test Passed**\nAll pipeline steps executed without errors. Ready to deploy.");
   };
 
   const handleDeploy = async () => {
@@ -627,7 +767,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
     setIsDeploying(false);
     setHasDeployed(true);
     setStep("deployed");
-    addMessage("ai", "**Deployment Complete**\nYour automation is now live and waiting for incoming triggers.");
+    addMessage("ai", "**Pipeline Deployed**\nYour automation is live and listening for incoming triggers.");
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -637,6 +777,18 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
   const isInputDisabled = workspaceState === "ready_to_build" || workspaceState === "understanding";
   const isCanvasVisible = workspaceState === "canvas_visible";
   const hasMessages = messages.length > 0;
+
+  // ── Derive system phase for the header status badge ──
+  const systemPhase: SystemPhase = (() => {
+    if (hasDeployed) return "success";
+    if (isDeploying) return "deploying";
+    if (isTesting) return "testing";
+    if (hasTested && step === "ready") return "ready";
+    if (step === "ready" && !hasTested) return "ready";
+    if (workspaceState === "ready_to_build") return "building";
+    if (workspaceState === "understanding" && hasMessages) return "building";
+    return "idle";
+  })();
 
   return (
     <div className="flex h-full w-full bg-[#0a0a0a] overflow-hidden">
@@ -712,8 +864,9 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
             </AnimatePresence>
           </div>
 
-          {/* Right side: panel toggle */}
+          {/* Right side: status + panel toggle */}
           <div className="flex items-center gap-2">
+            <SystemStatusBar phase={systemPhase} />
             {isCanvasVisible && (
               <button
                 onClick={() => setIsPanelOpen(!isPanelOpen)}
@@ -733,7 +886,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
         {/* Messages area */}
         <div className="relative flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto chat-bg-gradient">
-            <div className="mx-auto max-w-3xl px-5 pb-40 pt-6">
+            <div className="mx-auto max-w-3xl px-5 pb-40 pt-6" role="log" aria-live="polite" aria-label="Automation workspace">
 
               {/* Empty state */}
               {!hasMessages && (
@@ -741,16 +894,24 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="flex flex-col items-center justify-center pt-[18vh]"
+                  className="relative flex flex-col items-center justify-center pt-[8vh]"
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/[0.06] ring-1 ring-accent/[0.08] mb-5 shadow-[0_0_30px_rgba(59,130,246,0.06)]">
-                    <MessageSquarePlus className="h-6 w-6 text-accent/40" />
+                  {/* Animated ambient mesh — slow-drifting gradient blobs */}
+                  <div className="chat-ambient-mesh" />
+
+                  {/* Hero icon + heading */}
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/[0.06] ring-1 ring-accent/[0.08] mb-5 shadow-[0_0_30px_rgba(59,130,246,0.06)]">
+                      <MessageSquarePlus className="h-6 w-6 text-accent/40" />
+                    </div>
+                    <h3 className="text-[16px] font-semibold text-white/80 mb-1.5">Start a new automation</h3>
+                    <p className="text-[13px] text-white/30 mb-8 text-center max-w-[300px] leading-relaxed">
+                      Describe what you want to automate and the engine will build it.
+                    </p>
                   </div>
-                  <h3 className="text-[16px] font-semibold text-white/80 mb-1.5">Start a new automation</h3>
-                  <p className="text-[13px] text-white/30 mb-10 text-center max-w-[300px] leading-relaxed">
-                    Describe what you want to automate and we&apos;ll build it for you.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5 w-full max-w-[420px]">
+
+                  {/* Suggestion chips */}
+                  <div className="relative z-10 grid grid-cols-2 gap-2.5 w-full max-w-[420px] mb-8">
                     {SUGGESTION_CHIPS.map((chip) => (
                       <button
                         key={chip.label}
@@ -762,6 +923,9 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                       </button>
                     ))}
                   </div>
+
+                  {/* ── Recent Activity + Last Automation ── */}
+                  <RecentActivityPanel />
                 </motion.div>
               )}
 
@@ -820,17 +984,18 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                     {/* ── AI MESSAGE ── */}
                     {msg.role === "ai" && (
                       <div className="w-full">
-                        {/* Inline state badge */}
-                        {msg.state && !msg.form && !msg.isReadyCard && (
-                          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/[0.05] bg-white/[0.02] px-2.5 py-1 text-[10px] font-medium text-white/30">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {msg.state === "collecting_inputs" && "Collecting Inputs"}
-                            {msg.state === "ready_to_build" && "Building"}
-                            {msg.state === "canvas_visible" && "Ready"}
-                          </div>
+
+                        {/* Engine Analysis Cards (Trigger / Action / Setup) */}
+                        {msg.engineCards && (
+                          <EngineAnalysisCard
+                            trigger={msg.engineCards.trigger}
+                            action={msg.engineCards.action}
+                            setupFields={msg.engineCards.setupFields}
+                            timestamp={msg.timestamp}
+                          />
                         )}
 
-                        {/* AI text content — with accent left border */}
+                        {/* AI text content — streamed, with accent border */}
                         {msg.content && (
                           <div className="border-l-2 border-accent/20 pl-4 py-1 mb-3">
                             <StreamContent content={msg.content} timestamp={msg.timestamp} />
@@ -842,7 +1007,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
 
                         {/* Form Card */}
                         {msg.form && !msg.isFormSubmitted && (
-                          <div className="mt-2">
+                          <div className="mt-3">
                             <FormCard
                               title={msg.form.title}
                               description={msg.form.description}
@@ -859,12 +1024,12 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                           </div>
                         )}
 
-                        {/* Ready Card */}
+                        {/* Ready Card — inline Test / Deploy / Modify */}
                         {msg.isReadyCard && (
-                          <div className="mt-2">
+                          <div className="mt-3">
                             <ReadyCard
-                              title="Automation Summary"
-                              description="The workflow has been built. You can test and deploy from the workflow panel."
+                              title="Automation ready"
+                              description="Workflow built — review, test, and deploy below"
                               trigger={nodes.find((node) => node.type === "trigger")?.label}
                               action={nodes.find((node) => node.type === "action")?.label}
                               explanation={nodes.find((node) => node.type === "action")?.detail || "Workflow route is configured and ready for validation."}
@@ -896,42 +1061,10 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                       msg.content.toLowerCase().includes("building your automation") ||
                       msg.content.toLowerCase().includes("applying configuration") ? (
                         <div className="w-full">
-                          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3.5 relative overflow-hidden">
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent"
-                              animate={{ x: ["-100%", "100%"] }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                            />
-                            <div className="relative flex items-center gap-3">
-                              <Zap className="h-4 w-4 text-accent/50 shrink-0" />
-                              <span className="text-[13px] font-medium text-white/50">{msg.content}</span>
-                              <div className="ml-auto flex gap-1">
-                                {[0, 1, 2].map((i) => (
-                                  <motion.div
-                                    key={i}
-                                    className="h-1 w-1 rounded-full bg-accent/40"
-                                    animate={{ opacity: [0.3, 1, 0.3] }}
-                                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                          <ThinkingIndicator label={msg.content} variant="card" />
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 rounded-full border border-white/[0.05] bg-white/[0.02] px-3 py-1.5">
-                          <div className="flex items-center gap-1">
-                            {[0, 1, 2].map((i) => (
-                              <motion.div
-                                key={i}
-                                className="h-1 w-1 rounded-full bg-accent/40"
-                                animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.1, 0.8] }}
-                                transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-[12px] font-medium text-white/35">{msg.content}</span>
-                        </div>
+                        <ThinkingIndicator label={msg.content} variant="pill" />
                       )
                     )}
                   </motion.div>
@@ -939,24 +1072,13 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
               </AnimatePresence>
 
               {isAiTyping && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 flex justify-start"
-                >
+                <div className="mb-6 flex justify-start">
                   <div className="w-full">
-                    <div className="border-l-2 border-accent/20 pl-4 py-2 flex items-center gap-1.5">
-                      {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={`typing-${i}`}
-                          className="h-[5px] w-[5px] rounded-full bg-accent/60"
-                          animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
-                          transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
-                        />
-                      ))}
+                    <div className="border-l-2 border-accent/20 pl-4 py-2">
+                      <ThinkingIndicator label="Generating response" variant="pill" />
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               <div ref={messagesEndRef} className="h-4" />
@@ -985,7 +1107,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
                    handleSubmit();
                 }
               }}
-              placeholder={isInputDisabled ? "Thinking..." : "Describe your automation..."}
+              placeholder={isInputDisabled ? "Engine is processing..." : "Describe what you want to automate..."}
               disabled={isInputDisabled}
               className="prompt-textarea caret-accent w-full min-h-[44px] max-h-[160px] resize-none bg-transparent text-[14px] text-white outline-none placeholder:text-white/20 disabled:cursor-not-allowed"
             />

@@ -247,7 +247,7 @@ export default function CreditsPage() {
           <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
         </Link>
         <Link
-          href="/dashboard/chat/new"
+          href="/dashboard"
           className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-emerald-400/20 hover:bg-emerald-400/[0.03] hover:-translate-y-0.5"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/20">

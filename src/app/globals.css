@@ -61,28 +61,34 @@ select {
 }
 
 /* ── Global Micro-Interactions ── */
-button, input, select, textarea, a, .card-surface, .card-glass {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* Smooth 0.2s transitions globally */
+button, input, select, textarea, a, [role="button"], [class*="rounded-xl"], [class*="rounded-2xl"], [class*="card"] {
+  transition-property: all;
   transition-duration: 0.2s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Buttons -> Glow on hover (excluded on elements that might conflict) */
-button:not(:disabled):not([data-static-hover]):hover {
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
+/* Buttons -> Glow on hover */
+/* Using drop-shadow so it doesn't overwrite Tailwind box-shadow utilities */
+button:not(:disabled):not([data-static-hover]):hover, 
+[role="button"]:not([aria-disabled="true"]):not([data-static-hover]):hover {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.35));
 }
 
 /* Inputs -> Blue focus ring */
-input:not(.prompt-textarea):focus,
+input:not([type="checkbox"]):not([type="radio"]):not(.prompt-textarea):focus,
 textarea:not(.prompt-textarea):focus,
 select:not(.prompt-textarea):focus {
-  outline: none;
+  outline: none !important;
   border-color: var(--color-accent) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
 }
 
-/* Cards -> Slight lift */
-.card-surface:hover, .card-glass:hover {
+/* Cards -> Slight lift effect globally */
+.card-surface:hover, 
+.card-glass:hover,
+div[class*="rounded-xl border"]:not(:has(input)):not(.no-lift):not([role="dialog"]):hover,
+div[class*="rounded-2xl border"]:not(:has(input)):not(.no-lift):not([role="dialog"]):hover {
   transform: translateY(-3px);
 }
 
@@ -487,6 +493,49 @@ shadow so only the intended prompt-box chrome is visible.
     #0a0a0a;
 }
 
+/* Subtle animated mesh for empty state — slow drift, low opacity */
+.chat-ambient-mesh {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.chat-ambient-mesh::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -10%;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.04) 0%, transparent 70%);
+  animation: mesh-drift-1 20s ease-in-out infinite;
+}
+
+.chat-ambient-mesh::after {
+  content: "";
+  position: absolute;
+  bottom: -15%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.03) 0%, transparent 70%);
+  animation: mesh-drift-2 25s ease-in-out infinite;
+}
+
+@keyframes mesh-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(8%, 12%) scale(1.1); }
+}
+
+@keyframes mesh-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-6%, -10%) scale(1.08); }
+}
+
 /* ═══════════════════════════════════════════
    FLOATING PARTICLES — Page life
    ═══════════════════════════════════════════ */
@@ -671,7 +720,9 @@ shadow so only the intended prompt-box chrome is visible.
   .animate-glow-pulse,
   .animate-border-glow,
   .animate-breathe,
-  .particle {
+  .particle,
+  .chat-ambient-mesh::before,
+  .chat-ambient-mesh::after {
     animation: none;
   }
 }

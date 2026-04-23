@@ -285,7 +285,7 @@ export default function ProjectsPage() {
           </p>
         </div>
         <Link
-          href="/dashboard/chat/new"
+          href="/dashboard"
           className="inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px]"
         >
           <Plus className="h-4 w-4" />
@@ -457,7 +457,7 @@ export default function ProjectsPage() {
               Describe what you want to automate in plain English and AI will build it for you.
             </p>
             <Link
-              href="/dashboard/chat/new"
+              href="/dashboard"
               className="mt-8 inline-flex h-12 items-center gap-2 rounded-full bg-gradient-to-r from-accent to-blue-600 px-6 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px]"
             >
               <Plus className="h-4 w-4" />

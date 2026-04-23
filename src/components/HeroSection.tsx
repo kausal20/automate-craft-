@@ -45,11 +45,9 @@ type SpeechRecognitionWindow = Window & {
 };
 
 const promptExamples = [
-  "Send WhatsApp message on new leads",
-  "Save form data to Google Sheets",
-  "Notify me when payment is received",
-  "Follow up with leads after 24 hours",
-  "Sync CRM contacts to my email list",
+  "Send a WhatsApp when a new lead fills the form",
+  "Save every form response to Google Sheets automatically",
+  "Notify my team on Slack when a payment comes in",
 ];
 
 export default function HeroSection({
@@ -216,12 +214,12 @@ export default function HeroSection({
               <h1 className="mx-auto max-w-4xl text-[3.3rem] font-semibold leading-[0.94] tracking-[-0.08em] text-foreground sm:text-[4.4rem] lg:text-[5.4rem]">
                 {user
                   ? <>Ready to build,<br /><span className="text-accent">{user.name || "there"}</span></>
-                  : <>Describe it.<br /><span className="text-accent">We build it.</span></>}
+                  : <>Describe it.<br /><span className="text-accent">AI builds it.</span><br />You run it.</>}
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-[1.02rem] leading-8 text-white/50 sm:text-lg">
                 {user
-                  ? "Describe what you need and we'll generate it for you."
-                  : "Tell us what to automate in plain English — AI builds your workflow, you test and deploy in minutes."}
+                  ? "Describe what you need and the engine will generate it."
+                  : "Type what you want to automate in plain English — the AI engine handles the rest."}
               </p>
             </motion.div>
 
@@ -377,7 +375,7 @@ export default function HeroSection({
                         </div>
 
                         <p className="text-[0.7rem] font-medium tracking-[0.02em] text-white/30 hidden sm:block ml-1">
-                          Press Enter to generate
+                          Press Enter to start
                         </p>
                       </div>
 
@@ -416,6 +414,38 @@ export default function HeroSection({
               </motion.div>
             </motion.div>
 
+            {/* ── 3-Step Flow Strip ── */}
+            {!user && (
+              <motion.div
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className="mx-auto mt-4 flex items-center justify-center gap-3 sm:gap-5"
+              >
+                {[
+                  { num: "1", text: "Describe task" },
+                  { num: "2", text: "AI builds automation" },
+                  { num: "3", text: "Run instantly" },
+                ].map((step, i) => (
+                  <div key={step.num} className="flex items-center gap-3 sm:gap-5">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent ring-1 ring-accent/20">
+                        {step.num}
+                      </span>
+                      <span className="text-[12px] font-medium text-white/35 sm:text-[13px]">
+                        {step.text}
+                      </span>
+                    </div>
+                    {i < 2 && (
+                      <svg className="h-3 w-3 text-white/12 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                      </svg>
+                    )}
+                  </div>
+                ))}
+              </motion.div>
+            )}
+
           </div>
         </motion.div>
       </section>
@@ -424,7 +454,7 @@ export default function HeroSection({
       <LoginModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
-        nextUrl={`/dashboard/chat/new?prompt=${encodeURIComponent(prompt)}`} 
+        nextUrl={`/dashboard?prompt=${encodeURIComponent(prompt)}`} 
       />
 
       {/* ── How It Works — only for public visitors ── */}
@@ -559,36 +589,7 @@ export default function HeroSection({
             </div>
           </section>
 
-          {/* Social proof counters */}
-          <section className="relative py-12 overflow-hidden">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#09090b]/25 to-transparent" />
-            <div className="relative mx-auto max-w-6xl px-6 lg:px-8">
-              <div className="grid grid-cols-3 gap-4 md:gap-8">
-                {[
-                  { value: "3,200+", label: "Automations built" },
-                  { value: "85",     label: "Countries active" },
-                  { value: "99.9%",  label: "Execution uptime" },
-                ].map((stat) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    className="flex flex-col items-center gap-1 text-center"
-                  >
-                    <span className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                      {stat.value}
-                    </span>
-                    <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/25">
-                      {stat.label}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-              <div className="mt-8 h-px w-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
-            </div>
-          </section>
+
 
           {/* Integration logos strip */}
           <section className="relative py-16 overflow-hidden">
