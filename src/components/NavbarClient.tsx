@@ -31,7 +31,7 @@ export default function NavbarClient({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (pathname !== "/" || isAuthenticated) {
+  if (pathname !== "/") {
     return null;
   }
 
@@ -62,18 +62,29 @@ export default function NavbarClient({
           </div>
 
           <div className="hidden items-center gap-4 lg:flex">
-            <Link
-              href="/login"
-              className="text-sm font-semibold text-white/60 transition-colors duration-200 hover:text-white"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/signup"
-              className="inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all duration-200 hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px] active:translate-y-0 md:px-6"
-            >
-              Sign up
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full bg-white/10 px-5 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/20 md:px-6"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-semibold text-white/60 transition-colors duration-200 hover:text-white"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="inline-flex h-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all duration-200 hover:shadow-[0_8px_24px_rgba(59,130,246,0.35)] hover:translate-y-[-1px] active:translate-y-0 md:px-6"
+                >
+                  Sign up
+                </Link>
+              </>
+            )}
           </div>
 
           <button
@@ -109,20 +120,32 @@ export default function NavbarClient({
             </div>
 
             <div className="mt-4 flex flex-col gap-3">
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/8 bg-white/5 px-5 text-sm font-semibold text-white transition-all hover:bg-white/10"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/signup"
-                onClick={() => setOpen(false)}
-              className="inline-flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all"
-              >
-                Sign up
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-full border border-white/8 bg-white/5 px-5 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-full bg-gradient-to-r from-accent to-blue-600 px-5 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(59,130,246,0.25)] transition-all"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         ) : null}

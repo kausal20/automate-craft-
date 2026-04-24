@@ -36,6 +36,7 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialPrompt = searchParams.get("prompt") || "";
+  const ultraThinking = searchParams.get("ultra") === "1";
   
   const [isGenerating, setIsGenerating] = useState(true);
   const [isActivating, setIsActivating] = useState(false);
@@ -100,7 +101,7 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
         const response = await fetch("/api/generate-automation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: initialPrompt }),
+          body: JSON.stringify({ prompt: initialPrompt, ultraThinking }),
         });
 
         if (response.status === 402) {
@@ -259,11 +260,19 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
                 <Loader2 className="h-8 w-8 animate-spin text-[#111111]/40" />
               </div>
               <h2 className="text-xl font-medium tracking-tight text-[#111111]">
-                Analyzing workflow...
+                {ultraThinking ? "Deep analysis in progress..." : "Analyzing workflow..."}
               </h2>
               <p className="mt-2 text-sm text-[#111111]/50">
-                Designing the optimal setup form for your automation.
+                {ultraThinking
+                  ? "Ultra Thinking is building a more precise automation for you."
+                  : "Designing the optimal setup form for your automation."}
               </p>
+              {ultraThinking && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+                  <span className="text-[12px] font-semibold text-blue-600">Ultra Thinking — {user.mode === 'supabase' ? 'Deep Mode' : 'Focused Mode'}</span>
+                </div>
+              )}
             </motion.div>
           ) : globalError && !result ? (
             <motion.div
@@ -291,6 +300,11 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
               <div className="mb-12 rounded-[24px] border border-black/[0.06] bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <h3 className="mb-6 text-xs font-bold uppercase tracking-[0.16em] text-[#111111]/40">
                   Automation Preview
+                  {ultraThinking && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+                      ✦ Ultra
+                    </span>
+                  )}
                 </h3>
                 
                 <div className="flex flex-col gap-6">

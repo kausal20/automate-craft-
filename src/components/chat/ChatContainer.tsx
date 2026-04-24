@@ -81,6 +81,7 @@ type SpeechRecognitionWindow = Window & {
 interface ChatContainerProps {
   chatId: string;
   initialPrompt?: string;
+  ultraThinking?: boolean;
 }
 
 type ChatIndexEntry = {
@@ -327,7 +328,7 @@ function StreamContent({ content, timestamp }: { content: string, timestamp?: nu
   return renderStructuredAiContent(displayed);
 }
 
-export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
+export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThinkingProp = false }: ChatContainerProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -420,7 +421,7 @@ export function ChatContainer({ chatId, initialPrompt }: ChatContainerProps) {
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
-  const [ultraThinking, setUltraThinking] = useState(false);
+  const [ultraThinking, setUltraThinking] = useState(ultraThinkingProp);
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null);

@@ -1,21 +1,35 @@
 import HeroSection from "@/components/HeroSection";
+import { getCurrentUser } from "@/lib/auth";
 import { isSsoEnabled, isSupabaseAuthEnabled } from "@/lib/env";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import { isGuestUser } from "@/lib/guest-access";
 
 /**
- * Homepage — always public.
- *
- * If the user is already logged in, middleware redirects them to /dashboard
- * before this page ever renders. So we never need to check session here.
- * This keeps the homepage fast and stateless.
+ * Homepage
  */
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+  const authenticatedUser = user && !isGuestUser(user) ? user : null;
+
+  const content = (
+    <HeroSection
+      user={authenticatedUser}
+      socialAuthEnabled={isSupabaseAuthEnabled()}
+      ssoEnabled={isSsoEnabled()}
+    />
+  );
+
+  if (authenticatedUser) {
+    return (
+      <DashboardShell user={authenticatedUser}>
+        {content}
+      </DashboardShell>
+    );
+  }
+
   return (
     <main className="relative min-h-screen">
-      <HeroSection
-        user={null}
-        socialAuthEnabled={isSupabaseAuthEnabled()}
-        ssoEnabled={isSsoEnabled()}
-      />
+      {content}
     </main>
   );
 }

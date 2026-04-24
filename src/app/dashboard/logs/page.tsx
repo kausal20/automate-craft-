@@ -1,26 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
-  AlertCircle,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Clock3,
-  Filter,
-  LoaderCircle,
-  Search,
-  Workflow,
-  XCircle,
+  CheckCircle2, AlertCircle, ChevronDown, ChevronUp,
+  Loader2, Search, Activity, RefreshCw,
+  Clock, Zap, BookOpen, ArrowRight,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-/* LOGIC EXPLAINED:
-This page loads execution history from the backend. The fix adds logs around
-the fetch and filter flow so you can tell whether the backend returned logs and
-whether the page stored them correctly.
-*/
-
+/* ── Types ── */
 type RunLogEntry = {
   at: string;
   level: "info" | "success" | "error";
@@ -44,351 +33,308 @@ type AutomationRun = {
 
 type StatusFilter = "all" | AutomationRun["status"];
 
-const statusFilters: StatusFilter[] = ["all", "success", "error", "running"];
-
-function formatTimestamp(value: string) {
-  return new Date(value).toLocaleString();
+/* ── Helpers ── */
+function timeAgo(date: string) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return "just now";
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
-function formatDuration(start: string, end: string | null) {
-  if (!end) {
-    return "In progress";
-  }
-
-  const duration = new Date(end).getTime() - new Date(start).getTime();
-
-  if (duration < 1000) {
-    return `${duration}ms`;
-  }
-
-  return `${(duration / 1000).toFixed(1)}s`;
+function duration(start: string, end: string | null) {
+  if (!end) return "Running...";
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
-function getStatusStyles(status: AutomationRun["status"]) {
-  if (status === "success") {
-    return "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400";
-  }
-
-  if (status === "error") {
-    return "border-red-500/20 bg-red-500/[0.08] text-red-400";
-  }
-
-  return "border-amber-500/20 bg-amber-500/[0.08] text-amber-400";
+function statusColor(s: AutomationRun["status"]) {
+  if (s === "success") return { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400", ring: "ring-emerald-500/20" };
+  if (s === "error") return { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400", ring: "ring-red-500/20" };
+  return { bg: "bg-amber-500/10", text: "text-amber-400", dot: "bg-amber-400 animate-pulse", ring: "ring-amber-500/20" };
 }
 
-function getLevelStyles(level: RunLogEntry["level"]) {
-  if (level === "success") {
-    return "bg-emerald-500/[0.08] text-emerald-400";
-  }
-
-  if (level === "error") {
-    return "bg-red-500/[0.08] text-red-400";
-  }
-
-  return "bg-white/[0.04] text-white/40";
+/* ── Stat Card ── */
+function Stat({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/30">{label}</p>
+      <p className={`mt-2 text-2xl font-bold ${color}`}>{value}</p>
+    </div>
+  );
 }
 
-function getStatusDot(status: AutomationRun["status"]) {
-  if (status === "success") return "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]";
-  if (status === "error") return "bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]";
-  return "bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.6)] animate-pulse";
+/* ── Run Row ── */
+function RunRow({ run, isExpanded, onToggle }: { run: AutomationRun; isExpanded: boolean; onToggle: () => void }) {
+  const sc = statusColor(run.status);
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] transition-all hover:border-white/[0.1]">
+      {/* Summary row */}
+      <button onClick={onToggle} className="flex w-full items-center gap-4 px-5 py-4 text-left">
+        {/* Status dot */}
+        <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${sc.dot}`} />
+
+        {/* Name + meta */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-semibold text-white/85">{run.automationName}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[12px] text-white/30">
+            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeAgo(run.createdAt)}</span>
+            <span className="flex items-center gap-1"><Zap className="h-3 w-3" />{duration(run.createdAt, run.finishedAt)}</span>
+            <span className="capitalize">{run.triggerSource}</span>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ring-1 ${sc.bg} ${sc.text} ${sc.ring}`}>
+          {run.status === "success" ? "✓ Done" : run.status === "error" ? "✗ Failed" : "● Running"}
+        </span>
+
+        {/* Expand chevron */}
+        <div className="shrink-0 text-white/20">
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </div>
+      </button>
+
+      {/* Error message inline */}
+      {run.errorMessage && !isExpanded && (
+        <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl bg-red-500/[0.06] px-3 py-2 text-[12px] text-red-400">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{run.errorMessage}</span>
+        </div>
+      )}
+
+      {/* Expanded details */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-white/[0.04] px-5 py-5 space-y-5">
+              {/* Error (expanded) */}
+              {run.errorMessage && (
+                <div className="flex items-start gap-2.5 rounded-xl border border-red-500/15 bg-red-500/[0.05] p-4 text-[13px] text-red-400">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {run.errorMessage}
+                </div>
+              )}
+
+              {/* Steps timeline */}
+              <div>
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-white/25">What happened — step by step</p>
+                <div className="space-y-1">
+                  {run.logs.map((entry, i) => (
+                    <div key={`${run.id}-${i}`} className="flex items-start gap-3 rounded-xl px-3 py-2.5 hover:bg-white/[0.02] transition-colors">
+                      <div className="mt-1 shrink-0">
+                        {entry.level === "success" ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : entry.level === "error" ? (
+                          <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                        ) : (
+                          <div className="h-3.5 w-3.5 rounded-full border-2 border-white/15" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] text-white/65">{entry.message}</p>
+                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-white/20">
+                          {entry.stepName && <span className="font-medium text-white/30">{entry.stepName}</span>}
+                          <span>{timeAgo(entry.at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payload & Result */}
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="rounded-xl border border-white/[0.05] bg-black/20 p-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-white/25">Input Data</p>
+                  <pre className="overflow-x-auto text-[11px] leading-5 text-white/40 font-mono">{JSON.stringify(run.payload, null, 2)}</pre>
+                </div>
+                <div className="rounded-xl border border-white/[0.05] bg-black/20 p-4">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-white/25">Output</p>
+                  <pre className="overflow-x-auto text-[11px] leading-5 text-white/40 font-mono">{JSON.stringify(run.result ?? { note: "No output yet" }, null, 2)}</pre>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
+/* ══════════════════════════════════════════════════════════
+   Main Page
+══════════════════════════════════════════════════════════ */
 export default function LogsPage() {
-  const [logs, setLogs] = useState<AutomationRun[]>([]);
+  const [runs, setRuns] = useState<AutomationRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [filter, setFilter] = useState<StatusFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadLogs = async () => {
-    console.log("[LogsPage] Loading execution logs.");
-    setLoading(true);
+  const load = async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch("/api/logs", { cache: "no-store" });
-      const json = (await response.json()) as {
-        logs?: AutomationRun[];
-        error?: string;
-      };
-      console.log("[LogsPage] Logs response received.", json);
-
-      if (!response.ok) {
-        throw new Error(json.error || "Could not load execution logs.");
-      }
-
-      setLogs(json.logs ?? []);
-    } catch (requestError) {
-      console.error("[LogsPage] Failed to load execution logs.", requestError);
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Could not load execution logs.",
-      );
+      const res = await fetch("/api/logs", { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't load activity.");
+      setRuns(json.logs ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't load activity.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    void loadLogs();
-  }, []);
+  useEffect(() => { void load(); }, []);
 
-  const filteredLogs = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return logs.filter((run) => {
-      const matchesStatus =
-        statusFilter === "all" ? true : run.status === statusFilter;
-      const matchesQuery = normalizedQuery
-        ? run.automationName.toLowerCase().includes(normalizedQuery) ||
-          run.logs.some((entry) =>
-            entry.message.toLowerCase().includes(normalizedQuery),
-          )
-        : true;
-
-      return matchesStatus && matchesQuery;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return runs.filter(r => {
+      if (filter !== "all" && r.status !== filter) return false;
+      if (q && !r.automationName.toLowerCase().includes(q) && !r.logs.some(l => l.message.toLowerCase().includes(q))) return false;
+      return true;
     });
-  }, [logs, query, statusFilter]);
+  }, [runs, query, filter]);
 
-  const stats = useMemo(() => {
-    const successCount = logs.filter((run) => run.status === "success").length;
-    const errorCount = logs.filter((run) => run.status === "error").length;
-    const runningCount = logs.filter((run) => run.status === "running").length;
+  const stats = useMemo(() => ({
+    total: runs.length,
+    done: runs.filter(r => r.status === "success").length,
+    failed: runs.filter(r => r.status === "error").length,
+    active: runs.filter(r => r.status === "running").length,
+  }), [runs]);
 
-    return {
-      total: logs.length,
-      successCount,
-      errorCount,
-      runningCount,
-    };
-  }, [logs]);
+  const filters: { id: StatusFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "success", label: "Completed" },
+    { id: "error", label: "Failed" },
+    { id: "running", label: "Running" },
+  ];
 
   return (
-    <div className="mx-auto max-w-7xl p-8">
-      <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-[-0.04em] text-white">
-            Execution Logs
-          </h1>
-          <p className="mt-2 text-white/40">
-            Review every automation run, inspect step-by-step logs, and spot
-            failures quickly.
-          </p>
-        </div>
-
-        <button
-          onClick={() => void loadLogs()}
-          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 text-sm font-semibold text-white/60 transition-all hover:border-white/[0.14] hover:text-white hover:translate-y-[-1px]"
-        >
-          Refresh
-        </button>
-      </div>
-
-      <div className="mb-8 grid gap-4 md:grid-cols-4">
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Total runs</p>
-          <p className="mt-3 text-3xl font-bold text-white">{stats.total}</p>
-        </div>
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Successful</p>
-          <p className="mt-3 text-3xl font-bold text-emerald-400">
-            {stats.successCount}
-          </p>
-        </div>
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Failed</p>
-          <p className="mt-3 text-3xl font-bold text-red-400">
-            {stats.errorCount}
-          </p>
-        </div>
-        <div className="card-surface rounded-[1.75rem] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Running now</p>
-          <p className="mt-3 text-3xl font-bold text-amber-400">
-            {stats.runningCount}
-          </p>
-        </div>
-      </div>
-
-      <div className="card-surface rounded-[2rem] p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full max-w-xl">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/25" />
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by automation name or log message"
-              className="w-full rounded-xl border border-white/[0.06] bg-white/[0.03] px-11 py-3 text-sm text-white outline-none transition-all placeholder:text-white/20 focus:border-accent/30 focus:bg-white/[0.05] focus:ring-2 focus:ring-accent/10"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {statusFilters.map((option) => (
-              <button
-                key={option}
-                onClick={() => setStatusFilter(option)}
-                className={`inline-flex h-9 items-center justify-center rounded-full px-4 text-xs font-semibold uppercase tracking-[0.14em] transition-all ${
-                  statusFilter === option
-                    ? "bg-gradient-to-r from-accent to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.25)]"
-                    : "border border-white/[0.06] bg-white/[0.02] text-white/40 hover:border-white/[0.12] hover:text-white/70"
-                }`}
-              >
-                {option === "all" ? "All" : option}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 space-y-4">
-        {loading ? (
-          <div className="card-surface rounded-[2rem] px-6 py-14 text-center text-foreground/56">
-            <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-accent" />
-            <p className="mt-4">Loading execution history...</p>
-          </div>
-        ) : error ? (
-          <div className="card-surface rounded-[2rem] border border-red-100 bg-red-50 px-6 py-10 text-center text-red-600">
-            {error}
-          </div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="card-surface rounded-[2rem] px-6 py-14 text-center">
-            <Workflow className="mx-auto h-10 w-10 text-accent" />
-            <h2 className="mt-4 text-2xl font-semibold text-foreground">
-              No matching logs yet
-            </h2>
-            <p className="mt-3 text-foreground/58">
-              Run an automation from the dashboard or trigger a webhook to start
-              building execution history.
+    <div className="mx-auto max-w-5xl p-6 lg:p-8">
+      {/* ── Header ── */}
+      <div className="mb-8">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[24px] font-semibold tracking-tight text-white">Activity</h1>
+            <p className="mt-1 text-[13px] text-white/40">
+              Every time an automation runs, it shows up here.{" "}
+              <Link href="/blog/what-are-logs" className="inline-flex items-center gap-1 text-accent/70 hover:text-accent transition-colors">
+                <BookOpen className="h-3 w-3" />
+                What are logs?
+              </Link>
             </p>
           </div>
-        ) : (
-          filteredLogs.map((run, index) => {
-            const isExpanded = expandedId === run.id;
-
-            return (
-              <motion.article
-                key={run.id}
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.03 }}
-                className="card-surface rounded-[2rem] p-6 transition-all hover:-translate-y-0.5"
-              >
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getStatusStyles(run.status)}`}
-                      >
-                        <span className={`h-1.5 w-1.5 rounded-full ${getStatusDot(run.status)}`} />
-                        {run.status}
-                      </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/25">
-                        {run.triggerSource} trigger
-                      </span>
-                    </div>
-
-                    <h2 className="mt-4 text-xl font-semibold text-white">
-                      {run.automationName}
-                    </h2>
-
-                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/35">
-                      <span>Started: {formatTimestamp(run.createdAt)}</span>
-                      <span>Duration: {formatDuration(run.createdAt, run.finishedAt)}</span>
-                      <span>{run.logs.length} log entries</span>
-                    </div>
-
-                    {run.errorMessage ? (
-                      <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/[0.08] px-3 py-1.5 text-sm font-medium text-red-400">
-                        <AlertCircle className="h-4 w-4" />
-                        {run.errorMessage}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      setExpandedId((current) => (current === run.id ? null : run.id))
-                    }
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 text-sm font-semibold text-white/60 transition-all hover:border-white/[0.14] hover:text-white hover:translate-y-[-1px]"
-                  >
-                    {isExpanded ? (
-                      <>
-                        Hide Details
-                        <ChevronUp className="h-4 w-4" />
-                      </>
-                    ) : (
-                      <>
-                        View Details
-                        <ChevronDown className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {isExpanded ? (
-                  <div className="mt-6 grid gap-5 border-t border-white/[0.04] pt-6 lg:grid-cols-[1.25fr_0.75fr]">
-                    <div>
-                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white/25">
-                        Step Logs
-                      </h3>
-                      <div className="mt-4 space-y-3">
-                        {run.logs.map((entry, entryIndex) => (
-                          <div
-                            key={`${run.id}-${entryIndex}`}
-                            className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4"
-                          >
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span
-                                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${getLevelStyles(entry.level)}`}
-                              >
-                                {entry.level}
-                              </span>
-                              <span className="text-xs text-white/25">
-                                {formatTimestamp(entry.at)}
-                              </span>
-                              {entry.stepName ? (
-                                <span className="text-xs font-medium text-white/40">
-                                  {entry.stepName}
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="mt-3 text-sm leading-6 text-white/60">
-                              {entry.message}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
-                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
-                          Trigger Payload
-                        </h3>
-                        <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-[11px] leading-6 text-white/50 font-mono">
-{JSON.stringify(run.payload, null, 2)}
-                        </pre>
-                      </div>
-
-                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
-                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
-                          Result
-                        </h3>
-                        <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-[11px] leading-6 text-white/50 font-mono">
-{JSON.stringify(run.result ?? { message: "No result payload." }, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </motion.article>
-            );
-          })
-        )}
+          <button
+            onClick={() => void load(true)}
+            disabled={refreshing}
+            className="flex h-9 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-[12px] font-semibold text-white/50 hover:bg-white/[0.06] hover:text-white transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {/* ── Stats ── */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label="Total runs" value={stats.total} color="text-white" />
+        <Stat label="Completed" value={stats.done} color="text-emerald-400" />
+        <Stat label="Failed" value={stats.failed} color="text-red-400" />
+        <Stat label="Active now" value={stats.active} color="text-amber-400" />
+      </div>
+
+      {/* ── Search + Filters ── */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/20" />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search automations..."
+            className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] py-2.5 pl-10 pr-4 text-[13px] text-white placeholder:text-white/20 outline-none focus:border-accent/30 focus:ring-2 focus:ring-accent/10 transition-all"
+          />
+        </div>
+        <div className="flex gap-1.5">
+          {filters.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`rounded-lg px-3 py-2 text-[12px] font-semibold transition-all ${
+                filter === f.id
+                  ? "bg-accent/10 text-accent ring-1 ring-accent/20"
+                  : "text-white/35 hover:bg-white/[0.04] hover:text-white/60"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Content ── */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-7 w-7 animate-spin text-accent/50" />
+          <p className="mt-4 text-[13px] text-white/30">Loading your activity...</p>
+        </div>
+      ) : error ? (
+        <div className="rounded-2xl border border-red-500/15 bg-red-500/[0.04] px-6 py-10 text-center">
+          <AlertCircle className="mx-auto h-8 w-8 text-red-400/60" />
+          <p className="mt-3 text-[14px] text-red-400/80">{error}</p>
+          <button onClick={() => void load()} className="mt-4 text-[12px] text-accent hover:underline">Try again</button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/[0.06] ring-1 ring-accent/10">
+            <Activity className="h-6 w-6 text-accent/40" />
+          </div>
+          <h2 className="mt-5 text-[16px] font-semibold text-white/70">No activity yet</h2>
+          <p className="mt-2 max-w-xs text-center text-[13px] leading-relaxed text-white/30">
+            {runs.length === 0
+              ? "Once you run an automation, every step will appear here so you can track exactly what happened."
+              : "No runs match your current filter."}
+          </p>
+          {runs.length === 0 && (
+            <Link href="/dashboard" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-accent/10 px-4 py-2.5 text-[12px] font-semibold text-accent hover:bg-accent/15 transition-all">
+              Create your first automation <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((run, i) => (
+            <motion.div
+              key={run.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: i * 0.03 }}
+            >
+              <RunRow
+                run={run}
+                isExpanded={expandedId === run.id}
+                onToggle={() => setExpandedId(prev => prev === run.id ? null : run.id)}
+              />
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

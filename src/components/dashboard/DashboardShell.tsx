@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
-import { SettingsModal } from "@/components/dashboard/SettingsModal";
+import { ProfileModal, DISPLAY_NAME_KEY, AVATAR_URL_KEY } from "@/components/dashboard/ProfileModal";
 import { CreditsDropdown } from "@/components/CreditsDropdown";
 import { FloatingParticles } from "@/components/FloatingParticles";
 
@@ -69,8 +69,19 @@ export default function DashboardShell({
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [recentChats, setRecentChats] = useState<ChatIndexEntry[]>([]);
   const [starredChats, setStarredChats] = useState<ChatIndexEntry[]>([]);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const [displayName, setDisplayName] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(DISPLAY_NAME_KEY) || user.name || "User";
+    }
+    return user.name || "User";
+  });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
+    if (typeof window !== "undefined") return localStorage.getItem(AVATAR_URL_KEY);
+    return null;
+  });
 
   useEffect(() => {
     const fetchRecents = async () => {
@@ -357,13 +368,17 @@ export default function DashboardShell({
               isCollapsed ? "justify-center p-1.5" : "gap-3 p-2"
             } ${isChatWorkspace ? "hover:bg-black/[0.04]" : "hover:bg-white/[0.04]"}`}
           >
-            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-cyan-500 text-[11px] font-bold text-white uppercase shadow-[0_0_16px_rgba(59,130,246,0.2)]">
-              {user.name?.[0] || user.email[0]}
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-cyan-500 text-[11px] font-bold text-white uppercase shadow-[0_0_16px_rgba(59,130,246,0.2)] overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                (displayName[0] || user.email[0])
+              )}
               <div className="absolute -inset-[1.5px] rounded-full border border-accent/25" />
             </div>
             {!isCollapsed && (
               <div className="flex-1 text-left min-w-0">
-                <p className="text-[13px] font-semibold text-foreground/85 truncate">{user.name || "User"}</p>
+                <p className="text-[13px] font-semibold text-foreground/85 truncate">{displayName}</p>
                 <p className="text-[10px] font-medium text-foreground/35 truncate">{user.email}</p>
               </div>
             )}
@@ -376,16 +391,13 @@ export default function DashboardShell({
             } ${
               isCollapsed ? "left-2 w-[160px]" : "left-4 right-4"
             }`}>
-              <div className="p-1.5 underline-none">
+              <div className="p-1.5">
                 <button
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${isChatWorkspace ? "text-foreground/70 hover:bg-black/[0.04] hover:text-foreground" : "text-foreground/60 hover:bg-white/[0.05] hover:text-foreground"}`}
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    setShowSettingsModal(true);
-                  }}
+                  onClick={() => { setIsUserMenuOpen(false); setShowProfileModal(true); }}
                 >
                   <User className="h-4 w-4" />
-                  Profile
+                  Edit Profile
                 </button>
                 <div className={`my-1 border-t ${isChatWorkspace ? "border-[#E5E7EB]" : "border-white/[0.04]"}`} />
                 <button
@@ -411,10 +423,12 @@ export default function DashboardShell({
           <CreditsDropdown />
         </div>
       </div>
-      <SettingsModal 
-        isOpen={showSettingsModal} 
-        onClose={() => setShowSettingsModal(false)} 
-        user={user} 
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        user={user}
+        onNameChange={n => setDisplayName(n)}
+        onAvatarChange={url => setAvatarUrl(url)}
       />
     </div>
   );
