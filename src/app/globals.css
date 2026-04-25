@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme inline {
   --color-background: #09090b;
@@ -18,7 +18,7 @@
   --font-sans: var(--font-inter);
 }
 
-/* ── Reset ── */
+/* â”€â”€ Reset â”€â”€ */
 * {
   box-sizing: border-box;
 }
@@ -41,7 +41,7 @@ a {
   text-decoration: none;
 }
 
-/* ── Button base class for explicit dark-bg buttons ── */
+/* â”€â”€ Button base class for explicit dark-bg buttons â”€â”€ */
 .btn-dark {
   background-color: #ededed !important;
   color: #0a0a0a !important;
@@ -65,7 +65,7 @@ select {
   font: inherit;
 }
 
-/* ── Global Micro-Interactions ── */
+/* â”€â”€ Global Micro-Interactions â”€â”€ */
 /* Smooth 0.2s transitions globally */
 button, input, select, textarea, a, [role="button"], [class*="rounded-xl"], [class*="rounded-2xl"], [class*="card"] {
   transition-property: all;
@@ -136,9 +136,9 @@ shadow so only the intended prompt-box chrome is visible.
   background: rgba(59, 130, 246, 0.18);
 }
 
-/* ═══════════════════════════════════════════
-   CARD SYSTEM — Premium depth + glass
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   CARD SYSTEM â€” Premium depth + glass
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .card-surface {
   position: relative;
   overflow: hidden;
@@ -184,14 +184,14 @@ shadow so only the intended prompt-box chrome is visible.
     0 16px 40px rgba(0, 0, 0, 0.7);
 }
 
-/* ── Navigation glass ── */
+/* â”€â”€ Navigation glass â”€â”€ */
 .glass-nav {
   background: rgba(9, 9, 11, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px) saturate(130%);
 }
 
-/* ── Chat ambient background ── */
+/* â”€â”€ Chat ambient background â”€â”€ */
 .chat-bg-gradient {
   background:
     radial-gradient(ellipse at 12% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 42%),
@@ -241,7 +241,7 @@ That keeps the UI majorly black while making the workspace feel richer.
     0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
-/* ── Node cards (workflow builder) ── */
+/* â”€â”€ Node cards (workflow builder) â”€â”€ */
 .node-card {
   transition:
     transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -257,12 +257,12 @@ That keeps the UI majorly black while making the workspace feel richer.
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* ── Connection line glow ── */
+/* â”€â”€ Connection line glow â”€â”€ */
 .connection-line-glow {
   box-shadow: 0 0 6px rgba(59, 130, 246, 0.15);
 }
 
-/* ── Liquid glass effects ── */
+/* â”€â”€ Liquid glass effects â”€â”€ */
 .liquid-glass,
 .liquid-button {
   position: relative;
@@ -340,9 +340,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   z-index: 1;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    LAYOUT UTILS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .site-container {
   width: 100%;
   max-width: 1180px;
@@ -371,9 +371,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   background: #0c0c0e;
 }
 
-/* ═══════════════════════════════════════════
-   TYPOGRAPHY — 3-tier visual hierarchy
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   TYPOGRAPHY â€” 3-tier visual hierarchy
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .eyebrow {
   color: var(--color-accent);
   font-size: 0.72rem;
@@ -390,17 +390,17 @@ That keeps the UI majorly black while making the workspace feel richer.
   line-height: 0.96;
 }
 
-/* Tier 1: Primary — bright white, high contrast */
+/* Tier 1: Primary â€” bright white, high contrast */
 .text-primary-tier {
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* Tier 2: Secondary — soft gray */
+/* Tier 2: Secondary â€” soft gray */
 .text-secondary-tier {
   color: rgba(255, 255, 255, 0.55);
 }
 
-/* Tier 3: Muted — low opacity, background info */
+/* Tier 3: Muted â€” low opacity, background info */
 .text-muted-tier {
   color: rgba(255, 255, 255, 0.30);
 }
@@ -409,9 +409,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   color: var(--color-muted);
 }
 
-/* ═══════════════════════════════════════════
-   BUTTONS — Premium interactive styles
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   BUTTONS â€” Premium interactive styles
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .button-hover {
   transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -485,9 +485,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   text-underline-offset: 4px;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    GLOW + PULSE UTILITIES
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .glow-accent {
   box-shadow:
     0 0 20px rgba(59, 130, 246, 0.15),
@@ -513,9 +513,9 @@ That keeps the UI majorly black while making the workspace feel richer.
     0 0 16px rgba(59, 130, 246, 0.12);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    NODE & WORKFLOW ENHANCEMENTS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .node-card {
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -531,9 +531,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.3));
 }
 
-/* ═══════════════════════════════════════════
-   CHAT PANEL — Gradient ambient backgrounds
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   CHAT PANEL â€” Gradient ambient backgrounds
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .chat-bg-gradient {
   background:
     radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.03), transparent 50%),
@@ -541,7 +541,7 @@ That keeps the UI majorly black while making the workspace feel richer.
     #0a0a0a;
 }
 
-/* Subtle animated mesh for empty state — slow drift, low opacity */
+/* Subtle animated mesh for empty state â€” slow drift, low opacity */
 .chat-ambient-mesh {
   position: absolute;
   inset: 0;
@@ -584,9 +584,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   50% { transform: translate(-6%, -10%) scale(1.08); }
 }
 
-/* ═══════════════════════════════════════════
-   FLOATING PARTICLES — Page life
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   FLOATING PARTICLES â€” Page life
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .particles-container {
   position: fixed;
   inset: 0;
@@ -611,9 +611,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    KEYFRAMES
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 @keyframes float-soft {
   0%,
   100% {
@@ -775,9 +775,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   }
 }
 
-/* ═══════════════════════════════════════════
-   SCROLLBAR — thin, muted, appears on hover
-   ═══════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SCROLLBAR â€” thin, muted, appears on hover
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -801,3 +801,39 @@ That keeps the UI majorly black while making the workspace feel richer.
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
+
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up-fade {
+  animation: slideUpFade 200ms ease forwards;
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-left {
+  animation: slideInLeft 200ms ease forwards;
+}
+
+@keyframes typingDot {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-typing-dot {
+  animation: typingDot 1.4s ease-in-out infinite;
+}
+
+@keyframes flowDown {
+  from { transform: scaleY(0); opacity: 0; }
+  50% { opacity: 1; }
+  to { transform: scaleY(1); opacity: 0; }
+}
+.animate-flow-down {
+  animation: flowDown 1.5s infinite;
+}
+
+
