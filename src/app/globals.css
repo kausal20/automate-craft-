@@ -10,6 +10,11 @@
   --color-muted: #666666;
   --color-border-soft: rgba(255, 255, 255, 0.06);
   --color-border-hover: rgba(255, 255, 255, 0.12);
+  --color-chat-base: #08090b;
+  --color-chat-mid: #0f1115;
+  --color-chat-panel: #151922;
+  --color-chat-panel-strong: #1a1e25;
+  --color-chat-border: rgba(255, 255, 255, 0.06);
   --font-sans: var(--font-inter);
 }
 
@@ -189,8 +194,50 @@ shadow so only the intended prompt-box chrome is visible.
 /* ── Chat ambient background ── */
 .chat-bg-gradient {
   background:
-    radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+    radial-gradient(ellipse at 12% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 42%),
+    radial-gradient(ellipse at 88% 18%, rgba(59, 130, 246, 0.04) 0%, transparent 34%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.025) 0%, transparent 38%),
+    linear-gradient(180deg, var(--color-chat-mid) 0%, #0c0f14 42%, var(--color-chat-base) 100%);
+}
+
+/* LOGIC EXPLAINED:
+The chat system felt empty because most of its large surfaces were using nearly
+flat black fills. These shared classes introduce a blue-black graphite palette:
+an almost-black base, a cool mid layer, and slightly lifted panel surfaces.
+That keeps the UI majorly black while making the workspace feel richer.
+*/
+.chat-shell-bg {
+  background:
+    radial-gradient(ellipse at 16% 0%, rgba(59, 130, 246, 0.09) 0%, transparent 34%),
+    radial-gradient(ellipse at 84% 14%, rgba(59, 130, 246, 0.045) 0%, transparent 28%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.025) 0%, transparent 34%),
+    linear-gradient(180deg, #0b0d10 0%, var(--color-chat-mid) 36%, var(--color-chat-base) 100%);
+}
+
+.chat-header-surface {
+  background:
+    linear-gradient(180deg, rgba(21, 25, 34, 0.94) 0%, rgba(15, 17, 21, 0.9) 100%);
+  border-color: var(--color-chat-border);
+  backdrop-filter: blur(16px) saturate(120%);
+}
+
+.chat-composer-surface {
+  background:
+    linear-gradient(180deg, rgba(21, 25, 34, 0.92) 0%, rgba(15, 17, 21, 0.9) 100%);
+  border-color: var(--color-chat-border);
+  backdrop-filter: blur(18px) saturate(130%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+    0 -8px 36px rgba(0, 0, 0, 0.38);
+}
+
+.chat-elevated-surface {
+  background:
+    linear-gradient(180deg, rgba(26, 30, 37, 0.98) 0%, rgba(21, 25, 34, 0.96) 100%);
+  border-color: rgba(255, 255, 255, 0.065);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
 /* ── Node cards (workflow builder) ── */

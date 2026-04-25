@@ -148,25 +148,30 @@ export function InteractiveCanvas({
     return () => timeouts.forEach(clearTimeout);
   }, [nodes, reducedMotion]);
 
+  /* LOGIC EXPLAINED:
+  The preview panel should feel like part of the same workspace, not a second
+  unrelated black layer. These shared chat surface classes align the preview
+  shell, header, and footer with the same blue-black graphite palette. */
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ width: "0%", opacity: 0 }}
-          animate={{ width: "40%", opacity: 1 }}
-          exit={{ width: "0%", opacity: 0 }}
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: "auto", opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="relative h-full shrink-0 overflow-hidden border-l border-white/[0.04] bg-gradient-to-b from-[#0a0a0c] to-[#060608]"
+          className="chat-shell-bg relative h-full flex-1 overflow-hidden border-l border-white/[0.04]"
+          style={{ minWidth: 0 }}
         >
           <div className="flex h-full w-full flex-col">
 
             {/* Panel Header */}
-            <div className="flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0c]/90 backdrop-blur-md">
+            <div className="chat-header-surface flex h-[52px] shrink-0 items-center justify-between border-b px-5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-white/[0.06] to-white/[0.02] shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-white/[0.06]">
                   <Workflow className="h-3.5 w-3.5 text-white/40" />
                 </div>
-                <span className="text-[13px] font-semibold text-white/55">Workflow Pipeline</span>
+                <span className="text-[13px] font-semibold text-white/55">Workflow Preview</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -390,7 +395,7 @@ export function InteractiveCanvas({
                     initial={reducedMotion ? false : { opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-8 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-[#0c0c0c] to-[#080808] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.03)]"
+                    className="chat-elevated-surface mt-8 overflow-hidden rounded-2xl border"
                     role="log"
                     aria-label="Execution logs"
                   >
@@ -441,8 +446,23 @@ export function InteractiveCanvas({
               </AnimatePresence>
             </div>
 
-            {/* Panel Footer — Test / Deploy */}
-            <div className="shrink-0 border-t border-white/[0.04] bg-[#0a0a0c]/90 backdrop-blur-md px-5 py-4 flex items-center gap-3">
+            {/* Panel Footer — Status + Test / Deploy */}
+            <div className="chat-header-surface shrink-0 border-t border-white/[0.04]">
+              {/* Mini status bar */}
+              <div className="flex items-center gap-4 px-5 py-2.5 border-b border-white/[0.03] text-[11px]">
+                <div className="flex items-center gap-1.5 text-white/25">
+                  <div className={`h-1.5 w-1.5 rounded-full ${
+                    hasDeployed ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.5)]" : hasTested ? "bg-accent shadow-[0_0_4px_rgba(59,130,246,0.5)]" : "bg-white/20"
+                  }`} />
+                  {hasDeployed ? "Live" : hasTested ? "Tested" : isTesting ? "Testing..." : "Ready"}
+                </div>
+                <span className="text-white/15">·</span>
+                <span className="text-white/20">{nodes.filter(n => n.status === "completed").length}/{nodes.length} steps</span>
+                <span className="text-white/15">·</span>
+                <span className="text-white/20">{nodes.length} nodes</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center gap-3">
               {/* Test button */}
               <button
                 onClick={onTest}
@@ -472,6 +492,7 @@ export function InteractiveCanvas({
                 {isDeploying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
                 {hasDeployed ? "Deployed ✓" : "Deploy"}
               </button>
+              </div>
             </div>
           </div>
         </motion.div>

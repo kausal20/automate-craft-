@@ -13,7 +13,6 @@ import {
   EyeOff,
   CheckCircle2,
   Loader2,
-  Zap,
 } from "lucide-react";
 
 type AuthScreenProps = {
@@ -46,263 +45,10 @@ function MailIcon() {
 }
 
 /* ─── Orbiting integration icon ─── */
-function OrbitIcon({ children, delay, duration, startAngle, size = 42 }: {
-  children: React.ReactNode; delay: number; duration: number; startAngle: number; size?: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.6, delay }}
-      className="absolute z-20"
-      style={{
-        left: "50%", top: "50%",
-        marginLeft: -size / 2, marginTop: -size / 2,
-        animation: `orbit-${Math.round(startAngle)} ${duration}s linear infinite`,
-      }}
-    >
-      <motion.div
-        animate={{ y: [0, -6, 0], rotate: [0, 5, -5, 0] }}
-        transition={{ duration: 3 + delay, repeat: Infinity, ease: "easeInOut" }}
-        className="flex items-center justify-center rounded-2xl border border-white/[0.1] bg-[#0d1117]/90 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)]"
-        style={{ width: size, height: size }}
-      >
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
+/* Removed — replaced by LoginDemoPlayer */
 
-/* ─── 3D Feature card ─── */
-function FeatureCard({ icon, title, desc, delay }: {
-  icon: React.ReactNode; title: string; desc: string; delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30, rotateX: 10 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ scale: 1.04, rotateY: -3 }}
-      className="w-[260px] rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-4 backdrop-blur-lg shadow-[0_16px_48px_rgba(0,0,0,0.4)]"
-      style={{ transformStyle: "preserve-3d" }}
-    >
-      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/15">
-        {icon}
-      </div>
-      <h3 className="text-[0.82rem] font-semibold text-white/85 mb-1">{title}</h3>
-      <p className="text-[0.7rem] leading-[1.6] text-white/30">{desc}</p>
-    </motion.div>
-  );
-}
+import LoginDemoPlayer from "@/components/auth/LoginDemoPlayer";
 
-/* ─── Animated pulse dot ─── */
-function PulseDot({ x, y, delay, color = "#3b82f6" }: { x: string; y: string; delay: number; color?: string }) {
-  return (
-    <motion.div
-      className="absolute z-10"
-      style={{ left: x, top: y }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 1, 0] }}
-      transition={{ duration: 2, delay, repeat: Infinity, ease: "easeInOut" }}
-    >
-      <div className="relative">
-        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-        <div className="absolute inset-0 h-2 w-2 rounded-full animate-ping" style={{ backgroundColor: color, opacity: 0.4 }} />
-      </div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   RIGHT PANEL — Product showcase hero
-   ═══════════════════════════════════════════ */
-function HeroVisual() {
-  return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden" style={{ perspective: "1400px" }}>
-      {/* Orbit keyframes */}
-      <style>{`
-        @keyframes orbit-0   { from { transform: rotate(0deg)   translateX(140px) rotate(0deg);   } to { transform: rotate(360deg) translateX(140px) rotate(-360deg); } }
-        @keyframes orbit-72  { from { transform: rotate(72deg)  translateX(150px) rotate(-72deg);  } to { transform: rotate(432deg) translateX(150px) rotate(-432deg); } }
-        @keyframes orbit-144 { from { transform: rotate(144deg) translateX(135px) rotate(-144deg); } to { transform: rotate(504deg) translateX(135px) rotate(-504deg); } }
-        @keyframes orbit-216 { from { transform: rotate(216deg) translateX(145px) rotate(-216deg); } to { transform: rotate(576deg) translateX(145px) rotate(-576deg); } }
-        @keyframes orbit-288 { from { transform: rotate(288deg) translateX(140px) rotate(-288deg); } to { transform: rotate(648deg) translateX(140px) rotate(-648deg); } }
-        @keyframes core-pulse { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.12); opacity: 1; } }
-        @keyframes ring-spin  { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes ring-spin-r { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-      `}</style>
-
-      {/* Deep gradient backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#040608] via-[#080d16] to-[#040608]" />
-
-      {/* Ambient glow orbs */}
-      <motion.div
-        animate={{ x: [0, 30, -15, 0], y: [0, -20, 15, 0], scale: [1, 1.04, 0.96, 1] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute h-[600px] w-[600px] rounded-full opacity-[0.08]"
-        style={{ background: "radial-gradient(circle, #3b82f6 0%, transparent 65%)", top: "0%", left: "10%" }}
-      />
-      <motion.div
-        animate={{ x: [0, -20, 25, 0], y: [0, 30, -15, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute h-[450px] w-[450px] rounded-full opacity-[0.06]"
-        style={{ background: "radial-gradient(circle, #8b5cf6 0%, transparent 65%)", bottom: "5%", right: "0%" }}
-      />
-
-      {/* Subtle dot grid */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-        }}
-      />
-
-      {/* Animated data flow particles */}
-      <PulseDot x="15%" y="25%" delay={0} />
-      <PulseDot x="78%" y="18%" delay={0.8} color="#8b5cf6" />
-      <PulseDot x="85%" y="65%" delay={1.6} />
-      <PulseDot x="12%" y="72%" delay={2.4} color="#22c55e" />
-      <PulseDot x="50%" y="88%" delay={1.2} color="#8b5cf6" />
-      <PulseDot x="35%" y="10%" delay={3} />
-
-      {/* ═══════════ CENTRAL ORB + ORBITING ICONS ═══════════ */}
-      <div className="relative z-10" style={{ transformStyle: "preserve-3d" }}>
-
-        {/* Glowing core orb */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.3 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex h-[100px] w-[100px] items-center justify-center"
-          style={{ left: "50%", top: "50%", marginLeft: -50, marginTop: -50 }}
-        >
-          {/* Rings */}
-          <div className="absolute h-[280px] w-[280px] rounded-full border border-dashed border-white/[0.04]"
-            style={{ animation: "ring-spin 40s linear infinite", left: "50%", top: "50%", marginLeft: -140, marginTop: -140 }} />
-          <div className="absolute h-[200px] w-[200px] rounded-full border border-white/[0.06]"
-            style={{ animation: "ring-spin-r 30s linear infinite", left: "50%", top: "50%", marginLeft: -100, marginTop: -100 }} />
-          <div className="absolute h-[130px] w-[130px] rounded-full border border-[#3b82f6]/15"
-            style={{ left: "50%", top: "50%", marginLeft: -65, marginTop: -65 }} />
-
-          {/* Core sphere */}
-          <div className="relative h-[80px] w-[80px] rounded-full"
-            style={{
-              background: "radial-gradient(circle at 35% 35%, #60a5fa 0%, #3b82f6 40%, #1d4ed8 80%, #1e3a5f 100%)",
-              boxShadow: "0 0 60px rgba(59,130,246,0.4), 0 0 120px rgba(59,130,246,0.15), inset 0 -4px 12px rgba(0,0,0,0.3), inset 0 2px 8px rgba(255,255,255,0.15)",
-              animation: "core-pulse 4s ease-in-out infinite",
-            }}
-          >
-            <div className="absolute top-2 left-3 h-6 w-6 rounded-full bg-white/20 blur-[3px]" />
-            <div className="flex h-full w-full items-center justify-center">
-              <Zap className="h-7 w-7 text-white drop-shadow-lg" />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Orbiting integration icons */}
-        {/* Slack */}
-        <OrbitIcon delay={0.4} duration={25} startAngle={0} size={44}>
-          <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/><path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.527 2.527 0 0 1 2.521 2.521 2.527 2.527 0 0 1-2.521 2.521H2.522A2.527 2.527 0 0 1 0 8.834a2.527 2.527 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/><path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.271 0a2.527 2.527 0 0 1-2.521 2.521 2.527 2.527 0 0 1-2.521-2.521V2.522A2.527 2.527 0 0 1 15.164 0a2.527 2.527 0 0 1 2.521 2.522v6.312z" fill="#2EB67D"/><path d="M15.164 18.956a2.528 2.528 0 0 1 2.521 2.522A2.528 2.528 0 0 1 15.164 24a2.527 2.527 0 0 1-2.521-2.522v-2.522h2.521zm0-1.271a2.527 2.527 0 0 1-2.521-2.521 2.527 2.527 0 0 1 2.521-2.521h6.314A2.528 2.528 0 0 1 24 15.164a2.528 2.528 0 0 1-2.522 2.521h-6.314z" fill="#ECB22E"/></svg>
-        </OrbitIcon>
-        {/* Gmail */}
-        <OrbitIcon delay={0.6} duration={28} startAngle={72} size={40}>
-          <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/></svg>
-        </OrbitIcon>
-        {/* GitHub */}
-        <OrbitIcon delay={0.8} duration={22} startAngle={144} size={40}>
-          <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" fill="#fff"/></svg>
-        </OrbitIcon>
-        {/* Google Sheets */}
-        <OrbitIcon delay={1.0} duration={26} startAngle={216} size={38}>
-          <svg className="h-5 w-5" viewBox="0 0 24 24"><path d="M19.5 7H15V1.5L19.5 7z" fill="#188038"/><path d="M19.5 7H15V1.5l.5-.5H6a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V7.5l-.5-.5z" fill="#34A853"/><rect x="8" y="12" width="8" height="1.5" rx="0.3" fill="#fff" opacity="0.8"/><rect x="8" y="15" width="8" height="1.5" rx="0.3" fill="#fff" opacity="0.6"/><rect x="8" y="18" width="5" height="1.5" rx="0.3" fill="#fff" opacity="0.4"/></svg>
-        </OrbitIcon>
-        {/* Notion */}
-        <OrbitIcon delay={1.2} duration={30} startAngle={288} size={38}>
-          <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.06 2.2c-.42-.326-.98-.7-2.055-.607L3.01 2.669c-.467.047-.56.28-.374.467l1.823 1.072zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.84-.046.933-.56.933-1.166V6.348c0-.606-.233-.933-.747-.887l-15.177.887c-.56.047-.746.327-.746.94zm14.337.746c.093.42 0 .84-.42.887l-.7.14v10.264c-.607.327-1.166.514-1.633.514-.747 0-.933-.234-1.493-.933l-4.573-7.178v6.945l1.447.327s0 .84-1.167.84l-3.22.187c-.093-.187 0-.653.327-.747l.84-.213V9.854L7.467 9.76c-.093-.42.14-1.026.793-1.073l3.453-.233 4.76 7.272v-6.432l-1.213-.14c-.094-.513.28-.886.747-.932l3.453-.234z" fillRule="evenodd"/></svg>
-        </OrbitIcon>
-      </div>
-
-      {/* ═══════════ FLOATING 3D FEATURE CARDS ═══════════ */}
-      <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none" style={{ perspective: "1000px" }}>
-        {/* Top-left: AI Builder */}
-        <div className="absolute pointer-events-auto" style={{ left: "3%", top: "6%" }}>
-          <FeatureCard
-            delay={0.5}
-            icon={<Zap className="h-4 w-4 text-[#3b82f6]" />}
-            title="AI-Powered Builder"
-            desc="Describe your workflow in plain English. Our AI builds it for you."
-          />
-        </div>
-        {/* Bottom-right: Zero-code */}
-        <div className="absolute pointer-events-auto" style={{ right: "3%", bottom: "18%" }}>
-          <FeatureCard
-            delay={0.8}
-            icon={<svg className="h-4 w-4 text-[#22c55e]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>}
-            title="Zero-Code Workflows"
-            desc="Connect apps visually. No programming skills required."
-          />
-        </div>
-        {/* Bottom-left: Real-time */}
-        <div className="absolute pointer-events-auto" style={{ left: "5%", bottom: "5%" }}>
-          <FeatureCard
-            delay={1.1}
-            icon={<svg className="h-4 w-4 text-[#f59e0b]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>}
-            title="Real-Time Monitoring"
-            desc="Track every execution. Debug issues before they impact your business."
-          />
-        </div>
-      </div>
-
-      {/* ═══════════ BOTTOM: Live workflow pipeline ═══════════ */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 1.4 }}
-        className="absolute bottom-8 left-1/2 z-30 -translate-x-1/2"
-      >
-        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-[#0a0f18]/80 px-5 py-3 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
-          {/* Trigger */}
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#22c55e]/15">
-              <div className="h-2 w-2 rounded-full bg-[#22c55e] animate-pulse" />
-            </div>
-            <span className="text-[0.65rem] font-semibold text-white/50">Trigger</span>
-          </div>
-          {/* Flow arrow 1 */}
-          <div className="relative w-8 h-[2px] overflow-hidden rounded-full bg-white/[0.06]">
-            <motion.div
-              className="absolute inset-y-0 left-0 w-3 rounded-full bg-[#3b82f6]"
-              animate={{ x: ["-100%", "300%"] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
-            />
-          </div>
-          {/* AI Process */}
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#3b82f6]/15">
-              <Zap className="h-3 w-3 text-[#3b82f6]" />
-            </div>
-            <span className="text-[0.65rem] font-semibold text-white/50">AI Process</span>
-          </div>
-          {/* Flow arrow 2 */}
-          <div className="relative w-8 h-[2px] overflow-hidden rounded-full bg-white/[0.06]">
-            <motion.div
-              className="absolute inset-y-0 left-0 w-3 rounded-full bg-[#8b5cf6]"
-              animate={{ x: ["-100%", "300%"] }}
-              transition={{ duration: 1.5, delay: 0.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
-            />
-          </div>
-          {/* Deploy */}
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#8b5cf6]/15">
-              <ArrowRight className="h-3 w-3 text-[#8b5cf6]" />
-            </div>
-            <span className="text-[0.65rem] font-semibold text-white/50">Deploy</span>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════
    MAIN AUTH SCREEN COMPONENT
@@ -712,8 +458,10 @@ export default function AuthScreen({
         transition={{ duration: 0.7, delay: 0.25 }}
         className="hidden lg:block lg:w-[50%]"
       >
-        <div className="relative h-full border-l border-white/[0.04]">
-          <HeroVisual />
+        <div className="relative h-full border-l border-white/[0.04] bg-gradient-to-br from-[#040608] via-[#080d16] to-[#040608] flex items-center justify-center p-6">
+          <div className="w-full max-w-[720px]" style={{ aspectRatio: "18/10" }}>
+            <LoginDemoPlayer />
+          </div>
         </div>
       </motion.div>
     </main>

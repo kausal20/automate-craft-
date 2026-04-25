@@ -418,11 +418,13 @@ export default function DashboardShell({
       <main className={`${mainMargin} relative min-w-0 flex-1 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
         {children}
       </main>
-      <div className="pointer-events-none fixed right-5 top-5 z-[9999] sm:right-6 sm:top-6">
-        <div className="pointer-events-auto">
-          <CreditsDropdown />
+      {!isChatWorkspace && (
+        <div className="pointer-events-none fixed right-5 top-5 z-[9999] sm:right-6 sm:top-6">
+          <div className="pointer-events-auto">
+            <CreditsDropdown />
+          </div>
         </div>
-      </div>
+      )}
       <ProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}

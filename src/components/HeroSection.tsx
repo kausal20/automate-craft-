@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { ArrowUp, Mic, Paperclip, Sparkles } from "lucide-react";
 import HeroScene from "@/components/HeroScene";
+
 import SocialMiniButtons from "@/components/home/SocialMiniButtons";
 import { LoginModal } from "@/components/auth/LoginModal";
 import type { AuthenticatedUser } from "@/lib/automation";
@@ -544,15 +545,17 @@ export default function HeroSection({
             </div>
           </section>
 
-          {/* Social proof counters */}
+
+
+          {/* Platform capabilities */}
           <section className="relative py-12 overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#09090b]/25 to-transparent" />
             <div className="relative mx-auto max-w-6xl px-6 lg:px-8">
               <div className="grid grid-cols-3 gap-4 md:gap-8">
                 {[
-                  { value: "3,200+", label: "Automations built" },
-                  { value: "85",     label: "Countries active" },
-                  { value: "99.9%",  label: "Execution uptime" },
+                  { value: "60+", label: "Integrations supported" },
+                  { value: "<3 min", label: "Average build time" },
+                  { value: "24/7", label: "Always-on execution" },
                 ].map((stat) => (
                   <motion.div
                     key={stat.label}

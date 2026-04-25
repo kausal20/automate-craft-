@@ -31,7 +31,9 @@ export default function NavbarClient({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  if (pathname !== "/") {
+  // Hide navbar on auth pages (they have their own layout) and dashboard (has sidebar)
+  const hiddenRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup"];
+  if (pathname.startsWith("/dashboard") || hiddenRoutes.includes(pathname)) {
     return null;
   }
 

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil, Zap, MessageSquarePlus, Workflow, Mail, FileSpreadsheet, PanelRight, Clock, Activity } from "lucide-react";
+import { ArrowUp, ChevronDown, CheckCircle2, Home, Star, PenLine, Paperclip, Mic, X, Sparkles, Copy, Check, Pencil, Zap, MessageSquarePlus, Workflow, Mail, FileSpreadsheet, PanelRight, Clock, Activity, Bot } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import { InteractiveCanvas, type FlowNode } from "./InteractiveCanvas";
 import { FormCard, type FieldDef, type FieldValue } from "./FormCard";
 import { ProgressCard } from "./ProgressCard";
@@ -161,11 +162,25 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 const SUGGESTION_CHIPS = [
-  { icon: Workflow, label: "Automate my email workflow" },
-  { icon: FileSpreadsheet, label: "Sync Sheets to CRM" },
-  { icon: Mail, label: "Send alerts on form submit" },
-  { icon: Zap, label: "Connect WhatsApp to pipeline" },
+  { icon: Workflow, label: "Email Workflow", desc: "Automate my email follow-up workflow" },
+  { icon: FileSpreadsheet, label: "Sheets → CRM", desc: "Sync Google Sheets data to my CRM" },
+  { icon: Mail, label: "Form Alerts", desc: "Send alerts when a form is submitted" },
+  { icon: Zap, label: "WhatsApp Pipeline", desc: "Connect WhatsApp to my lead pipeline" },
 ];
+
+/* ── AI Avatar component ── */
+function AiAvatar() {
+  /* LOGIC EXPLAINED:
+  The chat workspace used multiple flat black fills, which made the page feel
+  empty. The shared chat surface classes move the shell, header, and composer
+  onto a blue-black graphite palette so the UI stays majorly black but gains
+  depth and separation. */
+  return (
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/10 shadow-[0_0_12px_rgba(59,130,246,0.08)]">
+      <Image src="/logo-new.png" alt="AI" width={18} height={18} className="object-contain" />
+    </div>
+  );
+}
 
 /* ── Recent Activity Panel ── */
 function RecentActivityPanel() {
@@ -270,17 +285,12 @@ function renderStructuredAiContent(content: string) {
   return (
     <div className="space-y-2">
       {heading && (
-        <div className="flex items-center gap-2">
-          <div className="flex h-5 w-5 items-center justify-center rounded-md bg-accent/[0.08]">
-            <Zap className="h-3 w-3 text-accent" />
-          </div>
-          <span className="text-[14px] font-semibold text-white">{heading}</span>
-        </div>
+        <p className="text-[14px] font-semibold text-white/85">{heading}</p>
       )}
       {summary && <p className="text-[13px] leading-relaxed text-white/50">{summary}</p>}
 
       {details.length > 0 && (
-        <div className="space-y-1 text-[13px] leading-relaxed text-white/55">
+        <div className="space-y-1 text-[13px] leading-relaxed text-white/45">
           {details.map((line, index) => (
             <p key={`${line}-${index}`}>{line}</p>
           ))}
@@ -290,8 +300,8 @@ function renderStructuredAiContent(content: string) {
       {bullets.length > 0 && (
         <div className="space-y-1.5 mt-1">
           {bullets.map((item, index) => (
-            <div key={`${item}-${index}`} className="flex items-center gap-2 text-[13px] text-white/60">
-              <CheckCircle2 className="h-3 w-3 text-accent/60 shrink-0" />
+            <div key={`${item}-${index}`} className="flex items-start gap-2 text-[13px] text-white/50">
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent/40 shrink-0" />
               <span>{item}</span>
             </div>
           ))}
@@ -792,13 +802,15 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
   })();
 
   return (
-    <div className="flex h-full w-full bg-[#0a0a0a] overflow-hidden">
+    <div className="chat-shell-bg flex h-full w-full overflow-hidden">
 
       {/* ─── Main Chat Area ─── */}
-      <div className="relative flex h-full flex-1 flex-col min-w-0">
+      <div className={`relative flex h-full flex-col min-w-0 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        isPanelOpen && isCanvasVisible ? "w-[40%] shrink-0" : "flex-1"
+      }`}>
 
         {/* Header */}
-        <div className="relative z-50 flex h-[52px] shrink-0 items-center justify-between px-5 border-b border-white/[0.04] bg-[#0a0a0a]/90 backdrop-blur-md">
+        <div className="chat-header-surface relative z-50 flex h-[52px] shrink-0 items-center justify-between border-b px-5">
           <div className="relative flex items-center" ref={dropdownRef}>
             <div className="flex items-center gap-1">
               {isEditingTitle ? (
@@ -847,7 +859,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ duration: 0.12 }}
-                  className="absolute left-0 top-full mt-1 w-44 rounded-xl border border-white/[0.06] bg-[#111]/95 shadow-[0_12px_40px_rgba(0,0,0,0.6)] overflow-hidden py-1 z-50 backdrop-blur-xl"
+                  className="chat-elevated-surface absolute left-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border py-1"
                 >
                   <button
                     onClick={() => { setIsStarred((current) => !current); setIsDropdownOpen(false); }}
@@ -878,7 +890,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                 }`}
               >
                 <PanelRight className="h-3.5 w-3.5" />
-                Workflow
+                {isPanelOpen ? "Hide Preview" : "Show Preview"}
               </button>
             )}
           </div>
@@ -887,7 +899,9 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
         {/* Messages area */}
         <div className="relative flex-1 overflow-hidden">
           <div className="h-full overflow-y-auto chat-bg-gradient">
-            <div className="mx-auto max-w-3xl px-5 pb-40 pt-6" role="log" aria-live="polite" aria-label="Automation workspace">
+            <div className={`mx-auto px-5 pb-40 pt-6 transition-all duration-300 ${
+              isPanelOpen && isCanvasVisible ? "max-w-full" : "max-w-3xl"
+            }`} role="log" aria-live="polite" aria-label="Automation workspace">
 
               {/* Empty state */}
               {!hasMessages && (
@@ -895,38 +909,41 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="relative flex flex-col items-center justify-center pt-[8vh]"
+                  className="relative flex flex-col items-center justify-center pt-[12vh]"
                 >
-                  {/* Animated ambient mesh — slow-drifting gradient blobs */}
-                  <div className="chat-ambient-mesh" />
+                  {/* Ambient gradient backdrop */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[500px] rounded-full bg-accent/[0.03] blur-[100px]" />
+                    <div className="absolute top-1/3 left-1/3 h-[200px] w-[300px] rounded-full bg-violet-500/[0.02] blur-[80px]" />
+                  </div>
 
                   {/* Hero icon + heading */}
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/[0.06] ring-1 ring-accent/[0.08] mb-5 shadow-[0_0_30px_rgba(59,130,246,0.06)]">
-                      <MessageSquarePlus className="h-6 w-6 text-accent/40" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/10 to-accent/[0.03] ring-1 ring-accent/[0.1] mb-6 shadow-[0_0_40px_rgba(59,130,246,0.08)]">
+                      <Image src="/logo-new.png" alt="AutomateCraft" width={32} height={32} className="object-contain" />
                     </div>
-                    <h3 className="text-[16px] font-semibold text-white/80 mb-1.5">Start a new automation</h3>
-                    <p className="text-[13px] text-white/30 mb-8 text-center max-w-[300px] leading-relaxed">
-                      Describe what you want to automate and the engine will build it.
+                    <h3 className="text-[20px] font-semibold text-white/90 mb-2 tracking-tight">What would you like to automate?</h3>
+                    <p className="text-[14px] text-white/35 mb-10 text-center max-w-[360px] leading-relaxed">
+                      Describe your workflow in plain language and the engine will build it for you.
                     </p>
                   </div>
 
-                  {/* Suggestion chips */}
-                  <div className="relative z-10 grid grid-cols-2 gap-2.5 w-full max-w-[420px] mb-8">
+                  {/* Suggestion cards */}
+                  <div className="relative z-10 grid grid-cols-2 gap-3 w-full max-w-[460px]">
                     {SUGGESTION_CHIPS.map((chip) => (
                       <button
                         key={chip.label}
-                        onClick={() => handleSuggestionClick(chip.label)}
-                        className="group flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3.5 py-3 text-left transition-all duration-250 hover:bg-accent/[0.04] hover:border-accent/15 hover:shadow-[0_4px_20px_rgba(59,130,246,0.06)]"
+                        onClick={() => handleSuggestionClick(chip.desc)}
+                        className="group flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-white/[0.015] p-4 text-left transition-all duration-250 hover:bg-accent/[0.03] hover:border-accent/15 hover:shadow-[0_8px_30px_rgba(59,130,246,0.06)] hover:-translate-y-0.5"
                       >
-                        <chip.icon className="h-3.5 w-3.5 text-white/20 group-hover:text-accent/60 transition-colors duration-250 shrink-0" />
-                        <span className="text-[12px] text-white/40 group-hover:text-white/70 transition-colors duration-250 leading-snug">{chip.label}</span>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/[0.06] ring-1 ring-accent/[0.08]">
+                          <chip.icon className="h-3.5 w-3.5 text-accent/50 group-hover:text-accent transition-colors duration-250" />
+                        </div>
+                        <span className="text-[13px] font-medium text-white/60 group-hover:text-white/85 transition-colors duration-250">{chip.label}</span>
+                        <span className="text-[11px] text-white/25 leading-relaxed group-hover:text-white/40 transition-colors duration-250">{chip.desc}</span>
                       </button>
                     ))}
                   </div>
-
-                  {/* ── Recent Activity + Last Automation ── */}
-                  <RecentActivityPanel />
                 </motion.div>
               )}
 
@@ -938,7 +955,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
-                    className={`mb-6 ${msg.role === "user" ? "flex justify-end" : msg.role === "system" ? "flex justify-center" : ""}`}
+                    className={`mb-5 ${msg.role === "user" ? "flex justify-end" : msg.role === "system" ? "flex justify-center" : ""}`}
                   >
                     {/* ── USER MESSAGE ── */}
                     {msg.role === "user" && (
@@ -947,7 +964,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                         onMouseEnter={() => setHoveredMsgId(msg.id)}
                         onMouseLeave={() => setHoveredMsgId(null)}
                       >
-                        <div className="rounded-2xl rounded-br-md bg-accent/[0.06] border border-accent/10 px-4 py-3 text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap shadow-[0_4px_16px_rgba(59,130,246,0.06)]">
+                        <div className="rounded-2xl rounded-br-md bg-white/[0.04] border border-white/[0.06] px-4 py-3 text-[13px] leading-relaxed text-white/85 whitespace-pre-wrap">
                           {msg.content}
                         </div>
 
@@ -984,7 +1001,11 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
                     {/* ── AI MESSAGE ── */}
                     {msg.role === "ai" && (
-                      <div className="w-full">
+                      <div className="w-full flex gap-3">
+                        <div className="pt-1 shrink-0">
+                          <AiAvatar />
+                        </div>
+                        <div className="flex-1 min-w-0">
 
                         {/* Engine Analysis Cards (Trigger / Action / Setup) */}
                         {msg.engineCards && (
@@ -998,7 +1019,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
                         {/* AI text content — streamed, with accent border */}
                         {msg.content && (
-                          <div className="border-l-2 border-accent/20 pl-4 py-1 mb-3">
+                          <div className="py-1 mb-3">
                             <StreamContent content={msg.content} timestamp={msg.timestamp} />
                             {msg.timestamp && (
                               <span className="mt-2 block text-[10px] text-white/15">{formatRelativeTime(msg.timestamp)}</span>
@@ -1047,13 +1068,19 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                             />
                           </div>
                         )}
+                        </div>
                       </div>
                     )}
 
                     {/* ── THINKING STATE ── */}
                     {msg.role === "thinking" && (
-                      <div className="w-full">
-                        <ProgressCard steps={msg.content.split('\n')} />
+                      <div className="w-full flex gap-3">
+                        <div className="pt-1 shrink-0">
+                          <AiAvatar />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <ProgressCard steps={msg.content.split('\n')} />
+                        </div>
                       </div>
                     )}
 
@@ -1088,12 +1115,12 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
         </div>
 
         {/* ─── Floating Input Bar ─── */}
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/97 to-transparent px-5 pb-5 pt-14 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#08090b] via-[#08090b]/97 to-transparent px-5 pb-6 pt-16 pointer-events-none">
           <form
             onSubmit={handleSubmit}
-            className={`w-full max-w-3xl flex flex-col gap-2 rounded-2xl border bg-[#111113]/90 backdrop-blur-xl px-4 py-3 transition-all duration-250 pointer-events-auto
-              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-accent/20 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.06)]"}
-              shadow-[0_-4px_40px_rgba(0,0,0,0.4)]
+            className={`chat-composer-surface w-full flex flex-col gap-2.5 rounded-2xl border px-5 py-4 transition-all duration-300 pointer-events-auto
+              ${isPanelOpen && isCanvasVisible ? "max-w-full" : "max-w-3xl"}
+              ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-accent/25 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.08),0_0_30px_rgba(59,130,246,0.04)]"}
             `}
           >
             {/* LOGIC EXPLAINED:
@@ -1110,7 +1137,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
               }}
               placeholder={isInputDisabled ? "Engine is processing..." : "Describe what you want to automate..."}
               disabled={isInputDisabled}
-              className="prompt-textarea caret-accent w-full min-h-[44px] max-h-[160px] resize-none bg-transparent text-[14px] text-white outline-none placeholder:text-white/20 disabled:cursor-not-allowed"
+              className="prompt-textarea caret-accent w-full min-h-[52px] max-h-[180px] resize-none bg-transparent text-[14px] leading-relaxed text-white outline-none placeholder:text-white/20 disabled:cursor-not-allowed"
             />
 
             {/* Bottom Actions */}
@@ -1131,57 +1158,6 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                   onChange={handleFileAttach}
                   multiple
                 />
-
-                {/* Ultra Thinking Toggle */}
-                <div className="relative flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isStarterPlan) {
-                        setShowUpgradePopup(true);
-                      } else {
-                        setUltraThinking(!ultraThinking);
-                      }
-                    }}
-                    className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all duration-200 ${
-                      ultraThinking
-                        ? "bg-accent/[0.08] text-accent ring-1 ring-accent/20"
-                        : "text-white/25 hover:text-white/45"
-                    }`}
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    Ultra
-                  </button>
-
-                  <AnimatePresence>
-                    {showUpgradePopup && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute bottom-[calc(100%+8px)] left-0 w-56 rounded-xl border border-white/[0.06] bg-[#111]/95 p-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.6)] z-50 backdrop-blur-xl"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setShowUpgradePopup(false)}
-                          className="absolute right-2 top-2 rounded-md p-1 text-white/25 hover:bg-white/[0.04] hover:text-white/50"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                        <p className="text-[12px] text-white/60 pr-4 leading-relaxed">
-                          Ultra Thinking is available in Plus and above.
-                        </p>
-                        <Link
-                          href="/pricing"
-                          onClick={() => setShowUpgradePopup(false)}
-                          className="mt-2.5 block w-full rounded-lg bg-white py-1.5 text-center text-[12px] font-bold text-black transition-all hover:bg-white/90"
-                        >
-                          Upgrade
-                        </Link>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
 
                 {/* Attached files */}
                 {attachedFiles.map(file => (
@@ -1210,14 +1186,14 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                 <button
                   type="submit"
                   disabled={(!inputText.trim() && attachedFiles.length === 0) || isInputDisabled}
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 active:scale-95 ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 active:scale-[0.93] ${
                     (!inputText.trim() && attachedFiles.length === 0) || isInputDisabled
                       ? "bg-white/[0.06] text-white/20"
-                      : "bg-gradient-to-br from-accent to-blue-600 text-white shadow-[0_4px_12px_rgba(59,130,246,0.3)] hover:shadow-[0_6px_18px_rgba(59,130,246,0.4)]"
+                      : "bg-gradient-to-br from-accent to-blue-600 text-white shadow-[0_4px_14px_rgba(59,130,246,0.3)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.4)] hover:scale-105"
                   }`}
                   aria-label="Send message"
                 >
-                  <ArrowUp className="h-3.5 w-3.5 stroke-[2.5]" />
+                  <ArrowUp className="h-4 w-4 stroke-[2.5]" />
                 </button>
               </div>
             </div>

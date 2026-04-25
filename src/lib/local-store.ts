@@ -5,6 +5,7 @@ import type {
   AutomationRunRecord,
   IntegrationConnectionRecord,
 } from "@/lib/automation";
+import type { WorkflowRunRecord, StepLogRecord } from "@/lib/workflow-run-store";
 import { isOpenAccessMode } from "@/lib/env";
 import { GUEST_USER_EMAIL, GUEST_USER_ID, GUEST_USER_NAME } from "@/lib/guest-access";
 import { createLogger } from "@/lib/logger";
@@ -68,6 +69,8 @@ type LocalDatabase = {
   usageLogs: UsageLogRecord[];
   plans: PlanRecord[];
   subscriptions: UserSubscriptionRecord[];
+  workflowRuns: WorkflowRunRecord[];
+  stepLogs: StepLogRecord[];
 };
 
 const STORAGE_DIR = path.join(process.cwd(), "data");
@@ -97,6 +100,8 @@ const emptyDatabase: LocalDatabase = {
   connections: [],
   consultationRequests: [],
   usageLogs: [],
+  workflowRuns: [],
+  stepLogs: [],
   plans: [
     {
       id: "plan_starter",
@@ -163,6 +168,8 @@ function normalizeLocalDatabase(
     usageLogs: database?.usageLogs ?? [],
     plans: database?.plans && database.plans.length > 0 ? database.plans : emptyDatabase.plans,
     subscriptions: database?.subscriptions ?? [],
+    workflowRuns: database?.workflowRuns ?? [],
+    stepLogs: database?.stepLogs ?? [],
   };
 
   if (

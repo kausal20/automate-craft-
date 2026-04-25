@@ -13,13 +13,13 @@ export default function AppChrome({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const showNavbar = pathname === "/";
-  const hideFooter =
-    pathname.startsWith("/dashboard") ||
-    pathname === "/login" ||
-    pathname === "/signup" ||
-    pathname === "/how-credits-work" ||
-    pathname === "/";
+
+  // Show navbar on all public pages, hide on auth + dashboard
+  const hiddenNavbarRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup", "/lets-talk"];
+  const showNavbar = !pathname.startsWith("/dashboard") && !hiddenNavbarRoutes.includes(pathname);
+
+  const hideFooterRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup", "/lets-talk"];
+  const hideFooter = pathname.startsWith("/dashboard") || hideFooterRoutes.includes(pathname);
 
   return (
     <div className="flex min-h-screen flex-col">
