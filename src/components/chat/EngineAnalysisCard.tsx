@@ -74,7 +74,7 @@ function AnalysisRow({ item, isNew }: { item: { id: string; label: string; value
           initial={{ opacity: 0, x: -6 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.25 }}
-          className="flex items-center gap-3 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3.5 py-2.5"
+          className="liquid-glass flex items-center gap-3 rounded-xl border border-white/[0.06] px-3.5 py-2.5 transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
         >
           <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${item.bg}`}>
             <Icon className={`h-3 w-3 ${item.color}`} />

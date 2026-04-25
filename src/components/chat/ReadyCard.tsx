@@ -46,7 +46,7 @@ export function ReadyCard({
       transition={{ duration: 0.3 }}
       className="w-full mb-4"
     >
-      <div className="rounded-xl border border-white/[0.06] bg-[#0e0e10] overflow-hidden">
+      <div className="liquid-glass rounded-xl border border-white/[0.08] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] hover:-translate-y-[2px]">
         <div className="px-5 py-5">
 
           {/* Status badge */}
@@ -103,7 +103,7 @@ export function ReadyCard({
               <button
                 onClick={onDeploy}
                 disabled={isDeploying || isTesting}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[12px] font-semibold text-white transition-all hover:bg-accent/90 active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="liquid-button flex flex-1 items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-[12px] font-semibold text-white transition-all hover:bg-accent/90 hover:shadow-[0_4px_16px_rgba(59,130,246,0.5)] active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed border border-white/10"
               >
                 {isDeploying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
                 {isDeploying ? "Deploying…" : "Deploy"}

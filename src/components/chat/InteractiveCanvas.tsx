@@ -356,17 +356,12 @@ export function InteractiveCanvas({
                                 : "bg-gradient-to-b from-white/10 to-white/[0.03]"
                             }`} />
 
-                            {/* Animated flowing particle */}
+                            {/* Animated flowing particle (Data packet) */}
                             {!reducedMotion && (isActive || isTestExecuting || isTesting || (nodes[index + 1]?.status === "active")) && (
                               <motion.div
-                                className="absolute left-1/2 w-[2px] -translate-x-1/2 rounded-full"
-                                style={{
-                                  height: "16px",
-                                  background: `linear-gradient(to bottom, ${getAccentHex(node.type)}, transparent)`,
-                                  boxShadow: `0 0 10px ${getAccentHex(node.type)}80`,
-                                }}
-                                animate={{ top: ["-16px", "100%"] }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear", repeatDelay: 0.3 }}
+                                className="absolute top-0 left-[-1.5px] h-3 w-[4px] rounded-full bg-accent blur-[1px] shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+                                animate={{ top: ["-10%", "110%"], opacity: [0, 1, 0] }}
+                                transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                               />
                             )}
 

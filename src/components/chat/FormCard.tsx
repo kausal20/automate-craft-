@@ -75,7 +75,7 @@ export function FormCard({ title, description, fields, onSubmit, summaryText }: 
       transition={{ duration: 0.3 }}
       className="w-full mb-4"
     >
-      <div className="rounded-xl border border-white/[0.06] bg-[#0e0e10] overflow-hidden">
+      <div className="liquid-glass rounded-xl border border-white/[0.08] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.4)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)] hover:-translate-y-[2px]">
         {/* Header */}
         <div className="px-5 pt-5 pb-4">
           <p className="text-[11px] font-medium text-accent/50 mb-1">I need a few details to continue</p>

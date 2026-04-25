@@ -266,7 +266,7 @@ function RecentActivityPanel() {
   );
 }
 
-function renderStructuredAiContent(content: string) {
+function renderStructuredAiContent(content: string, isStreaming: boolean = false) {
   if (!content) return null;
   const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
   
@@ -282,17 +282,31 @@ function renderStructuredAiContent(content: string) {
   const summary = bodyLines[0] ?? "";
   const details = bodyLines.slice(1);
 
+  const cursor = <span className="inline-block ml-1 w-1.5 h-[14px] bg-accent/80 animate-pulse align-middle shadow-[0_0_8px_rgba(59,130,246,0.6)] rounded-sm" />;
+
   return (
     <div className="space-y-2">
       {heading && (
-        <p className="text-[14px] font-semibold text-white/85">{heading}</p>
+        <p className="text-[14px] font-semibold text-white/85">
+          {heading}
+        </p>
       )}
-      {summary && <p className="text-[13px] leading-relaxed text-white/50">{summary}</p>}
+      {heading && !summary && !details.length && !bullets.length && isStreaming && cursor}
+
+      {summary && (
+        <p className="text-[13px] leading-relaxed text-white/50">
+          {summary}
+          {!details.length && !bullets.length && isStreaming && cursor}
+        </p>
+      )}
 
       {details.length > 0 && (
         <div className="space-y-1 text-[13px] leading-relaxed text-white/45">
           {details.map((line, index) => (
-            <p key={`${line}-${index}`}>{line}</p>
+            <p key={`${line}-${index}`}>
+              {line}
+              {index === details.length - 1 && !bullets.length && isStreaming && cursor}
+            </p>
           ))}
         </div>
       )}
@@ -302,7 +316,10 @@ function renderStructuredAiContent(content: string) {
           {bullets.map((item, index) => (
             <div key={`${item}-${index}`} className="flex items-start gap-2 text-[13px] text-white/50">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent/40 shrink-0" />
-              <span>{item}</span>
+              <span>
+                {item}
+                {index === bullets.length - 1 && isStreaming && cursor}
+              </span>
             </div>
           ))}
         </div>
@@ -313,15 +330,18 @@ function renderStructuredAiContent(content: string) {
 
 function StreamContent({ content, timestamp }: { content: string, timestamp?: number }) {
   const [displayed, setDisplayed] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
   
   useEffect(() => {
     const isNew = Date.now() - (timestamp || 0) < 2000;
     const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!isNew || prefersReduced) {
       setDisplayed(content);
+      setIsStreaming(false);
       return;
     }
 
+    setIsStreaming(true);
     let index = 0;
     const speed = 18;
     const timer = setInterval(() => {
@@ -329,13 +349,14 @@ function StreamContent({ content, timestamp }: { content: string, timestamp?: nu
       if (index > content.length) index = content.length;
       setDisplayed(content.slice(0, index));
       if (index === content.length) {
+        setIsStreaming(false);
         clearInterval(timer);
       }
     }, speed);
     return () => clearInterval(timer);
   }, [content, timestamp]);
 
-  return renderStructuredAiContent(displayed);
+  return renderStructuredAiContent(displayed, isStreaming);
 }
 
 export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThinkingProp = false }: ChatContainerProps) {
@@ -934,9 +955,9 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                       <button
                         key={chip.label}
                         onClick={() => handleSuggestionClick(chip.desc)}
-                        className="group flex flex-col gap-2 rounded-xl border border-white/[0.06] bg-white/[0.015] p-4 text-left transition-all duration-250 hover:bg-accent/[0.03] hover:border-accent/15 hover:shadow-[0_8px_30px_rgba(59,130,246,0.06)] hover:-translate-y-0.5"
+                        className="liquid-glass group flex flex-col gap-2 rounded-xl border border-white/[0.06] p-4 text-left transition-all duration-300 hover:border-accent/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] hover:-translate-y-1"
                       >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/[0.06] ring-1 ring-accent/[0.08]">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/[0.06] ring-1 ring-accent/[0.08] group-hover:bg-accent/10 transition-colors">
                           <chip.icon className="h-3.5 w-3.5 text-accent/50 group-hover:text-accent transition-colors duration-250" />
                         </div>
                         <span className="text-[13px] font-medium text-white/60 group-hover:text-white/85 transition-colors duration-250">{chip.label}</span>
@@ -951,11 +972,12 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
               <AnimatePresence initial={false}>
                 {messages.map((msg) => (
                   <motion.div
+                    layout
                     key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={`mb-5 ${msg.role === "user" ? "flex justify-end" : msg.role === "system" ? "flex justify-center" : ""}`}
+                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    className={`mb-6 ${msg.role === "user" ? "flex justify-end" : msg.role === "system" ? "flex justify-center" : ""}`}
                   >
                     {/* ── USER MESSAGE ── */}
                     {msg.role === "user" && (
@@ -964,7 +986,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                         onMouseEnter={() => setHoveredMsgId(msg.id)}
                         onMouseLeave={() => setHoveredMsgId(null)}
                       >
-                        <div className="rounded-2xl rounded-br-md bg-white/[0.04] border border-white/[0.06] px-4 py-3 text-[13px] leading-relaxed text-white/85 whitespace-pre-wrap">
+                        <div className="relative rounded-2xl rounded-br-sm bg-gradient-to-br from-[#1c1e26] to-[#12141a] border border-white/[0.08] px-5 py-3.5 text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap shadow-[0_8px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/[0.02] inset-ring-1 inset-ring-white/[0.04]">
                           {msg.content}
                         </div>
 
@@ -1186,14 +1208,29 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                 <button
                   type="submit"
                   disabled={(!inputText.trim() && attachedFiles.length === 0) || isInputDisabled}
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 active:scale-[0.93] ${
-                    (!inputText.trim() && attachedFiles.length === 0) || isInputDisabled
-                      ? "bg-white/[0.06] text-white/20"
+                  className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300 active:scale-[0.93] overflow-hidden ${
+                    (!inputText.trim() && attachedFiles.length === 0) && !isInputDisabled
+                      ? "bg-white/[0.04] text-white/20"
+                      : isInputDisabled
+                      ? "bg-transparent"
                       : "bg-gradient-to-br from-accent to-blue-600 text-white shadow-[0_4px_14px_rgba(59,130,246,0.3)] hover:shadow-[0_6px_20px_rgba(59,130,246,0.4)] hover:scale-105"
                   }`}
-                  aria-label="Send message"
+                  aria-label={isInputDisabled ? "Processing" : "Send message"}
                 >
-                  <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+                  <AnimatePresence mode="wait">
+                    {isInputDisabled ? (
+                      <motion.div 
+                        key="loading"
+                        className="absolute inset-0 rounded-xl border-2 border-accent/20 border-t-accent"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                    ) : (
+                      <motion.div key="arrow" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+                        <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </button>
               </div>
             </div>

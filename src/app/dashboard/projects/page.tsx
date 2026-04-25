@@ -28,6 +28,7 @@ type ChatIndexEntry = {
 };
 import { UpgradeModal } from "@/components/dashboard/UpgradeModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCredits } from "@/components/providers/CreditsProvider";
 
 type AutomationSummary = {
   id: string;
@@ -51,6 +52,7 @@ function formatTimestamp(value: string | null) {
 }
 
 export default function ProjectsPage() {
+  const { refreshCredits } = useCredits();
   const [automations, setAutomations] = useState<AutomationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -238,6 +240,7 @@ export default function ProjectsPage() {
         throw new Error(json.error || "Could not run automation.");
       }
 
+      await refreshCredits();
       await loadAutomations();
     } catch (requestError) {
       setError(

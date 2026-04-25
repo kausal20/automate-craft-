@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { AutomationSetupField, ConnectionStatus } from "@/lib/automation";
+import { useCredits } from "@/components/providers/CreditsProvider";
 
 /* LOGIC EXPLAINED:
 This page loads one saved automation and lets you update its name and setup
@@ -92,6 +93,7 @@ function renderFieldInput(
 }
 
 export default function AutomationDetailPage() {
+  const { refreshCredits } = useCredits();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const automationId = params.id;
@@ -279,6 +281,7 @@ export default function AutomationDetailPage() {
         throw new Error(json.error || "Could not run automation.");
       }
 
+      await refreshCredits();
       setSuccess("Automation run started successfully.");
     } catch (requestError) {
       console.error("[AutomationDetailPage] Failed to run automation.", requestError);

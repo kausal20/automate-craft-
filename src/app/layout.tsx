@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
 import { SplashScreen } from "@/components/SplashScreen";
 import { SupabaseProvider } from "@/components/providers/SupabaseProvider";
+import { CreditsProvider } from "@/components/providers/CreditsProvider";
 import { RuntimeDebugProbe } from "@/components/RuntimeDebugProbe";
 
 const inter = Inter({
@@ -30,11 +31,13 @@ export default function RootLayout({
     >
       <body className="min-h-full font-sans">
         <SupabaseProvider>
-          <RuntimeDebugProbe />
-          <SplashScreen />
-          <AppChrome navbar={<Navbar />} footer={<Footer />}>
-            {children}
-          </AppChrome>
+          <CreditsProvider>
+            <RuntimeDebugProbe />
+            <SplashScreen />
+            <AppChrome navbar={<Navbar />} footer={<Footer />}>
+              {children}
+            </AppChrome>
+          </CreditsProvider>
         </SupabaseProvider>
       </body>
     </html>

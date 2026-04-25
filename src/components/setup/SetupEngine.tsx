@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { UpgradeModal } from "@/components/dashboard/UpgradeModal";
 import type { AuthenticatedUser, ConnectionStatus, AutomationSetupField } from "@/lib/automation";
+import { useCredits } from "@/components/providers/CreditsProvider";
 
 type WorkflowResponse = {
   workflow: {
@@ -33,6 +34,7 @@ type IntegrationResponseItem = {
 };
 
 export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
+  const { refreshCredits } = useCredits();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialPrompt = searchParams.get("prompt") || "";
@@ -113,6 +115,7 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
         if (!response.ok) throw new Error(json.error || "Generation failed.");
         
         setResult(json as WorkflowResponse);
+        await refreshCredits();
         // Replace URL state to clean it up visually if desired, but retaining it is fine.
       } catch (err) {
         setGlobalError(err instanceof Error ? err.message : "Could not generate automation");

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, X } from "lucide-react";
+import { useCredits } from "@/components/providers/CreditsProvider";
 
 type BuyCreditsModalProps = {
   isOpen: boolean;
@@ -46,6 +47,7 @@ export function BuyCreditsModal({
   onClose,
   onPurchased,
 }: BuyCreditsModalProps) {
+  const { refreshCredits } = useCredits();
   const [selectedPackageId, setSelectedPackageId] = useState<string>("pkg_600");
   const [customCredits, setCustomCredits] = useState<string>("600");
   const [submitting, setSubmitting] = useState(false);
@@ -123,6 +125,7 @@ export function BuyCreditsModal({
       }
 
       onPurchased?.(json.creditsAdded ?? selectedCredits);
+      await refreshCredits();
       handleClose(true);
     } catch (purchaseError) {
       setError(

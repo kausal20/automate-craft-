@@ -3,123 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Coins, Loader2 } from "lucide-react";
 import { BuyCreditsModal } from "@/components/dashboard/BuyCreditsModal";
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-
-type CreditsData = {
-  planCredits: number;
-  extraCredits: number;
-  totalCredits: number;
-  monthlyUsage: number;
-  hasSubscription: boolean;
-};
-
-const DEFAULT_CREDITS: CreditsData = {
-  planCredits: 10,
-  extraCredits: 0,
-  totalCredits: 10,
-  monthlyUsage: 0,
-  hasSubscription: false,
-};
+import { useCredits } from "@/components/providers/CreditsProvider";
 
 export function CreditsDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [isBuyCreditsOpen, setIsBuyCreditsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState<CreditsData>(DEFAULT_CREDITS);
   const [animateValue, setAnimateValue] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let channel: RealtimeChannel | null = null;
-
-    async function fetchAndSubscribe() {
-      // 1. Initial fetch via API route (server-side auth)
-      try {
-        const res = await fetch("/api/credits");
-        if (res.ok) {
-          const data = await res.json();
-          setCredits({
-            planCredits: data.planCredits ?? 0,
-            extraCredits: data.extraCredits ?? 0,
-            totalCredits: data.totalCredits ?? 0,
-            monthlyUsage: data.monthlyUsage ?? 0,
-            hasSubscription: data.hasSubscription ?? false,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch credits", error);
-      } finally {
-        setLoading(false);
-      }
-
-      // 2. Real-time subscription via browser client
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) return;
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      channel = supabase
-        .channel("credits-realtime")
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "profiles",
-            filter: `id=eq.${user.id}`,
-          },
-          (payload) => {
-            const row = payload.new as {
-              plan_credits?: number;
-              extra_credits?: number;
-              credits?: number;
-            };
-            // Support both column layouts: `credits` (single) or `plan_credits`+`extra_credits`
-            const planCredits = row.plan_credits ?? row.credits ?? 0;
-            const extraCredits = row.extra_credits ?? 0;
-            const totalCredits = planCredits + extraCredits;
-            setCredits((prev) => ({
-              ...prev,
-              planCredits,
-              extraCredits,
-              totalCredits,
-            }));
-          }
-        )
-        .subscribe();
-    }
-
-    void fetchAndSubscribe();
-
-    return () => {
-      const supabase = getSupabaseBrowserClient();
-      if (supabase && channel) {
-        void supabase.removeChannel(channel);
-      }
-    };
-  }, []);
-
-  const refreshCredits = async () => {
-    try {
-      const res = await fetch("/api/credits", { cache: "no-store" });
-      if (!res.ok) {
-        return;
-      }
-
-      const data = await res.json();
-      setCredits({
-        planCredits: data.planCredits ?? 10,
-        extraCredits: data.extraCredits ?? 0,
-        totalCredits: data.totalCredits ?? 10,
-        monthlyUsage: data.monthlyUsage ?? 0,
-        hasSubscription: data.hasSubscription ?? false,
-      });
-    } catch (error) {
-      console.error("Failed to refresh credits", error);
-    }
-  };
+  const { credits, loading, refreshCredits } = useCredits();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -133,21 +24,23 @@ export function CreditsDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  const remaining = credits.totalCredits - credits.monthlyUsage;
-  const remainingStr = Math.max(remaining, 0).toFixed(2);
+  const availableCredits = Math.max(credits.totalCredits, 0);
+  const availableCreditsStr = Number.isInteger(availableCredits)
+    ? String(availableCredits)
+    : availableCredits.toFixed(2);
   const usagePercent = credits.totalCredits > 0 ? Math.min((credits.monthlyUsage / credits.totalCredits) * 100, 100) : 0;
-  const previousRemainingStr = useRef(remainingStr);
+  const previousAvailableCreditsStr = useRef(availableCreditsStr);
 
   useEffect(() => {
-    if (previousRemainingStr.current !== remainingStr && !loading) {
+    if (previousAvailableCreditsStr.current !== availableCreditsStr && !loading) {
       setAnimateValue(true);
       const timer = setTimeout(() => setAnimateValue(false), 600);
-      previousRemainingStr.current = remainingStr;
+      previousAvailableCreditsStr.current = availableCreditsStr;
       return () => clearTimeout(timer);
     } else if (loading) {
-      previousRemainingStr.current = remainingStr;
+      previousAvailableCreditsStr.current = availableCreditsStr;
     }
-  }, [remainingStr, loading]);
+  }, [availableCreditsStr, loading]);
 
   return (
     <div className="relative z-50 flex" ref={dropdownRef}>
@@ -165,7 +58,7 @@ export function CreditsDropdown() {
             )}
           </span>
           <span className={`text-sm font-bold tracking-wide transition-all duration-300 ${animateValue ? "scale-110 text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "text-white"}`}>
-            {remainingStr}
+            {availableCreditsStr}
           </span>
         </button>
         {/* Tooltip */}
@@ -188,7 +81,7 @@ export function CreditsDropdown() {
               </p>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-[28px] leading-none font-bold text-white tracking-tight">
-                  {remainingStr}
+                  {availableCreditsStr}
                 </span>
                 <Coins className="h-5 w-5 text-[#3b82f6]" />
               </div>
