@@ -1,15 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Plus, ArrowUp, Square } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { ArrowUp, Square, Slash } from "lucide-react";
 
-interface InputComposerProps {
-  onSend: (text: string) => void;
-  isGenerating: boolean;
-  onStop: () => void;
-  showChips: boolean;
-}
-
+/* ────────────────────────────────────────────
+   Constants
+   ──────────────────────────────────────────── */
 const PLACEHOLDERS = [
   "Send WhatsApp to new leads from your CRM…",
   "Save Typeform responses to Google Sheets…",
@@ -17,43 +13,63 @@ const PLACEHOLDERS = [
   "Create Notion page for each Calendly booking…",
   "Email confirmation when Stripe payment succeeds…",
   "Assign Trello card when Jira ticket is created…",
-];
+] as const;
 
 const CHIPS = [
-  { label: "Lead → WhatsApp", prompt: "Send a WhatsApp message to new leads added to my CRM." },
-  { label: "Form → Sheets", prompt: "Save new Typeform responses into a Google Sheet." },
-  { label: "Deal → Slack", prompt: "Send a Slack notification when a deal is closed won in HubSpot." },
-  { label: "Booking → Notion", prompt: "Create a new Notion page whenever a Calendly booking is made." },
-];
+  { emoji: "⚡", label: "Lead → WhatsApp", prompt: "Send a WhatsApp message to new leads added to my CRM." },
+  { emoji: "📊", label: "Form → Sheets", prompt: "Save new Typeform responses into a Google Sheet." },
+  { emoji: "💬", label: "Deal → Slack", prompt: "Send a Slack notification when a deal is closed won in HubSpot." },
+  { emoji: "📓", label: "Booking → Notion", prompt: "Create a new Notion page whenever a Calendly booking is made." },
+] as const;
 
-export function InputComposer({ onSend, isGenerating, onStop, showChips }: InputComposerProps) {
+/* ────────────────────────────────────────────
+   Props
+   ──────────────────────────────────────────── */
+interface InputComposerProps {
+  onSend: (text: string) => void;
+  isGenerating: boolean;
+  onStop: () => void;
+  showChips: boolean;
+  creditsUsed?: number;
+  creditsTotal?: number;
+}
+
+/* ────────────────────────────────────────────
+   Component
+   ──────────────────────────────────────────── */
+export function InputComposer({
+  onSend,
+  isGenerating,
+  onStop,
+  showChips,
+  creditsUsed = 8,
+  creditsTotal = 10,
+}: InputComposerProps) {
   const [input, setInput] = useState("");
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [currentPlaceholder, setCurrentPlaceholder] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [slashTooltip, setSlashTooltip] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Typewriter effect for placeholder
+  /* ── Typewriter placeholder ── */
   useEffect(() => {
-    if (isFocused) {
-      setCurrentPlaceholder("Describe your automation workflow...");
+    if (isFocused || input.length > 0) {
+      setCurrentPlaceholder("Describe your automation workflow…");
       return;
     }
 
-    let isTyping = true;
     let charIndex = 0;
     let timeout: NodeJS.Timeout;
-
     const targetText = PLACEHOLDERS[placeholderIndex];
 
     const type = () => {
       if (charIndex < targetText.length) {
         setCurrentPlaceholder(targetText.slice(0, charIndex + 1));
         charIndex++;
-        timeout = setTimeout(type, 50); // typing speed
+        timeout = setTimeout(type, 45);
       } else {
-        isTyping = false;
-        timeout = setTimeout(erase, 2000); // pause before erasing
+        timeout = setTimeout(erase, 2000);
       }
     };
 
@@ -61,65 +77,68 @@ export function InputComposer({ onSend, isGenerating, onStop, showChips }: Input
       if (charIndex > 0) {
         setCurrentPlaceholder(targetText.slice(0, charIndex - 1));
         charIndex--;
-        timeout = setTimeout(erase, 20); // erase speed
+        timeout = setTimeout(erase, 18);
       } else {
         setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDERS.length);
       }
     };
 
-    if (isTyping) {
-      type();
-    }
-
+    type();
     return () => clearTimeout(timeout);
-  }, [placeholderIndex, isFocused]);
+  }, [placeholderIndex, isFocused, input]);
 
-  // Auto-resize textarea
+  /* ── Auto-resize ── */
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    
     textarea.style.height = "auto";
-    const newHeight = Math.min(Math.max(textarea.scrollHeight, 24), 120); // roughly 1 to 5 rows
-    textarea.style.height = `${newHeight}px`;
+    textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 24), 120)}px`;
   }, [input]);
 
-  const handleSubmit = () => {
+  /* ── Handlers ── */
+  const handleSubmit = useCallback(() => {
     if (!input.trim() || isGenerating) return;
     onSend(input.trim());
     setInput("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  };
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+  }, [input, isGenerating, onSend]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    },
+    [handleSubmit]
+  );
 
-  const handleChipClick = (prompt: string) => {
-    setInput(prompt);
-    setTimeout(() => {
-      onSend(prompt);
-      setInput("");
-    }, 400);
-  };
+  const handleChipClick = useCallback(
+    (prompt: string) => {
+      setInput(prompt);
+      setTimeout(() => {
+        onSend(prompt);
+        setInput("");
+      }, 400);
+    },
+    [onSend]
+  );
+
+  const creditPercent = Math.round((creditsUsed / creditsTotal) * 100);
 
   return (
-    <div className="w-full max-w-3xl mx-auto pb-6 px-4">
+    <div className="w-full max-w-3xl mx-auto pb-5 px-4">
       {/* Chips */}
       {showChips && (
         <div className="flex flex-wrap gap-2 mb-4 justify-center">
           {CHIPS.map((chip, i) => (
             <button
-              key={i}
+              key={chip.label}
               onClick={() => handleChipClick(chip.prompt)}
-              className="rounded-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm transition-all hover:border-sky-500/50 hover:bg-sky-50 dark:hover:bg-sky-900/20 hover:text-sky-600 dark:hover:text-sky-400 animate-slide-up-fade"
-              style={{ animationDelay: `${i * 50}ms` }}
+              className="group flex items-center gap-1.5 rounded-full border border-[var(--build-border)] bg-white/[0.02] px-3.5 py-1.5 text-[12px] font-medium text-[var(--build-text-tertiary)] transition-all duration-200 hover:border-[var(--build-accent)]/40 hover:text-[var(--build-accent)] hover:bg-[var(--build-accent-soft)] hover:scale-[1.03] hover:shadow-[0_2px_12px_var(--build-accent-glow)] active:scale-[0.96] animate-fade-slide-up"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
+              <span className="text-[13px]">{chip.emoji}</span>
               {chip.label}
             </button>
           ))}
@@ -127,17 +146,29 @@ export function InputComposer({ onSend, isGenerating, onStop, showChips }: Input
       )}
 
       {/* Composer Box */}
-      <div className="relative flex items-end gap-2 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm focus-within:border-sky-500/50 focus-within:ring-2 focus-within:ring-sky-500/10 transition-all">
-        {/* Attach Button */}
-        <button
-          className="group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          aria-label="Attach context"
-        >
-          <Plus className="h-5 w-5" />
-          <div className="absolute -top-8 hidden rounded bg-gray-900 dark:bg-white px-2 py-1 text-[10px] font-medium text-white dark:text-gray-900 shadow-sm group-hover:block whitespace-nowrap">
-            Coming soon
-          </div>
-        </button>
+      <div
+        className={`relative flex items-end gap-1.5 rounded-2xl border p-2 transition-all duration-200 ${
+          isFocused
+            ? "border-[var(--build-accent)]/30 bg-[var(--build-surface)] shadow-[0_0_0_3px_var(--build-accent-glow),0_-4px_40px_rgba(0,0,0,0.3)]"
+            : "border-[var(--build-border)] bg-[var(--build-surface)] shadow-[0_-4px_40px_rgba(0,0,0,0.2)]"
+        }`}
+      >
+        {/* Slash command hint */}
+        <div className="relative">
+          <button
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[var(--build-text-tertiary)] hover:bg-white/[0.06] hover:text-[var(--build-text-secondary)] transition-all"
+            onMouseEnter={() => setSlashTooltip(true)}
+            onMouseLeave={() => setSlashTooltip(false)}
+            aria-label="Commands"
+          >
+            <Slash className="h-4 w-4" />
+          </button>
+          {slashTooltip && (
+            <div className="absolute -top-9 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-[var(--build-surface-raised)] border border-[var(--build-border)] text-[10px] font-medium text-[var(--build-text-secondary)] shadow-lg whitespace-nowrap animate-fade-slide-down z-20">
+              Type / for commands (coming soon)
+            </div>
+          )}
+        </div>
 
         {/* Textarea */}
         <textarea
@@ -150,39 +181,58 @@ export function InputComposer({ onSend, isGenerating, onStop, showChips }: Input
           placeholder={currentPlaceholder}
           disabled={isGenerating}
           rows={1}
-          className="max-h-[120px] min-h-[24px] w-full resize-none bg-transparent py-2 text-[15px] text-gray-900 dark:text-white placeholder:text-gray-400 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="max-h-[120px] min-h-[24px] w-full resize-none bg-transparent py-2 text-[15px] text-[var(--build-text-primary)] placeholder:text-[var(--build-text-tertiary)] outline-none disabled:cursor-not-allowed disabled:opacity-50"
           style={{ lineHeight: "24px" }}
         />
 
         {/* Send / Stop Button */}
-        {isGenerating ? (
-          <button
-            onClick={onStop}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 transition-all hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-500"
-            aria-label="Stop generating"
-          >
-            <Square className="h-3.5 w-3.5 fill-current" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={!input.trim()}
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${
-              input.trim()
-                ? "bg-sky-500 text-white shadow-sm hover:bg-sky-600 hover:shadow"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-            }`}
-            aria-label="Send message"
-          >
-            <ArrowUp className="h-4 w-4 stroke-[2.5]" />
-          </button>
-        )}
+        <div className="flex flex-col items-center gap-0.5">
+          {isGenerating ? (
+            <button
+              onClick={onStop}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.06] text-[var(--build-text-secondary)] transition-all hover:bg-red-500/15 hover:text-red-400 active:scale-[0.93]"
+              aria-label="Stop generating"
+            >
+              <Square className="h-3.5 w-3.5 fill-current" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!input.trim()}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 active:scale-[0.93] ${
+                input.trim()
+                  ? "bg-[var(--build-accent)] text-white shadow-[0_0_12px_var(--build-accent-glow)] hover:brightness-110"
+                  : "bg-white/[0.04] text-[var(--build-text-tertiary)]"
+              }`}
+              aria-label="Send message"
+            >
+              <ArrowUp className="h-4 w-4 stroke-[2.5]" />
+            </button>
+          )}
+          {/* Keyboard shortcut hint */}
+          <span className="text-[8px] text-[var(--build-text-tertiary)] font-mono opacity-60">⏎</span>
+        </div>
       </div>
 
-      {/* Footer Text */}
-      <div className="mt-3 flex items-center justify-between px-2 text-[11px] text-gray-400 dark:text-gray-500">
-        <span>Powered by AutomateCraft AI</span>
-        <span>8 / 10 credits used</span>
+      {/* Footer */}
+      <div className="mt-3 flex items-center justify-between px-1">
+        <div className="flex items-center gap-1.5 text-[10px] text-[var(--build-text-tertiary)] opacity-40">
+          <Slash className="h-3 w-3" />
+          <span>AutomateCraft AI</span>
+        </div>
+
+        {/* Credits micro-bar */}
+        <div className="flex items-center gap-2">
+          <div className="w-16 h-[3px] rounded-full bg-white/[0.06] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[var(--build-accent)] transition-all duration-500"
+              style={{ width: `${creditPercent}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-[var(--build-text-tertiary)] tabular-nums">
+            {creditsUsed}/{creditsTotal}
+          </span>
+        </div>
       </div>
     </div>
   );

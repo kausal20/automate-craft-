@@ -15,10 +15,10 @@ export default function AppChrome({
   const pathname = usePathname();
 
   // Show navbar on all public pages, hide on auth + dashboard
-  const hiddenNavbarRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup", "/lets-talk"];
+  const hiddenNavbarRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup", "/lets-talk", "/build"];
   const showNavbar = !pathname.startsWith("/dashboard") && !hiddenNavbarRoutes.includes(pathname);
 
-  const hideFooterRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup", "/lets-talk"];
+  const hideFooterRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup", "/lets-talk", "/build"];
   const hideFooter = pathname.startsWith("/dashboard") || hideFooterRoutes.includes(pathname);
 
   return (

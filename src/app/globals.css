@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme inline {
   --color-background: #09090b;
@@ -16,9 +16,25 @@
   --color-chat-panel-strong: #1a1e25;
   --color-chat-border: rgba(255, 255, 255, 0.06);
   --font-sans: var(--font-inter);
+
+  /* Build Page Design System */
+  --build-bg: #0a0a0f;
+  --build-surface: #111118;
+  --build-surface-2: #16161f;
+  --build-surface-3: #1c1c28;
+  --build-border: rgba(255, 255, 255, 0.06);
+  --build-border-hover: rgba(255, 255, 255, 0.12);
+  --build-text: #e4e4ed;
+  --build-text-muted: #6b6b80;
+  --build-text-dim: #3d3d50;
+  --build-accent: #38bdf8;
+  --build-accent-glow: rgba(56, 189, 248, 0.15);
+  --build-accent-muted: rgba(56, 189, 248, 0.08);
+  --build-success: #34d399;
+  --build-warning: #fbbf24;
 }
 
-/* â”€â”€ Reset â”€â”€ */
+/* ── Reset ── */
 * {
   box-sizing: border-box;
 }
@@ -41,7 +57,7 @@ a {
   text-decoration: none;
 }
 
-/* â”€â”€ Button base class for explicit dark-bg buttons â”€â”€ */
+/* ── Button base class for explicit dark-bg buttons ── */
 .btn-dark {
   background-color: #ededed !important;
   color: #0a0a0a !important;
@@ -65,7 +81,7 @@ select {
   font: inherit;
 }
 
-/* â”€â”€ Global Micro-Interactions â”€â”€ */
+/* ── Global Micro-Interactions ── */
 /* Smooth 0.2s transitions globally */
 button, input, select, textarea, a, [role="button"], [class*="rounded-xl"], [class*="rounded-2xl"], [class*="card"] {
   transition-property: all;
@@ -136,9 +152,9 @@ shadow so only the intended prompt-box chrome is visible.
   background: rgba(59, 130, 246, 0.18);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   CARD SYSTEM â€” Premium depth + glass
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   CARD SYSTEM — Premium depth + glass
+   ═══════════════════════════════════════════ */
 .card-surface {
   position: relative;
   overflow: hidden;
@@ -184,14 +200,14 @@ shadow so only the intended prompt-box chrome is visible.
     0 16px 40px rgba(0, 0, 0, 0.7);
 }
 
-/* â”€â”€ Navigation glass â”€â”€ */
+/* ── Navigation glass ── */
 .glass-nav {
   background: rgba(9, 9, 11, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px) saturate(130%);
 }
 
-/* â”€â”€ Chat ambient background â”€â”€ */
+/* ── Chat ambient background ── */
 .chat-bg-gradient {
   background:
     radial-gradient(ellipse at 12% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 42%),
@@ -241,7 +257,7 @@ That keeps the UI majorly black while making the workspace feel richer.
     0 1px 0 rgba(255, 255, 255, 0.03) inset;
 }
 
-/* â”€â”€ Node cards (workflow builder) â”€â”€ */
+/* ── Node cards (workflow builder) ── */
 .node-card {
   transition:
     transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -257,12 +273,12 @@ That keeps the UI majorly black while making the workspace feel richer.
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* â”€â”€ Connection line glow â”€â”€ */
+/* ── Connection line glow ── */
 .connection-line-glow {
   box-shadow: 0 0 6px rgba(59, 130, 246, 0.15);
 }
 
-/* â”€â”€ Liquid glass effects â”€â”€ */
+/* ── Liquid glass effects ── */
 .liquid-glass,
 .liquid-button {
   position: relative;
@@ -340,9 +356,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   z-index: 1;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    LAYOUT UTILS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 .site-container {
   width: 100%;
   max-width: 1180px;
@@ -371,9 +387,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   background: #0c0c0e;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   TYPOGRAPHY â€” 3-tier visual hierarchy
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   TYPOGRAPHY — 3-tier visual hierarchy
+   ═══════════════════════════════════════════ */
 .eyebrow {
   color: var(--color-accent);
   font-size: 0.72rem;
@@ -390,17 +406,17 @@ That keeps the UI majorly black while making the workspace feel richer.
   line-height: 0.96;
 }
 
-/* Tier 1: Primary â€” bright white, high contrast */
+/* Tier 1: Primary — bright white, high contrast */
 .text-primary-tier {
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* Tier 2: Secondary â€” soft gray */
+/* Tier 2: Secondary — soft gray */
 .text-secondary-tier {
   color: rgba(255, 255, 255, 0.55);
 }
 
-/* Tier 3: Muted â€” low opacity, background info */
+/* Tier 3: Muted — low opacity, background info */
 .text-muted-tier {
   color: rgba(255, 255, 255, 0.30);
 }
@@ -409,9 +425,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   color: var(--color-muted);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   BUTTONS â€” Premium interactive styles
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   BUTTONS — Premium interactive styles
+   ═══════════════════════════════════════════ */
 .button-hover {
   transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -485,9 +501,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   text-underline-offset: 4px;
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    GLOW + PULSE UTILITIES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 .glow-accent {
   box-shadow:
     0 0 20px rgba(59, 130, 246, 0.15),
@@ -513,9 +529,9 @@ That keeps the UI majorly black while making the workspace feel richer.
     0 0 16px rgba(59, 130, 246, 0.12);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    NODE & WORKFLOW ENHANCEMENTS
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 .node-card {
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -531,9 +547,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.3));
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   CHAT PANEL â€” Gradient ambient backgrounds
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   CHAT PANEL — Gradient ambient backgrounds
+   ═══════════════════════════════════════════ */
 .chat-bg-gradient {
   background:
     radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.03), transparent 50%),
@@ -541,7 +557,7 @@ That keeps the UI majorly black while making the workspace feel richer.
     #0a0a0a;
 }
 
-/* Subtle animated mesh for empty state â€” slow drift, low opacity */
+/* Subtle animated mesh for empty state — slow drift, low opacity */
 .chat-ambient-mesh {
   position: absolute;
   inset: 0;
@@ -584,9 +600,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   50% { transform: translate(-6%, -10%) scale(1.08); }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   FLOATING PARTICLES â€” Page life
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   FLOATING PARTICLES — Page life
+   ═══════════════════════════════════════════ */
 .particles-container {
   position: fixed;
   inset: 0;
@@ -611,9 +627,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ═══════════════════════════════════════════
    KEYFRAMES
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+   ═══════════════════════════════════════════ */
 @keyframes float-soft {
   0%,
   100% {
@@ -775,9 +791,9 @@ That keeps the UI majorly black while making the workspace feel richer.
   }
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   SCROLLBAR â€” thin, muted, appears on hover
-   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* ═══════════════════════════════════════════
+   SCROLLBAR — thin, muted, appears on hover
+   ═══════════════════════════════════════════ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -803,12 +819,93 @@ That keeps the UI majorly black while making the workspace feel richer.
 }
 
 
-@keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(8px); }
+
+/* -------------------------------------------
+   BUILD PAGE - Design Tokens
+   ------------------------------------------- */
+:root {
+  --build-bg: #0a0a0f;
+  --build-surface: #111118;
+  --build-surface-raised: #16161f;
+  --build-border: rgba(255, 255, 255, 0.06);
+  --build-border-hover: rgba(255, 255, 255, 0.12);
+  --build-text-primary: rgba(255, 255, 255, 0.92);
+  --build-text-secondary: rgba(255, 255, 255, 0.55);
+  --build-text-tertiary: rgba(255, 255, 255, 0.3);
+  --build-accent: #0ea5e9;
+  --build-accent-soft: rgba(14, 165, 233, 0.12);
+  --build-accent-glow: rgba(14, 165, 233, 0.2);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* -------------------------------------------
+   BUILD PAGE - Motion System
+   ------------------------------------------- */
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-fade-slide-up {
+  animation: fadeSlideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-up-fade {
-  animation: slideUpFade 200ms ease forwards;
+.animate-fade-slide-down {
+  animation: fadeSlideDown 200ms ease-out forwards;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.06) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--build-accent-glow); }
+  50% { box-shadow: 0 0 12px 4px var(--build-accent-glow); }
+}
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes dotBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.animate-dot-bounce {
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+@keyframes flowPacket {
+  0% { offset-distance: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
 }
 
 @keyframes slideInLeft {
@@ -816,15 +913,42 @@ That keeps the UI majorly black while making the workspace feel richer.
   to { transform: translateX(0); }
 }
 .animate-slide-in-left {
-  animation: slideInLeft 200ms ease forwards;
+  animation: slideInLeft 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes expandHeight {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 500px; opacity: 1; }
+}
+.animate-expand {
+  animation: expandHeight 300ms ease-out forwards;
+  overflow: hidden;
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.4; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes dashFlow {
+  to { stroke-dashoffset: -20; }
+}
+
+/* Keep backwards compat for old classes */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up-fade {
+  animation: fadeSlideUp 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes typingDot {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  50% { transform: translateY(-5px); }
 }
 .animate-typing-dot {
-  animation: typingDot 1.4s ease-in-out infinite;
+  animation: dotBounce 1.4s ease-in-out infinite;
 }
 
 @keyframes flowDown {
@@ -836,4 +960,35 @@ That keeps the UI majorly black while making the workspace feel richer.
   animation: flowDown 1.5s infinite;
 }
 
+/* -- Build Page Utility Classes -- */
+.build-glass-panel {
+  background: rgba(17, 17, 24, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--build-border);
+}
 
+.build-glass-surface {
+  background: rgba(22, 22, 31, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--build-border);
+}
+
+.build-glow-ring {
+  box-shadow: 0 0 0 2px var(--build-accent-glow), 0 0 20px var(--build-accent-glow);
+}
+
+.build-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.build-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.build-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+.build-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

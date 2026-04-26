@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useReducer, useRef } from "react";
-import { Moon, Sun, Play, Pause, Share, MoreVertical, Edit3 } from "lucide-react";
+import { useState, useEffect, useReducer, useRef, useCallback } from "react";
+import { Moon, Sun, Edit3, Zap } from "lucide-react";
 import { AutomationSidebar } from "@/components/build/AutomationSidebar";
 import { ChatThread } from "@/components/build/ChatThread";
 import { InputComposer } from "@/components/build/InputComposer";
 import { AutomationPreview } from "@/components/build/AutomationPreview";
-import { AutomationSession, AutomationMessage, AutomationBlueprint } from "@/types/automation";
+import { AutomationSession, AutomationMessage } from "@/types/automation";
 
-// --- State Management ---
+/* ────────────────────────────────────────────
+   State Management
+   ──────────────────────────────────────────── */
 type State = {
   sessions: AutomationSession[];
   activeSessionId: string | null;
@@ -39,9 +41,7 @@ function reducer(state: State, action: Action): State {
       return {
         ...state,
         sessions: state.sessions.map((s) =>
-          s.id === action.payload.sessionId
-            ? { ...s, messages: [...s.messages, action.payload.message] }
-            : s
+          s.id === action.payload.sessionId ? { ...s, messages: [...s.messages, action.payload.message] } : s
         ),
       };
     case "UPDATE_MESSAGE":
@@ -49,12 +49,7 @@ function reducer(state: State, action: Action): State {
         ...state,
         sessions: state.sessions.map((s) =>
           s.id === action.payload.sessionId
-            ? {
-                ...s,
-                messages: s.messages.map((m) =>
-                  m.id === action.payload.message.id ? action.payload.message : m
-                ),
-              }
+            ? { ...s, messages: s.messages.map((m) => (m.id === action.payload.message.id ? action.payload.message : m)) }
             : s
         ),
       };
@@ -63,26 +58,114 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+/* ────────────────────────────────────────────
+   Status Indicator
+   ──────────────────────────────────────────── */
+function StatusBadge({ isGenerating }: { isGenerating: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 ${
+      isGenerating
+        ? "border-[var(--build-accent)]/20 bg-[var(--build-accent-soft)]"
+        : "border-[var(--build-border)] bg-white/[0.02]"
+    }`}>
+      <div className={`h-1.5 w-1.5 rounded-full transition-colors ${
+        isGenerating ? "bg-[var(--build-accent)] animate-pulse" : "bg-emerald-500"
+      }`} />
+      <span className={`text-[11px] font-medium transition-colors ${
+        isGenerating ? "text-[var(--build-accent)]" : "text-[var(--build-text-tertiary)]"
+      }`}>
+        {isGenerating ? "Building…" : "Ready"}
+      </span>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+   Mock AI Responses — varied based on keywords
+   ──────────────────────────────────────────── */
+function getMockResponse(prompt: string): { content: string; blueprint: AutomationMessage["blueprint"] } {
+  const lower = prompt.toLowerCase();
+
+  if (lower.includes("whatsapp") || lower.includes("lead") || lower.includes("crm")) {
+    return {
+      content: `I've designed a **lead notification workflow** for you. When a new lead enters your CRM, I'll extract the contact details and send a personalized **WhatsApp message** within seconds.\n\nThis ensures instant engagement with every new prospect.`,
+      blueprint: {
+        trigger: "New lead added (CRM)",
+        actions: ["Extract contact details", "Send WhatsApp message"],
+        integrations: [
+          { id: "hubspot", name: "HubSpot", icon: "🔶", connected: false },
+          { id: "whatsapp", name: "WhatsApp Business", icon: "💬", connected: false },
+        ],
+        estimatedCost: 3,
+      },
+    };
+  }
+
+  if (lower.includes("slack") || lower.includes("deal") || lower.includes("notification")) {
+    return {
+      content: `I'll set up a **deal notification pipeline**. When a deal is marked as **closed-won** in your CRM, a rich Slack message will be posted to your sales channel with deal value, contact info, and a celebration emoji 🎉.\n\nYour team will never miss a win.`,
+      blueprint: {
+        trigger: "Deal closed-won (HubSpot)",
+        actions: ["Format deal summary", "Post to Slack channel"],
+        integrations: [
+          { id: "hubspot", name: "HubSpot", icon: "🔶", connected: false },
+          { id: "slack", name: "Slack", icon: "💬", connected: false },
+        ],
+        estimatedCost: 2,
+      },
+    };
+  }
+
+  if (lower.includes("notion") || lower.includes("booking") || lower.includes("calendly")) {
+    return {
+      content: `Here's the plan: each new **Calendly booking** will automatically create a structured **Notion page** with the attendee's name, email, booking time, and any notes they provided.\n\nPerfect for keeping your meeting database organized.`,
+      blueprint: {
+        trigger: "New booking (Calendly)",
+        actions: ["Parse booking details", "Create Notion page"],
+        integrations: [
+          { id: "calendly", name: "Calendly", icon: "📅", connected: false },
+          { id: "notion", name: "Notion", icon: "📓", connected: false },
+        ],
+        estimatedCost: 2,
+      },
+    };
+  }
+
+  // Default: Typeform → Sheets
+  return {
+    content: `I've created a blueprint based on your request. I'll set up a trigger for **new Typeform entries**, map the data fields, and add a new row in your **Google Sheet**.\n\nPlease connect your accounts below to activate this automation.`,
+    blueprint: {
+      trigger: "New form submission (Typeform)",
+      actions: ["Format response data", "Create spreadsheet row (Google Sheets)"],
+      integrations: [
+        { id: "typeform", name: "Typeform", icon: "📝", connected: false },
+        { id: "gsheets", name: "Google Sheets", icon: "📊", connected: false },
+      ],
+      estimatedCost: 2,
+    },
+  };
+}
+
+/* ────────────────────────────────────────────
+   Main Page
+   ──────────────────────────────────────────── */
 export default function BuildPage() {
   const [state, dispatch] = useReducer(reducer, { sessions: [], activeSessionId: null });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true); // dark-first
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef(false);
 
-  // Initialize
+  /* ── Initialize ── */
   useEffect(() => {
-    // Dark mode
-    const storedTheme = localStorage.getItem("theme");
-    if (storedTheme === "dark" || (!storedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add("dark");
-    }
+    // Always dark for /build — set the class
+    document.documentElement.classList.add("dark");
 
     // Sidebar
-    const storedSidebar = localStorage.getItem("sidebarOpen");
+    const storedSidebar = localStorage.getItem("buildSidebarOpen");
     if (storedSidebar !== null) setIsSidebarOpen(storedSidebar === "true");
 
     // Sessions
@@ -94,39 +177,27 @@ export default function BuildPage() {
           dispatch({ type: "LOAD_SESSIONS", payload: parsed });
           return;
         }
-      } catch (e) {}
+      } catch (e) { /* ignore */ }
     }
-    
-    // Create default session if empty
     createNewSession();
   }, []);
 
-  // Sync to local storage
+  /* ── Persist sessions ── */
   useEffect(() => {
     if (state.sessions.length > 0) {
       localStorage.setItem("automationSessions", JSON.stringify(state.sessions));
     }
   }, [state.sessions]);
 
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      localStorage.setItem("theme", next ? "dark" : "light");
-      if (next) document.documentElement.classList.add("dark");
-      else document.documentElement.classList.remove("dark");
-      return next;
-    });
-  };
-
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     setIsSidebarOpen((prev) => {
       const next = !prev;
-      localStorage.setItem("sidebarOpen", String(next));
+      localStorage.setItem("buildSidebarOpen", String(next));
       return next;
     });
-  };
+  }, []);
 
-  const createNewSession = () => {
+  const createNewSession = useCallback(() => {
     const newSession: AutomationSession = {
       id: Date.now().toString(),
       title: "Untitled Automation",
@@ -134,90 +205,93 @@ export default function BuildPage() {
       messages: [],
     };
     dispatch({ type: "CREATE_SESSION", payload: newSession });
-  };
+  }, []);
 
   const activeSession = state.sessions.find((s) => s.id === state.activeSessionId);
   const blueprintMsg = activeSession?.messages.find((m) => m.blueprint);
   const activeBlueprint = blueprintMsg?.blueprint;
 
-  const handleSend = (text: string) => {
-    if (!activeSession || isGenerating) return;
+  /* ── Send message ── */
+  const handleSend = useCallback(
+    (text: string) => {
+      if (!activeSession || isGenerating) return;
+      abortRef.current = false;
 
-    // 1. Add User Message
-    const userMsg: AutomationMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: text,
-      timestamp: Date.now(),
-    };
-    dispatch({ type: "ADD_MESSAGE", payload: { sessionId: activeSession.id, message: userMsg } });
-
-    // Update title if first message
-    if (activeSession.messages.length === 0) {
-      dispatch({ 
-        type: "UPDATE_TITLE", 
-        payload: { id: activeSession.id, title: text.slice(0, 28) + (text.length > 28 ? "..." : "") } 
-      });
-    }
-
-    setIsGenerating(true);
-
-    // 2. Mock API Call
-    setTimeout(() => {
-      const aiMsg: AutomationMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "ai",
-        content: `I've created a blueprint based on your request. I will set up a trigger for **new Typeform entries**, map the data, and add a new row in your **Google Sheet**.\n\nPlease connect your accounts below to activate this automation.`,
-        timestamp: Date.now() + 1,
-        isStreaming: true, // will trigger streaming effect
-        blueprint: {
-          trigger: "New form submission (Typeform)",
-          actions: ["Format response data", "Create spreadsheet row (Google Sheets)"],
-          integrations: [
-            { id: "typeform", name: "Typeform", icon: "📝", connected: false },
-            { id: "gsheets", name: "Google Sheets", icon: "📊", connected: false },
-          ],
-          estimatedCost: 2,
-        }
+      // User message
+      const userMsg: AutomationMessage = {
+        id: Date.now().toString(),
+        role: "user",
+        content: text,
+        timestamp: Date.now(),
       };
+      dispatch({ type: "ADD_MESSAGE", payload: { sessionId: activeSession.id, message: userMsg } });
 
-      dispatch({ type: "ADD_MESSAGE", payload: { sessionId: activeSession.id, message: aiMsg } });
-      
-      // Stop streaming state after streaming completes (approx calculation)
-      setTimeout(() => {
-        setIsGenerating(false);
+      // Auto-title
+      if (activeSession.messages.length === 0) {
         dispatch({
-          type: "UPDATE_MESSAGE",
-          payload: { sessionId: activeSession.id, message: { ...aiMsg, isStreaming: false } }
+          type: "UPDATE_TITLE",
+          payload: { id: activeSession.id, title: text.slice(0, 28) + (text.length > 28 ? "…" : "") },
         });
-      }, aiMsg.content.split(" ").length * 28 + 500);
+      }
 
-    }, 2500);
-  };
+      setIsGenerating(true);
 
-  const handleStop = () => {
+      // Mock API call — varies based on prompt
+      const mockData = getMockResponse(text);
+
+      setTimeout(() => {
+        if (abortRef.current) return;
+
+        const aiMsg: AutomationMessage = {
+          id: (Date.now() + 1).toString(),
+          role: "ai",
+          content: mockData.content,
+          timestamp: Date.now() + 1,
+          isStreaming: true,
+          blueprint: mockData.blueprint,
+        };
+
+        dispatch({ type: "ADD_MESSAGE", payload: { sessionId: activeSession.id, message: aiMsg } });
+
+        // End streaming after words finish
+        const wordCount = mockData.content.split(" ").length;
+        setTimeout(() => {
+          if (abortRef.current) return;
+          setIsGenerating(false);
+          dispatch({
+            type: "UPDATE_MESSAGE",
+            payload: { sessionId: activeSession.id, message: { ...aiMsg, isStreaming: false } },
+          });
+        }, wordCount * 28 + 500);
+      }, 2500);
+    },
+    [activeSession, isGenerating]
+  );
+
+  const handleStop = useCallback(() => {
+    abortRef.current = true;
     setIsGenerating(false);
-  };
+  }, []);
 
-  const handleTitleSubmit = () => {
+  /* ── Title editing ── */
+  const handleTitleSubmit = useCallback(() => {
     if (draftTitle.trim() && activeSession) {
       dispatch({ type: "UPDATE_TITLE", payload: { id: activeSession.id, title: draftTitle.trim() } });
     }
     setIsEditingTitle(false);
-  };
+  }, [draftTitle, activeSession]);
 
-  const startTitleEdit = () => {
+  const startTitleEdit = useCallback(() => {
     if (!activeSession) return;
     setDraftTitle(activeSession.title);
     setIsEditingTitle(true);
     setTimeout(() => titleInputRef.current?.focus(), 50);
-  };
+  }, [activeSession]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-white dark:bg-gray-950 font-sans text-gray-900 dark:text-gray-100">
-      
+    <div className="flex h-screen w-full overflow-hidden bg-[var(--build-bg)] font-sans text-[var(--build-text-primary)]">
       {/* LEFT SIDEBAR */}
-      <AutomationSidebar 
+      <AutomationSidebar
         sessions={state.sessions}
         activeSessionId={state.activeSessionId}
         onSelectSession={(id) => dispatch({ type: "SET_ACTIVE", payload: id })}
@@ -228,12 +302,10 @@ export default function BuildPage() {
 
       {/* CENTRE PANEL */}
       <div className="flex flex-1 flex-col min-w-0">
-        
         {/* Top Bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between px-4 lg:px-6 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm z-10">
+        <header className="flex h-14 shrink-0 items-center justify-between px-4 lg:px-6 border-b border-[var(--build-border)] bg-[var(--build-bg)]/80 backdrop-blur-xl backdrop-saturate-150 z-10">
           <div className="flex items-center gap-3">
-            {/* Mobile menu handled in sidebar */}
-            <div className="md:hidden w-8" /> 
+            <div className="md:hidden w-8" />
 
             {isEditingTitle ? (
               <input
@@ -245,54 +317,35 @@ export default function BuildPage() {
                   if (e.key === "Enter") handleTitleSubmit();
                   if (e.key === "Escape") setIsEditingTitle(false);
                 }}
-                className="h-8 w-48 rounded bg-gray-100 dark:bg-gray-900 px-2 text-sm font-semibold text-gray-900 dark:text-white outline-none border border-sky-500/50"
+                className="h-8 w-48 rounded-lg bg-[var(--build-surface)] px-3 text-[13px] font-semibold text-[var(--build-text-primary)] outline-none border border-[var(--build-accent)]/30 focus:ring-2 focus:ring-[var(--build-accent-glow)]"
               />
             ) : (
-              <button 
+              <button
                 onClick={startTitleEdit}
-                className="group flex items-center gap-2 rounded px-2 py-1 -ml-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="group flex items-center gap-2 rounded-lg px-2.5 py-1.5 -ml-2 text-[14px] font-semibold text-[var(--build-text-primary)] hover:bg-white/[0.04] transition-colors"
               >
-                {activeSession?.title || "Loading..."}
-                <Edit3 className="h-3.5 w-3.5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {activeSession?.title || "Loading…"}
+                <Edit3 className="h-3 w-3 text-[var(--build-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-              <div className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">8 credits remaining</span>
-            </div>
-            
-            <button className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" title="Toggle Run/Pause">
-              <Play className="h-4 w-4" />
-            </button>
-            <button className="hidden sm:flex h-8 items-center justify-center gap-2 rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <Share className="h-3.5 w-3.5" />
-              Share
-            </button>
-            
-            <div className="h-6 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
-
-            <button 
-              onClick={toggleTheme}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-            >
-              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
+          <div className="flex items-center gap-2.5">
+            <StatusBadge isGenerating={isGenerating} />
           </div>
         </header>
 
         {/* Chat Area */}
-        <ChatThread 
-          messages={activeSession?.messages || []} 
-          isGenerating={isGenerating} 
-          onActivateBlueprint={(id) => console.log('Activating blueprint from message', id)}
+        <ChatThread
+          messages={activeSession?.messages || []}
+          isGenerating={isGenerating}
+          onActivateBlueprint={(id) => console.log("Activating blueprint from message", id)}
+          onSuggestionClick={handleSend}
         />
 
-        {/* Composer Area */}
-        <div className="shrink-0 bg-gradient-to-t from-white via-white to-transparent dark:from-gray-950 dark:via-gray-950 pt-4">
-          <InputComposer 
+        {/* Composer */}
+        <div className="shrink-0 pt-2 bg-gradient-to-t from-[var(--build-bg)] via-[var(--build-bg)] to-transparent">
+          <InputComposer
             onSend={handleSend}
             isGenerating={isGenerating}
             onStop={handleStop}
@@ -302,11 +355,7 @@ export default function BuildPage() {
       </div>
 
       {/* RIGHT PANEL */}
-      <AutomationPreview 
-        blueprint={activeBlueprint} 
-        isGenerating={isGenerating}
-      />
-
+      <AutomationPreview blueprint={activeBlueprint} isGenerating={isGenerating} />
     </div>
   );
 }
