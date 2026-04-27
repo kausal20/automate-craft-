@@ -402,6 +402,25 @@ export default function HeroSection({
               </div>
             </motion.div>
 
+            {/* ── Feature Strip ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2, duration: 0.8 }}
+              className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12px] text-white/25"
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400/50" />
+                AI-Powered Engine
+              </span>
+              <span className="hidden sm:inline text-white/10">·</span>
+              <span>No coding required</span>
+              <span className="hidden sm:inline text-white/10">·</span>
+              <span className="flex items-center gap-1">
+                <span className="text-accent/60">⚡</span> Deploys in seconds
+              </span>
+            </motion.div>
+
           </div>
         </motion.div>
       </section>
@@ -487,13 +506,11 @@ export default function HeroSection({
                     key={item.step}
                     initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    animate={{ y: [0, -8 - i * 2, 0] }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{
-                      opacity: { duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] },
-                      y: { duration: 7 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.35 },
+                      duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1],
                     }}
-                    className="group relative overflow-hidden rounded-[2rem] border border-white/[0.06] bg-gradient-to-b from-[#111113] to-[#0d0d0f] p-8 transition-all duration-300 hover:border-white/[0.1] hover:shadow-[0_20px_48px_rgba(0,0,0,0.6)]"
+                    className="group relative overflow-hidden rounded-[2rem] border border-white/[0.06] bg-gradient-to-b from-[#111113] to-[#0d0d0f] p-8 transition-all duration-300 hover:border-white/[0.1] hover:shadow-[0_20px_48px_rgba(0,0,0,0.6)] hover:-translate-y-1"
                     style={{ boxShadow: `0 0 60px ${item.glow}, 0 8px 32px rgba(0,0,0,0.4)` }}
                   >
                     {/* Step number */}
@@ -578,7 +595,7 @@ export default function HeroSection({
             </div>
           </section>
 
-          {/* Integration logos strip */}
+          {/* Integration logos marquee */}
           <section className="relative py-16 overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#08080a]/55 to-[#060608]/75" />
             <div className="pointer-events-none absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
@@ -588,38 +605,35 @@ export default function HeroSection({
               <p className="mb-10 text-center text-[11px] font-bold uppercase tracking-[0.28em] text-white/20">
                 Works with your favourite tools
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-8 opacity-40">
-                {/* WhatsApp */}
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-300 hover:opacity-100">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                  <span className="text-sm font-semibold text-white">WhatsApp</span>
+
+              {/* Marquee container with edge fades */}
+              <div className="relative overflow-hidden">
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 z-10 bg-gradient-to-r from-[#09090b] to-transparent" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 z-10 bg-gradient-to-l from-[#09090b] to-transparent" />
+
+                <div className="marquee-track">
+                  {[0, 1].map((setIdx) => (
+                    <div key={setIdx} className="flex items-center gap-10 px-5 shrink-0">
+                      {[
+                        { name: "WhatsApp", color: "#25D366", path: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" },
+                        { name: "Gmail", color: "#EA4335", path: "M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.548l8.073-6.055C21.69 2.28 24 3.434 24 5.457z" },
+                        { name: "Google Sheets", color: "#34A853", path: "M19.5 7H15V1.5l.5-.5H6a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V7.5l-.5-.5z" },
+                        { name: "Slack", color: "#E01E5A", path: "M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z" },
+                        { name: "Notion", color: "#ffffff", path: "M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.06 2.2c-.42-.326-.98-.7-2.055-.607L3.01 2.669c-.467.047-.56.28-.374.467l1.823 1.072z" },
+                        { name: "HubSpot", color: "#FF7A59", path: "M18.164 7.93V5.084a2.198 2.198 0 0 0 1.267-1.978V3.08a2.2 2.2 0 0 0-2.199-2.199h-.026a2.2 2.2 0 0 0-2.199 2.199v.026a2.198 2.198 0 0 0 1.267 1.978V7.93a6.232 6.232 0 0 0-2.962 1.287L7.144 5.57a2.45 2.45 0 1 0-1.056 1.437l7.992 3.587a6.23 6.23 0 0 0-.828 3.094 6.24 6.24 0 0 0 .847 3.12L11.98 17.9a2.12 2.12 0 1 0 1.082 1.564l2.062-1.08a6.254 6.254 0 1 0 3.04-10.454z" },
+                        { name: "Stripe", color: "#635BFF", path: "M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-7.076-2.19l-.888 5.534C5.075 22.93 8.292 24 11.843 24c2.635 0 4.745-.665 6.213-1.878 1.636-1.344 2.354-3.297 2.354-5.627-.005-4.22-2.577-5.874-6.434-7.345z" },
+                        { name: "Discord", color: "#5865F2", path: "M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z" },
+                        { name: "Calendly", color: "#006BFF", path: "M19.655 14.262c-.252 2.116-1.267 3.887-2.92 5.087-1.48 1.074-3.39 1.651-5.327 1.651-5.29 0-8.616-4.06-8.408-8.907.18-4.204 3.627-8.093 8.12-8.093 1.89 0 3.735.597 5.175 1.653 1.596 1.171 2.637 2.866 2.963 4.838" },
+                      ].map((item) => (
+                        <div key={`${setIdx}-${item.name}`} className="flex items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-300 shrink-0">
+                          <svg className="h-5 w-5" viewBox="0 0 24 24" fill={item.color}><path d={item.path} /></svg>
+                          <span className="text-[13px] font-semibold text-white/70 whitespace-nowrap">{item.name}</span>
+                        </div>
+                      ))}
+                      <span className="text-[13px] text-white/20 font-medium whitespace-nowrap shrink-0">+ 50 more</span>
+                    </div>
+                  ))}
                 </div>
-                {/* Gmail */}
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-300 hover:opacity-100">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.548l8.073-6.055C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/></svg>
-                  <span className="text-sm font-semibold text-white">Gmail</span>
-                </div>
-                {/* Google Sheets */}
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-300 hover:opacity-100">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24"><path d="M19.5 7H15V1.5L19.5 7z" fill="#188038"/><path d="M19.5 7H15V1.5l.5-.5H6a1 1 0 0 0-1 1v20a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V7.5l-.5-.5z" fill="#34A853"/><rect x="8" y="12" width="8" height="1.5" rx=".3" fill="#fff" opacity=".8"/><rect x="8" y="15" width="8" height="1.5" rx=".3" fill="#fff" opacity=".6"/><rect x="8" y="18" width="5" height="1.5" rx=".3" fill="#fff" opacity=".4"/></svg>
-                  <span className="text-sm font-semibold text-white">Google Sheets</span>
-                </div>
-                {/* Slack */}
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-300 hover:opacity-100">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/><path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.527 2.527 0 0 1 2.521 2.521 2.527 2.527 0 0 1-2.521 2.521H2.522A2.527 2.527 0 0 1 0 8.834a2.527 2.527 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/><path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.271 0a2.527 2.527 0 0 1-2.521 2.521 2.527 2.527 0 0 1-2.521-2.521V2.522A2.527 2.527 0 0 1 15.164 0a2.527 2.527 0 0 1 2.521 2.522v6.312z" fill="#2EB67D"/><path d="M15.164 18.956a2.528 2.528 0 0 1 2.521 2.522A2.528 2.528 0 0 1 15.164 24a2.527 2.527 0 0 1-2.521-2.522v-2.522h2.521zm0-1.271a2.527 2.527 0 0 1-2.521-2.521 2.527 2.527 0 0 1 2.521-2.521h6.314A2.528 2.528 0 0 1 24 15.164a2.528 2.528 0 0 1-2.522 2.521h-6.314z" fill="#ECB22E"/></svg>
-                  <span className="text-sm font-semibold text-white">Slack</span>
-                </div>
-                {/* Notion */}
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-300 hover:opacity-100">
-                  <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.06 2.2c-.42-.326-.98-.7-2.055-.607L3.01 2.669c-.467.047-.56.28-.374.467l1.823 1.072zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.84-.046.933-.56.933-1.166V6.348c0-.606-.233-.933-.747-.887l-15.177.887c-.56.047-.746.327-.746.94zm14.337.746c.093.42 0 .84-.42.887l-.7.14v10.264c-.607.327-1.166.514-1.633.514-.747 0-.933-.234-1.493-.933l-4.573-7.178v6.945l1.447.327s0 .84-1.167.84l-3.22.187c-.093-.187 0-.653.327-.747l.84-.213V9.854L7.467 9.76c-.093-.42.14-1.026.793-1.073l3.453-.233 4.76 7.272v-6.432l-1.213-.14c-.094-.513.28-.886.747-.932l3.453-.234z" fillRule="evenodd"/></svg>
-                  <span className="text-sm font-semibold text-white">Notion</span>
-                </div>
-                {/* HubSpot */}
-                <div className="flex items-center gap-2 grayscale hover:grayscale-0 transition-all duration-300 hover:opacity-100">
-                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#FF7A59"><path d="M18.164 7.93V5.084a2.198 2.198 0 0 0 1.267-1.978V3.08a2.2 2.2 0 0 0-2.199-2.199h-.026a2.2 2.2 0 0 0-2.199 2.199v.026a2.198 2.198 0 0 0 1.267 1.978V7.93a6.232 6.232 0 0 0-2.962 1.287L7.144 5.57a2.45 2.45 0 1 0-1.056 1.437l7.992 3.587a6.23 6.23 0 0 0-.828 3.094 6.24 6.24 0 0 0 .847 3.12L11.98 17.9a2.12 2.12 0 1 0 1.082 1.564l2.062-1.08a6.254 6.254 0 1 0 3.04-10.454z"/></svg>
-                  <span className="text-sm font-semibold text-white">HubSpot</span>
-                </div>
-                <span className="text-sm text-white/20 font-medium">+ 40 more</span>
               </div>
             </div>
           </section>

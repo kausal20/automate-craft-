@@ -89,10 +89,10 @@ button, input, select, textarea, a, [role="button"], [class*="rounded-xl"], [cla
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Buttons -> Glow on hover */
-/* Using drop-shadow so it doesn't overwrite Tailwind box-shadow utilities */
-button:not(:disabled):not([data-static-hover]):hover, 
-[role="button"]:not([aria-disabled="true"]):not([data-static-hover]):hover {
+/* Buttons -> Scoped glow (only on accent/primary buttons) */
+.btn-glow:hover,
+.btn-accent-glow:hover,
+.liquid-button:hover {
   filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.35));
 }
 
@@ -105,11 +105,10 @@ select:not(.prompt-textarea):focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
 }
 
-/* Cards -> Slight lift effect globally */
-.card-surface:hover, 
+/* Cards -> Scoped lift (only on elements with explicit .card-lift class) */
+.card-surface:hover,
 .card-glass:hover,
-div[class*="rounded-xl border"]:not(:has(input)):not(.no-lift):not([role="dialog"]):hover,
-div[class*="rounded-2xl border"]:not(:has(input)):not(.no-lift):not([role="dialog"]):hover {
+.card-lift:hover {
   transform: translateY(-3px);
 }
 
@@ -246,6 +245,16 @@ That keeps the UI majorly black while making the workspace feel richer.
     0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 -8px 40px rgba(0, 0, 0, 0.4),
     0 0 40px rgba(59, 130, 246, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-composer-surface:focus-within {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 -8px 40px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(59, 130, 246, 0.08);
 }
 
 .chat-elevated-surface {
@@ -319,7 +328,17 @@ That keeps the UI majorly black while making the workspace feel richer.
   border-radius: inherit;
 }
 
+/* Sheen sweep restricted to prompt boxes via .prompt-sheen */
 .liquid-glass::after {
+  /* No sweep by default — keeps glass cards clean */
+}
+
+.prompt-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
   background: linear-gradient(
     115deg,
     transparent 20%,
@@ -991,4 +1010,20 @@ That keeps the UI majorly black while making the workspace feel richer.
 }
 .build-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Marquee scroll for integration logos ── */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 35s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
 }

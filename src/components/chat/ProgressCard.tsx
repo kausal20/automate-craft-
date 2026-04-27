@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Loader2, ChevronDown, Terminal } from "lucide-react";
+import { CheckCircle2, Loader2, ChevronDown, Terminal, BrainCircuit, Cpu } from "lucide-react";
 
 export function ProgressCard({ steps }: { steps: string[] }) {
   const normalizedSteps = steps.map((s) => s.trim()).filter(Boolean);
   const isAnalyzing = normalizedSteps[0]?.toLowerCase().includes("analyzing");
   const heading = isAnalyzing ? "Thinking process" : "Building process";
+  const headingIcon = isAnalyzing ? BrainCircuit : Cpu;
+  const HeadingIcon = headingIcon;
   const innerSteps = normalizedSteps.slice(1);
 
   const [elapsed, setElapsed] = useState(0);
@@ -19,7 +21,8 @@ export function ProgressCard({ steps }: { steps: string[] }) {
   }, []);
 
   const completedCount = innerSteps.filter((s) => s.startsWith("✓")).length;
-  const progress = innerSteps.length > 0 ? (completedCount / innerSteps.length) * 100 : 0;
+  const totalSteps = innerSteps.length || 1;
+  const progress = (completedCount / totalSteps) * 100;
 
   return (
     <motion.div
@@ -28,29 +31,50 @@ export function ProgressCard({ steps }: { steps: string[] }) {
       transition={{ duration: 0.25 }}
       className="w-full mb-4"
     >
-      <div className="rounded-xl border border-white/[0.06] bg-[#0c0d10] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-        {/* Top Progress Bar */}
-        <div className="h-[2px] bg-white/[0.02]">
+      <div className="rounded-xl border border-white/[0.06] bg-[#0c0d10] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.02)_inset]">
+        {/* Top Progress Bar — gradient with glow */}
+        <div className="h-[2px] bg-white/[0.02] relative">
           <motion.div
-            className="h-full bg-gradient-to-r from-accent/40 to-accent/80"
-            initial={{ width: "5%" }}
+            className="h-full rounded-r-full"
+            style={{ background: "linear-gradient(90deg, rgba(59,130,246,0.3), rgba(59,130,246,0.9))" }}
+            initial={{ width: "3%" }}
             animate={{ width: `${Math.max(progress, 5)}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+          {/* Glow pulse at the leading edge */}
+          <motion.div
+            className="absolute top-0 h-full w-8 rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)", right: `${100 - Math.max(progress, 5)}%` }}
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           />
         </div>
 
         {/* Header (Clickable) */}
-        <button 
+        <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.01] hover:bg-white/[0.03] transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.01] hover:bg-white/[0.025] transition-colors duration-200"
         >
           <div className="flex items-center gap-2.5">
-            <Loader2 className="h-3.5 w-3.5 text-accent animate-spin" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/[0.08] ring-1 ring-accent/[0.12]">
+              <HeadingIcon className="h-3 w-3 text-accent animate-pulse" />
+            </div>
             <span className="text-[13px] font-semibold text-white/80">{heading}</span>
-            <div className="h-1.5 w-1.5 rounded-full bg-accent/40 animate-pulse ml-1" />
+            <div className="flex gap-[3px] ml-1">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  className="h-1 w-1 rounded-full bg-accent/50"
+                  animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.1, 0.8] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
+                />
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] font-mono tabular-nums text-white/20">{elapsed}s</span>
+            <span className="text-[10px] font-medium text-white/25 tabular-nums bg-white/[0.03] px-2 py-0.5 rounded-md border border-white/[0.04]">
+              {elapsed}s
+            </span>
             <ChevronDown className={`h-3.5 w-3.5 text-white/20 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
           </div>
         </button>
@@ -63,13 +87,18 @@ export function ProgressCard({ steps }: { steps: string[] }) {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden border-t border-white/[0.03]"
+              className="overflow-hidden border-t border-white/[0.04]"
             >
-              <div className="px-4 py-3 space-y-1.5 font-mono text-[11px]">
+              <div className="px-4 py-3.5 space-y-2 font-mono text-[11px]">
                 {innerSteps.length === 0 && (
                   <div className="flex items-center gap-2 text-white/20">
                     <Terminal className="h-3 w-3" />
                     <span>Booting cognitive engine...</span>
+                    <motion.span
+                      animate={{ opacity: [1, 0] }}
+                      transition={{ duration: 0.8, repeat: Infinity }}
+                      className="inline-block w-1.5 h-[10px] bg-accent/40"
+                    />
                   </div>
                 )}
                 {innerSteps.map((step, i) => {
@@ -78,19 +107,23 @@ export function ProgressCard({ steps }: { steps: string[] }) {
                   return (
                     <motion.div
                       key={i}
-                      initial={{ opacity: 0, x: -4 }}
+                      initial={{ opacity: 0, x: -6 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05, duration: 0.15 }}
-                      className="flex items-start gap-2 py-0.5"
+                      transition={{ delay: i * 0.06, duration: 0.2 }}
+                      className="flex items-start gap-2.5 py-0.5"
                     >
-                      <span className="text-white/10 shrink-0 select-none mt-0.5">›</span>
-                      <span className={`leading-relaxed ${isCompleted ? "text-emerald-400/50" : "text-white/40"}`}>
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-3 w-3 text-emerald-400/60 shrink-0 mt-0.5" />
+                      ) : (
+                        <Loader2 className="h-3 w-3 text-accent/50 animate-spin shrink-0 mt-0.5" />
+                      )}
+                      <span className={`leading-relaxed ${isCompleted ? "text-emerald-400/50 line-through decoration-emerald-400/20" : "text-white/50"}`}>
                         {text}
                         {!isCompleted && (
-                          <motion.span 
-                            animate={{ opacity: [1, 0] }} 
+                          <motion.span
+                            animate={{ opacity: [1, 0] }}
                             transition={{ duration: 0.8, repeat: Infinity }}
-                            className="inline-block ml-1 w-1.5 h-[10px] bg-accent/40 align-middle"
+                            className="inline-block ml-1 w-1.5 h-[10px] bg-accent/40 align-middle rounded-sm"
                           />
                         )}
                       </span>

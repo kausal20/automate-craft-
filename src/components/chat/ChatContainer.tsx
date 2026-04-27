@@ -10,6 +10,7 @@ import { FormCard, type FieldDef, type FieldValue } from "./FormCard";
 import { ProgressCard } from "./ProgressCard";
 import { ReadyCard } from "./ReadyCard";
 import { EngineAnalysisCard } from "./EngineAnalysisCard";
+import { IntegrationCard, IntegrationCardSubmitted } from "./IntegrationCard";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { SystemStatusBar, type SystemPhase } from "./SystemStatusBar";
 
@@ -169,18 +170,45 @@ const SUGGESTION_CHIPS = [
 ];
 
 /* ── AI Avatar component ── */
-function AiAvatar() {
-  /* LOGIC EXPLAINED:
-  The chat workspace used multiple flat black fills, which made the page feel
-  empty. The shared chat surface classes move the shell, header, and composer
-  onto a blue-black graphite palette so the UI stays majorly black but gains
-  depth and separation. */
+function AiAvatar({ isActive = false }: { isActive?: boolean }) {
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/10 shadow-[0_0_12px_rgba(59,130,246,0.08)]">
+    <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/10 shadow-[0_0_12px_rgba(59,130,246,0.08)]">
       <Image src="/logo-new.png" alt="AI" width={18} height={18} className="object-contain" />
+      {isActive && (
+        <motion.div
+          className="absolute -inset-0.5 rounded-lg border border-accent/25"
+          animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      )}
     </div>
   );
 }
+
+/* ── Orbital Empty State Component ── */
+const OrbitalCore = () => (
+  <div className="relative flex h-24 w-24 items-center justify-center mb-6">
+    {/* Outer orbital rings */}
+    <motion.svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }}>
+      <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(59,130,246,0.1)" strokeWidth="1" strokeDasharray="4 8" />
+      <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(59,130,246,0.3)" strokeWidth="2" strokeDasharray="20 100" strokeLinecap="round" />
+    </motion.svg>
+    <motion.svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" animate={{ rotate: -360 }} transition={{ duration: 60, repeat: Infinity, ease: "linear" }}>
+      <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(59,130,246,0.15)" strokeWidth="1" strokeDasharray="6 6" />
+      <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(59,130,246,0.4)" strokeWidth="1.5" strokeDasharray="30 80" strokeLinecap="round" />
+    </motion.svg>
+    
+    {/* Center node */}
+    <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/20 shadow-[0_0_30px_rgba(59,130,246,0.15)] backdrop-blur-sm">
+      <Image src="/logo-new.png" alt="AutomateCraft" width={24} height={24} className="object-contain" />
+      <motion.div
+        className="absolute inset-0 rounded-2xl border border-accent/30"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+        transition={{ duration: 3, repeat: Infinity }}
+      />
+    </div>
+  </div>
+);
 
 /* ── Recent Activity Panel ── */
 function RecentActivityPanel() {
@@ -343,20 +371,106 @@ function StreamContent({ content, timestamp }: { content: string, timestamp?: nu
 
     setIsStreaming(true);
     let index = 0;
-    const speed = 18;
-    const timer = setInterval(() => {
+
+    const tick = () => {
       index += 2;
       if (index > content.length) index = content.length;
       setDisplayed(content.slice(0, index));
       if (index === content.length) {
         setIsStreaming(false);
-        clearInterval(timer);
+        return;
       }
-    }, speed);
-    return () => clearInterval(timer);
+      // Variable speed: pause on punctuation, accelerate over time
+      const char = content[index - 1] || "";
+      let delay: number;
+      if (char === "." || char === "!" || char === "?") delay = 60;
+      else if (char === "," || char === ";" || char === ":") delay = 40;
+      else if (char === "\n") delay = 70;
+      else delay = Math.max(10, 16 - Math.floor(index / 80)); // accelerate
+      setTimeout(tick, delay);
+    };
+
+    const t = setTimeout(tick, 14);
+    return () => clearTimeout(t);
   }, [content, timestamp]);
 
   return renderStructuredAiContent(displayed, isStreaming);
+}
+
+// ── Dynamic Agentic Helper ──
+function generateDynamicAutomation(prompt: string) {
+  const p = prompt.toLowerCase();
+  
+  // Default fallback
+  let trigger = "New form submission";
+  let action = "Send notification";
+  let fields = [
+    { key: "target", label: "Target Email/Phone", type: "text", placeholder: "e.g., team@company.com" },
+    { key: "message", label: "Message Content", type: "text", placeholder: "Hello, we received a request..." },
+    { key: "priority", label: "Priority", type: "select", options: [{label: "Standard", value: "standard"}, {label: "High Priority", value: "high"}] },
+    { key: "enableLogging", label: "Enable Audit Logging", type: "toggle", defaultValue: true }
+  ];
+  let thinkingSteps = [
+    "Analyzing your automation...\nParsing natural language input",
+    "Analyzing your automation...\n✓ Parsed natural language input\nIdentifying trigger event",
+    "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\nMapping action path",
+    "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\n✓ Action path mapped\nResolving data schema"
+  ];
+  
+  // Rule 1: Google Sheets / CRM
+  if (p.includes("sheet") || p.includes("crm")) {
+    trigger = "New row in Google Sheets";
+    action = "Create record in CRM";
+    fields = [
+      { key: "sheetId", label: "Google Spreadsheet URL / ID", type: "text", placeholder: "https://docs.google.com/spreadsheets/d/1BxiM..." },
+      { key: "worksheet", label: "Worksheet Name", type: "text", placeholder: "Sheet1" },
+      { key: "mapping", label: "Data Mapping Mode", type: "select", options: [{label: "Auto-detect columns", value: "auto"}, {label: "Manual mapping", value: "manual"}] },
+      { key: "crmPipeline", label: "Target Pipeline", type: "text", placeholder: "e.g., Inbound Leads" }
+    ];
+    thinkingSteps = [
+      "Analyzing your automation...\nExtracting entities: 'Google Sheets', 'CRM'",
+      "Analyzing your automation...\n✓ Entities extracted\nValidating Sheets API schema",
+      "Analyzing your automation...\n✓ Entities extracted\n✓ Schema validated\nMapping row data to CRM fields",
+      "Analyzing your automation...\n✓ Entities extracted\n✓ Schema validated\n✓ Fields mapped\nGenerating setup parameters"
+    ];
+  } 
+  // Rule 2: WhatsApp / Slack / Discord / Alert
+  else if (p.includes("whatsapp") || p.includes("slack") || p.includes("discord") || p.includes("alert") || p.includes("message")) {
+    const platform = p.includes("slack") ? "Slack" : p.includes("whatsapp") ? "WhatsApp" : p.includes("discord") ? "Discord" : "Platform";
+    trigger = "New event trigger";
+    action = `Send ${platform} message`;
+    fields = [
+      { key: "channel", label: "Target Channel / Number", type: "text", placeholder: p.includes("slack") ? "#general" : "+1 (555) 000-0000" },
+      { key: "template", label: "Message Template", type: "text", placeholder: "New lead: {{name}}..." },
+      { key: "mentions", label: "Alert Mentions", type: "text", placeholder: "@sales-team" }
+    ];
+    thinkingSteps = [
+      `Analyzing your automation...\nParsing ${platform} integration requirements`,
+      `Analyzing your automation...\n✓ Requirements parsed\nAuthenticating webhook endpoint`,
+      `Analyzing your automation...\n✓ Requirements parsed\n✓ Webhook authenticated\nFormatting message payload`,
+      `Analyzing your automation...\n✓ Requirements parsed\n✓ Webhook authenticated\n✓ Payload formatted\nFinalizing configuration`
+    ];
+  }
+  // Rule 3: Email / Gmail
+  else if (p.includes("email") || p.includes("gmail") || p.includes("mail")) {
+    trigger = "New incoming email";
+    action = "Process and categorize email";
+    fields = [
+      { key: "mailbox", label: "Monitored Mailbox", type: "text", placeholder: "support@yourdomain.com" },
+      { key: "filter", label: "Processing Filter", type: "select", options: [{label: "All emails", value: "all"}, {label: "Only with attachments", value: "attachments"}] },
+      { key: "autoReply", label: "Auto-Reply Template", type: "text", placeholder: "Thanks for reaching out..." }
+    ];
+    thinkingSteps = [
+      "Analyzing your automation...\nScanning email routing protocols",
+      "Analyzing your automation...\n✓ Routing protocols scanned\nDefining AI categorization logic",
+      "Analyzing your automation...\n✓ Routing protocols scanned\n✓ Logic defined\nBuilding auto-reply flow",
+      "Analyzing your automation...\n✓ Routing protocols scanned\n✓ Logic defined\n✓ Flow built\nPreparing mailbox connection"
+    ];
+  }
+
+  const setupFields = fields.map(f => f.label);
+
+  return { trigger, action, fields, setupFields, thinkingSteps };
 }
 
 export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThinkingProp = false }: ChatContainerProps) {
@@ -446,6 +560,8 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
   const [isDeploying, setIsDeploying] = useState(false);
   const [hasDeployed, setHasDeployed] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  // Stores the current automation context for passing to ReadyCard
+  const currentAutomationRef = useRef<ReturnType<typeof generateDynamicAutomation> | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -565,33 +681,34 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
       removeMessageByRole("system");
 
+      const automation = generateDynamicAutomation(initialPrompt || "");
+      currentAutomationRef.current = automation;
+
       // Phase 1: Parse natural language
-      addMessage("thinking", "Analyzing your automation...\nParsing natural language input");
+      addMessage("thinking", automation.thinkingSteps[0]);
       await new Promise(r => setTimeout(r, 1500));
 
       // Phase 2: Identify trigger
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\nIdentifying trigger event");
+      addMessage("thinking", automation.thinkingSteps[1]);
       await new Promise(r => setTimeout(r, 1200));
 
       // Phase 3: Map action path
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\nMapping action path");
+      addMessage("thinking", automation.thinkingSteps[2]);
       await new Promise(r => setTimeout(r, 1200));
 
       // Phase 4: Resolve data schema
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\n✓ Action path mapped\nResolving data schema");
+      addMessage("thinking", automation.thinkingSteps[3]);
       await new Promise(r => setTimeout(r, 1000));
 
       // Phase 5: Complete analysis
       removeMessageByRole("thinking");
-      addMessage("thinking", "Analyzing your automation...\n✓ Parsed natural language input\n✓ Trigger event identified\n✓ Action path mapped\n✓ Data schema resolved");
+      addMessage("thinking", automation.thinkingSteps[3] + "\n✓ Analysis complete");
       await new Promise(r => setTimeout(r, 800));
 
       removeMessageByRole("thinking");
-
-      const defaultPhone = initialPrompt?.match(/\+?\d{10,14}/)?.[0] || "";
 
       // Phase 6: Show structured engine cards + form
       setWorkspaceState("collecting_inputs");
@@ -602,18 +719,13 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
         {
           title: "Setup Configuration",
           description: "Enter the target destination details",
-          fields: [
-            { key: "phone", label: "Target Phone Number", type: "text", placeholder: "+1 (555) 000-0000", defaultValue: defaultPhone },
-            { key: "message", label: "Message Content", type: "text", placeholder: "Hello, we received your form data!..." },
-            { key: "priority", label: "Alert Priority", type: "select", options: [{label: "Standard", value: "standard"}, {label: "High Priority", value: "high"}] },
-            { key: "enableLogging", label: "Enable Audit Logging", type: "toggle", defaultValue: true }
-          ]
+          fields: automation.fields as any
         },
         false,
         {
-          trigger: "New form submission",
-          action: "Send notification",
-          setupFields: ["Phone number", "Message content", "Priority level"]
+          trigger: automation.trigger,
+          action: automation.action,
+          setupFields: automation.setupFields
         }
       );
       setStep("wait_message");
@@ -626,7 +738,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
   const handleFormSubmit = async (messageId: string, values: Record<string, FieldValue>) => {
     setMessages(p => p.map(m => m.id === messageId ? { ...m, isFormSubmitted: true, formValues: values } : m));
 
-    const inputSummary = values.phone || "the specified target";
+    const inputSummary = Object.values(values).find(v => typeof v === 'string' && v.length > 0) || "the specified target";
 
     if (ultraThinking) {
       addMessage("system", "Using advanced reasoning mode...");
@@ -703,37 +815,34 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
     }
 
     if (step === "wait_message") {
+      const automation = currentAutomationRef.current ?? generateDynamicAutomation(input);
+      currentAutomationRef.current = automation;
+
       setWorkspaceState("ready_to_build");
       
-      addMessage("thinking", "Building your automation...\nInitializing workflow engine");
-      setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "Configured via GPT-4o" } : x));
+      addMessage("thinking", `Building your automation...\nInitializing ${automation.trigger} listener`);
+      setNodes(n => n.map(x => x.id === "n2" ? { ...x, status: "completed", detail: "AI engine configured" } : x));
 
       await new Promise(r => setTimeout(r, 1300));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\nApplying configuration");
+      addMessage("thinking", `Building your automation...\n✓ ${automation.trigger} listener ready\nConfiguring action: ${automation.action}`);
       setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "active" } : x));
 
       await new Promise(r => setTimeout(r, 1100));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\n✓ Configuration applied\nConnecting action nodes");
+      addMessage("thinking", `Building your automation...\n✓ ${automation.trigger} listener ready\n✓ ${automation.action} configured\nConnecting data pipeline`);
 
       await new Promise(r => setTimeout(r, 1100));
       removeMessageByRole("thinking");
-      addMessage("thinking", "Building your automation...\n✓ Workflow engine initialized\n✓ Configuration applied\n✓ Action nodes connected\nValidating pipeline");
+      addMessage("thinking", `Building your automation...\n✓ ${automation.trigger} listener ready\n✓ ${automation.action} configured\n✓ Data pipeline connected\nValidating & compiling`);
 
       await new Promise(r => setTimeout(r, 900));
       removeMessageByRole("thinking");
       
       setWorkspaceState("canvas_visible");
 
-      setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: `Sending to ${input}` } : x));
-      addMessage(
-        "ai",
-        "",
-        "canvas_visible",
-        undefined,
-        true
-      );
+      setNodes(n => n.map(x => x.id === "n3" ? { ...x, status: "completed", detail: automation.action } : x));
+      addMessage("ai", "", "canvas_visible", undefined, true);
       setStep("ready");
 
     } else if (step === "ready" || step === "deployed") {
@@ -804,6 +913,11 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
   const handleSuggestionClick = (suggestion: string) => {
     setInputText(suggestion);
+    // Auto-submit after a brief tick so state updates flush first
+    setTimeout(() => {
+      const form = document.querySelector<HTMLFormElement>("form[data-chat-form]");
+      if (form) form.requestSubmit();
+    }, 50);
   };
 
   const isInputDisabled = workspaceState === "ready_to_build" || workspaceState === "understanding";
@@ -940,9 +1054,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
                   {/* Hero icon + heading */}
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/10 to-accent/[0.03] ring-1 ring-accent/[0.1] mb-6 shadow-[0_0_40px_rgba(59,130,246,0.08)]">
-                      <Image src="/logo-new.png" alt="AutomateCraft" width={32} height={32} className="object-contain" />
-                    </div>
+                    <OrbitalCore />
                     <h3 className="text-[20px] font-semibold text-white/90 mb-2 tracking-tight">What would you like to automate?</h3>
                     <p className="text-[14px] text-white/35 mb-10 text-center max-w-[360px] leading-relaxed">
                       Describe your workflow in plain language and the engine will build it for you.
@@ -986,7 +1098,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                         onMouseEnter={() => setHoveredMsgId(msg.id)}
                         onMouseLeave={() => setHoveredMsgId(null)}
                       >
-                        <div className="relative rounded-2xl rounded-br-sm bg-gradient-to-br from-[#1c1e26] to-[#12141a] border border-white/[0.08] px-5 py-3.5 text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap shadow-[0_8px_24px_rgba(0,0,0,0.4)] ring-1 ring-white/[0.02] inset-ring-1 inset-ring-white/[0.04]">
+                        <div className="relative rounded-2xl rounded-br-md bg-gradient-to-br from-accent/[0.14] to-accent/[0.06] border border-accent/[0.15] px-5 py-3.5 text-[14px] leading-relaxed text-white/90 whitespace-pre-wrap shadow-[0_8px_24px_rgba(59,130,246,0.12),0_2px_8px_rgba(0,0,0,0.3)] ring-1 ring-accent/[0.08]">
                           {msg.content}
                         </div>
 
@@ -1029,8 +1141,29 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                         </div>
                         <div className="flex-1 min-w-0">
 
-                        {/* Engine Analysis Cards (Trigger / Action / Setup) */}
-                        {msg.engineCards && (
+                        {/* ── Unified Integration Card (Analysis + Form) ── */}
+                        {msg.engineCards && msg.form && !msg.isFormSubmitted && (
+                          <IntegrationCard
+                            trigger={msg.engineCards.trigger}
+                            action={msg.engineCards.action}
+                            fields={msg.form.fields}
+                            onSubmit={(values) => handleFormSubmit(msg.id, values)}
+                            timestamp={msg.timestamp}
+                          />
+                        )}
+
+                        {/* Submitted state for unified card */}
+                        {msg.engineCards && msg.form && msg.isFormSubmitted && (
+                          <IntegrationCardSubmitted
+                            trigger={msg.engineCards.trigger}
+                            action={msg.engineCards.action}
+                            values={msg.formValues}
+                            fields={msg.form.fields}
+                          />
+                        )}
+
+                        {/* Fallback: Analysis-only (no form) */}
+                        {msg.engineCards && !msg.form && (
                           <EngineAnalysisCard
                             trigger={msg.engineCards.trigger}
                             action={msg.engineCards.action}
@@ -1039,18 +1172,8 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                           />
                         )}
 
-                        {/* AI text content — streamed, with accent border */}
-                        {msg.content && (
-                          <div className="py-1 mb-3">
-                            <StreamContent content={msg.content} timestamp={msg.timestamp} />
-                            {msg.timestamp && (
-                              <span className="mt-2 block text-[10px] text-white/15">{formatRelativeTime(msg.timestamp)}</span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Form Card */}
-                        {msg.form && !msg.isFormSubmitted && (
+                        {/* Standalone form (no analysis) */}
+                        {!msg.engineCards && msg.form && !msg.isFormSubmitted && (
                           <div className="mt-3">
                             <FormCard
                               title={msg.form.title}
@@ -1061,10 +1184,13 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                           </div>
                         )}
 
-                        {msg.form && msg.isFormSubmitted && (
-                          <div className="mt-2 flex items-center gap-2.5 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] px-4 py-3">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                            <span className="text-[13px] text-white/60">Configuration saved. Building workflow...</span>
+                        {/* AI text content — streamed, glass card */}
+                        {msg.content && (
+                          <div className="liquid-glass rounded-xl border border-white/[0.06] px-4 py-3.5 mb-3 shadow-[0_4px_20px_rgba(0,0,0,0.25)]">
+                            <StreamContent content={msg.content} timestamp={msg.timestamp} />
+                            {msg.timestamp && (
+                              <span className="mt-3 block text-[10px] text-white/15">{formatRelativeTime(msg.timestamp)}</span>
+                            )}
                           </div>
                         )}
 
@@ -1074,9 +1200,9 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
                             <ReadyCard
                               title="Automation ready"
                               description="Workflow built — review, test, and deploy below"
-                              trigger={nodes.find((node) => node.type === "trigger")?.label}
-                              action={nodes.find((node) => node.type === "action")?.label}
-                              explanation={nodes.find((node) => node.type === "action")?.detail || "Workflow route is configured and ready for validation."}
+                              trigger={currentAutomationRef.current?.trigger ?? nodes.find((node) => node.type === "trigger")?.label}
+                              action={currentAutomationRef.current?.action ?? nodes.find((node) => node.type === "action")?.label}
+                              explanation={`When ${currentAutomationRef.current?.trigger ?? "a trigger fires"}, the system will automatically ${(currentAutomationRef.current?.action ?? "execute the configured action").toLowerCase()}.`}
                               isTesting={isTesting}
                               hasTested={hasTested}
                               isDeploying={isDeploying}
@@ -1096,14 +1222,18 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
                     {/* ── THINKING STATE ── */}
                     {msg.role === "thinking" && (
-                      <div className="w-full flex gap-3">
+                      <motion.div
+                        className="w-full flex gap-3"
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div className="pt-1 shrink-0">
-                          <AiAvatar />
+                          <AiAvatar isActive />
                         </div>
                         <div className="flex-1 min-w-0">
                           <ProgressCard steps={msg.content.split('\n')} />
                         </div>
-                      </div>
+                      </motion.div>
                     )}
 
                     {/* ── SYSTEM MESSAGES ── */}
@@ -1140,6 +1270,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
         <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center bg-gradient-to-t from-[#08090b] via-[#08090b]/97 to-transparent px-5 pb-6 pt-16 pointer-events-none">
           <form
             onSubmit={handleSubmit}
+            data-chat-form
             className={`chat-composer-surface w-full flex flex-col gap-2.5 rounded-2xl border px-5 py-4 transition-all duration-300 pointer-events-auto
               ${isPanelOpen && isCanvasVisible ? "max-w-full" : "max-w-3xl"}
               ${isInputDisabled ? "opacity-50 border-white/[0.04]" : "border-white/[0.06] focus-within:border-accent/25 focus-within:shadow-[0_0_0_3px_rgba(59,130,246,0.08),0_0_30px_rgba(59,130,246,0.04)]"}
@@ -1161,6 +1292,14 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
               disabled={isInputDisabled}
               className="prompt-textarea caret-accent w-full min-h-[52px] max-h-[180px] resize-none bg-transparent text-[14px] leading-relaxed text-white outline-none placeholder:text-white/20 disabled:cursor-not-allowed"
             />
+
+            {/* Enter hint */}
+            {!isInputDisabled && !inputText.trim() && (
+              <div className="flex items-center gap-1.5 pt-0.5 pb-1">
+                <kbd className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-[9px] font-mono text-white/20">↵</kbd>
+                <span className="text-[10px] text-white/15">Press Enter to build</span>
+              </div>
+            )}
 
             {/* Bottom Actions */}
             <div className="flex items-center justify-between">
