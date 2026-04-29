@@ -20,7 +20,7 @@ export function IntegrationConnector({
   const [integrations, setIntegrations] = useState(initialIntegrations);
 
   const handleConnect = (id: string) => {
-    console.log(`Mock OAuth flow initiated for integration: ${id}`);
+    /* debug removed */
     // Simulate connection after a brief delay
     setTimeout(() => {
       setIntegrations((prev) =>

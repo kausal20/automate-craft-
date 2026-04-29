@@ -122,7 +122,7 @@ export default function AutomationDetailPage() {
   }, [automationId]);
 
   const loadAutomation = async () => {
-    console.log("[AutomationDetailPage] Loading automation.", automationId);
+    /* debug removed */
     setLoading(true);
     setError(null);
 
@@ -135,7 +135,7 @@ export default function AutomationDetailPage() {
         fieldDefinitions?: AutomationSetupField[];
         error?: string;
       };
-      console.log("[AutomationDetailPage] Load response received.", json);
+      /* debug removed */
 
       if (!response.ok || !json.automation) {
         throw new Error(json.error || "Could not load automation.");
@@ -145,7 +145,7 @@ export default function AutomationDetailPage() {
       setName(json.automation.name);
       setFormInputs(json.automation.formInputs || {});
       setFieldDefinitions(json.fieldDefinitions || []);
-      console.log("[AutomationDetailPage] Automation stored in state.");
+      /* debug removed */
     } catch (requestError) {
       console.error("[AutomationDetailPage] Failed to load automation.", requestError);
       setError(
@@ -171,7 +171,7 @@ export default function AutomationDetailPage() {
   }, [automationId]);
 
   const handleSave = async () => {
-    console.log("[AutomationDetailPage] Saving automation.", automationId);
+    /* debug removed */
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -191,7 +191,7 @@ export default function AutomationDetailPage() {
         automation?: AutomationDetail;
         error?: string;
       };
-      console.log("[AutomationDetailPage] Save response received.", json);
+      /* debug removed */
 
       if (!response.ok || !json.automation) {
         throw new Error(json.error || "Could not save automation.");
@@ -213,11 +213,11 @@ export default function AutomationDetailPage() {
 
   const handleStatusToggle = async () => {
     if (!automation) {
-      console.log("[AutomationDetailPage] Status change blocked because automation is missing.");
+      /* debug removed */
       return;
     }
 
-    console.log("[AutomationDetailPage] Toggling status for automation.", automationId);
+    /* debug removed */
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -236,7 +236,7 @@ export default function AutomationDetailPage() {
         automation?: AutomationDetail;
         error?: string;
       };
-      console.log("[AutomationDetailPage] Status response received.", json);
+      /* debug removed */
 
       if (!response.ok || !json.automation) {
         throw new Error(json.error || "Could not update automation status.");
@@ -261,7 +261,7 @@ export default function AutomationDetailPage() {
   };
 
   const handleRun = async () => {
-    console.log("[AutomationDetailPage] Running automation.", automationId);
+    /* debug removed */
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -275,7 +275,7 @@ export default function AutomationDetailPage() {
         body: JSON.stringify({ automationId }),
       });
       const json = (await response.json()) as { error?: string };
-      console.log("[AutomationDetailPage] Run response received.", json);
+      /* debug removed */
 
       if (!response.ok) {
         throw new Error(json.error || "Could not run automation.");
@@ -296,7 +296,7 @@ export default function AutomationDetailPage() {
   };
 
   const handleDelete = async () => {
-    console.log("[AutomationDetailPage] Deleting automation.", automationId);
+    /* debug removed */
     setSaving(true);
     setError(null);
 
@@ -305,7 +305,7 @@ export default function AutomationDetailPage() {
         method: "DELETE",
       });
       const json = (await response.json()) as { error?: string };
-      console.log("[AutomationDetailPage] Delete response received.", json);
+      /* debug removed */
 
       if (!response.ok) {
         throw new Error(json.error || "Could not delete automation.");

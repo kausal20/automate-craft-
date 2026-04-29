@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -54,6 +54,29 @@ function formatDate(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+/* ── Animated count-up ── */
+function CountUp({ target, duration = 1.2 }: { target: number; duration?: number }) {
+  const [value, setValue] = useState(0);
+  const ref = useRef<number | undefined>(undefined);
+  const start = useRef(performance.now());
+
+  const animate = useCallback((now: number) => {
+    const elapsed = now - start.current;
+    const progress = Math.min(elapsed / (duration * 1000), 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    setValue(Math.round(eased * target));
+    if (progress < 1) ref.current = requestAnimationFrame(animate);
+  }, [target, duration]);
+
+  useEffect(() => {
+    start.current = performance.now();
+    ref.current = requestAnimationFrame(animate);
+    return () => { if (ref.current) cancelAnimationFrame(ref.current); };
+  }, [target, animate]);
+
+  return <>{value}</>;
 }
 
 export default function CreditsPage() {
@@ -121,8 +144,14 @@ export default function CreditsPage() {
 
       {/* Balance Cards */}
       {loadingCredits ? (
-        <div className="mb-8 flex h-40 items-center justify-center rounded-[2rem] border border-white/[0.06] bg-white/[0.02]">
-          <LoaderCircle className="h-6 w-6 animate-spin text-accent" />
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="rounded-[2rem] border border-white/[0.06] bg-white/[0.02] p-7 space-y-4">
+              <div className="h-[10px] w-24 rounded bg-white/[0.04] animate-shimmer" />
+              <div className="h-[48px] w-20 rounded bg-white/[0.04] animate-shimmer" />
+              <div className="h-[12px] w-32 rounded bg-white/[0.04] animate-shimmer" />
+            </div>
+          ))}
         </div>
       ) : (
         <motion.div
@@ -136,7 +165,7 @@ export default function CreditsPage() {
             <div className="relative">
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-accent/60">Total Balance</p>
               <p className="mt-3 font-mono text-[3.5rem] font-bold leading-none tracking-tight text-white">
-                {credits?.totalCredits ?? 0}
+                <CountUp target={credits?.totalCredits ?? 0} />
               </p>
               <p className="mt-2 text-sm text-white/35">credits available</p>
               <div className="mt-5 flex items-center gap-3">
@@ -160,7 +189,7 @@ export default function CreditsPage() {
             <div className="relative">
               <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/35">This Month Used</p>
               <p className="mt-3 font-mono text-[3rem] font-bold leading-none tracking-tight text-white">
-                {credits?.monthlyUsage ?? 0}
+                <CountUp target={credits?.monthlyUsage ?? 0} />
               </p>
               <p className="mt-2 text-sm text-white/35">credits consumed</p>
               <div className="mt-5">
@@ -219,10 +248,19 @@ export default function CreditsPage() {
       )}
 
       {/* Quick Actions */}
-      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: {},
+          show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
+        }}
+        className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3"
+      >
+        <motion.div variants={{ hidden: { opacity: 0, scale: 0.97 }, show: { opacity: 1, scale: 1 } }}>
         <Link
           href="/pricing"
-          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-accent/25 hover:bg-accent/[0.03] hover:-translate-y-0.5"
+          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-accent/25 hover:bg-accent/[0.03] hover:-translate-y-0.5 h-full"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 ring-1 ring-accent/20">
             <TrendingUp className="h-4 w-4 text-accent" />
@@ -233,9 +271,11 @@ export default function CreditsPage() {
           </div>
           <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/20 group-hover:text-accent transition-colors" />
         </Link>
+        </motion.div>
+        <motion.div variants={{ hidden: { opacity: 0, scale: 0.97 }, show: { opacity: 1, scale: 1 } }}>
         <Link
           href="/how-credits-work"
-          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-white/[0.12] hover:bg-white/[0.03] hover:-translate-y-0.5"
+          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-white/[0.12] hover:bg-white/[0.03] hover:-translate-y-0.5 h-full"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08]">
             <BarChart3 className="h-4 w-4 text-white/40" />
@@ -246,9 +286,11 @@ export default function CreditsPage() {
           </div>
           <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
         </Link>
+        </motion.div>
+        <motion.div variants={{ hidden: { opacity: 0, scale: 0.97 }, show: { opacity: 1, scale: 1 } }}>
         <Link
           href="/dashboard"
-          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-emerald-400/20 hover:bg-emerald-400/[0.03] hover:-translate-y-0.5"
+          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-emerald-400/20 hover:bg-emerald-400/[0.03] hover:-translate-y-0.5 h-full"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 ring-1 ring-emerald-400/20">
             <Zap className="h-4 w-4 text-emerald-400" />
@@ -259,7 +301,8 @@ export default function CreditsPage() {
           </div>
           <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-white/20 group-hover:text-emerald-400 transition-colors" />
         </Link>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Transaction History */}
       <div>

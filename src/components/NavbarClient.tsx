@@ -4,7 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useEffectEvent, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import BrandMark from "@/components/BrandMark";
+
+/* LOGIC EXPLAINED:
+The navbar already had a polished entrance animation, but it ignored reduced-motion
+preferences. This fix keeps the same visual behavior for most users, while making
+the animation instant for users who prefer less movement.
+*/
 
 const navigation = [
   { label: "Pricing", href: "/pricing" },
@@ -16,6 +23,7 @@ export default function NavbarClient({
 }: {
   isAuthenticated: boolean;
 }) {
+  const reduceMotion = useReducedMotion();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -31,14 +39,27 @@ export default function NavbarClient({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Hide navbar on auth pages (they have their own layout) and dashboard (has sidebar)
-  const hiddenRoutes = ["/login", "/signup", "/check-email", "/verify-email", "/onboarding", "/setup"];
-  if (pathname.startsWith("/dashboard") || hiddenRoutes.includes(pathname)) {
+  /* LOGIC EXPLAINED:
+  The parent chrome already tries to keep this header homepage-only, but the navbar
+  itself was still willing to render on other public routes when it got mounted.
+  This guard makes the rule explicit in the component too: if we're not on `/`,
+  return nothing. That prevents pricing/why-us pages from showing the public header.
+  */
+  if (pathname !== "/") {
     return null;
   }
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 px-4 pt-3 md:px-6">
+    <motion.nav
+      initial={{ opacity: 0, y: reduceMotion ? 0 : -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: reduceMotion ? 0 : 0.5,
+        delay: reduceMotion ? 0 : 0.15,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className="fixed left-0 right-0 top-0 z-50 px-4 pt-3 md:px-6"
+    >
       <div
         className={`mx-auto max-w-[1180px] rounded-2xl transition-all duration-300 ${
           scrolled
@@ -54,11 +75,14 @@ export default function NavbarClient({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-md px-1 py-1 transition-colors duration-200 hover:text-foreground ${
+                className={`group relative rounded-md px-1 py-1 transition-colors duration-200 hover:text-foreground ${
                   pathname === item.href ? "text-foreground" : "text-foreground/70"
                 }`}
               >
                 {item.label}
+                <span className={`absolute -bottom-0.5 left-1/2 h-[2px] -translate-x-1/2 rounded-full bg-accent transition-all duration-300 ease-out ${
+                  pathname === item.href ? "w-full" : "w-0 group-hover:w-full"
+                }`} />
               </Link>
             ))}
           </div>
@@ -152,6 +176,6 @@ export default function NavbarClient({
           </div>
         ) : null}
       </div>
-    </nav>
+    </motion.nav>
   );
 }

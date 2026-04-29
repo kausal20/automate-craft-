@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Zap, BatteryCharging, RefreshCcw, LayoutTemplate, ShieldCheck, ChevronRight, CheckCircle2 } from "lucide-react";
+import Reveal from "@/components/Reveal";
 
 export const metadata = {
   title: "How Credits Work - AutomateCraft",
@@ -37,6 +38,7 @@ export default function HowCreditsWorkPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           {/* Box 1: What is a credit */}
+          <Reveal delay={0.05}>
           <div className="lg:col-span-2 rounded-[24px] border border-white/10 bg-[#0c0c0c] p-8 sm:p-10 relative overflow-hidden group hover:border-white/20 transition-all hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <div className="flex flex-col sm:flex-row items-start gap-6 mb-2 relative z-10">
@@ -51,8 +53,10 @@ export default function HowCreditsWorkPage() {
               </div>
             </div>
           </div>
+          </Reveal>
 
           {/* Box 2: Monthly cycle */}
+          <Reveal delay={0.13}>
           <div className="rounded-[24px] border border-white/10 bg-[#0c0c0c] p-8 relative overflow-hidden group hover:border-white/20 transition-all hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="flex flex-col h-full relative z-10">
               <div className="h-12 w-12 rounded-2xl bg-white/5 text-white/80 ring-1 ring-white/10 flex items-center justify-center w-min mb-6 group-hover:bg-blue-500/10 group-hover:text-blue-400 group-hover:ring-blue-500/20 transition-all">
@@ -64,8 +68,10 @@ export default function HowCreditsWorkPage() {
               </p>
             </div>
           </div>
+          </Reveal>
 
           {/* Box 3: How credits are used */}
+          <Reveal delay={0.21}>
           <div className="lg:col-span-3 rounded-[24px] border border-accent/20 bg-gradient-to-br from-[#111] to-[#0a0a0a] p-8 sm:p-10 relative overflow-hidden hover:border-accent/40 transition-all shadow-lg">
             <div className="absolute left-0 bottom-0 w-full h-[1px] bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
             
@@ -105,12 +111,15 @@ export default function HowCreditsWorkPage() {
                 <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-6 text-center mt-2">Example Workflow Cost</h4>
                 
                 <div className="space-y-3">
+                  <Reveal delay={0.1}>
                   <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#111] border border-white/5 hover:border-white/10 transition-colors">
                     <div className="flex items-center gap-3 text-[14px] font-medium text-white/90">
                       <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> Receives a lead
                     </div>
                     <span className="text-[12px] font-mono text-white/40 font-bold bg-white/5 px-2 py-0.5 rounded-md">BASE</span>
                   </div>
+                  </Reveal>
+                  <Reveal delay={0.3}>
                   <div className="w-0.5 h-4 bg-gradient-to-b from-white/10 to-transparent mx-auto relative z-10" />
                   <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#111] border border-white/5 hover:border-white/10 transition-colors">
                     <div className="flex items-center gap-3 text-[14px] font-medium text-white/90">
@@ -118,6 +127,8 @@ export default function HowCreditsWorkPage() {
                     </div>
                     <span className="text-[12px] font-mono text-white/40 font-bold bg-white/5 px-2 py-0.5 rounded-md">COMPUTE</span>
                   </div>
+                  </Reveal>
+                  <Reveal delay={0.5}>
                   <div className="w-0.5 h-4 bg-gradient-to-b from-white/10 to-transparent mx-auto relative z-10" />
                   <div className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#111] border border-white/5 hover:border-white/10 transition-colors">
                     <div className="flex items-center gap-3 text-[14px] font-medium text-white/90">
@@ -125,6 +136,7 @@ export default function HowCreditsWorkPage() {
                     </div>
                     <span className="text-[12px] font-mono text-white/40 font-bold bg-white/5 px-2 py-0.5 rounded-md">PREMIUM</span>
                   </div>
+                  </Reveal>
                 </div>
                 
                 <div className="mt-6 pt-5 border-t border-white/5 flex justify-between items-center text-sm bg-[#111] -mx-6 -mb-6 px-6 pb-6 rounded-b-[20px]">
@@ -141,8 +153,10 @@ export default function HowCreditsWorkPage() {
               You don&apos;t need to calculate anything — the system handles it automatically.
             </p>
           </div>
+          </Reveal>
 
           {/* Box 4: Need more */}
+          <Reveal delay={0.29}>
           <div className="lg:col-span-2 rounded-[24px] border border-emerald-500/10 bg-[#0a0e0a] p-8 relative overflow-hidden group hover:border-emerald-500/30 transition-all hover:shadow-[0_8px_32px_rgba(16,185,129,0.1)]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none group-hover:scale-150 transition-transform" />
             <div className="flex flex-col sm:flex-row items-start gap-6 h-full relative z-10">
@@ -165,8 +179,10 @@ export default function HowCreditsWorkPage() {
               </div>
             </div>
           </div>
+          </Reveal>
 
           {/* Box 5: Why this system */}
+          <Reveal delay={0.37}>
           <div className="rounded-[24px] border border-white/10 bg-[#0c0c0c] p-8 text-center flex flex-col items-center justify-center hover:border-white/20 transition-all group">
             <ShieldCheck className="h-10 w-10 text-white/20 mb-5 group-hover:text-white/40 transition-colors" />
             <h2 className="text-[20px] font-bold tracking-tight text-white mb-5">Why this system?</h2>
@@ -185,6 +201,7 @@ export default function HowCreditsWorkPage() {
             
             <p className="text-[14px] text-white/50 font-medium">You only pay for what you <br /> actually use.</p>
           </div>
+          </Reveal>
 
         </div>
 

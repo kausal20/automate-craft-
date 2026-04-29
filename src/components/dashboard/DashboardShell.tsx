@@ -21,7 +21,7 @@ import BrandMark from "@/components/BrandMark";
 import type { AuthenticatedUser } from "@/lib/automation";
 import { ProfileModal, DISPLAY_NAME_KEY, AVATAR_URL_KEY } from "@/components/dashboard/ProfileModal";
 import { CreditsDropdown } from "@/components/CreditsDropdown";
-import { FloatingParticles } from "@/components/FloatingParticles";
+
 
 type RecentItem = {
   id: string;
@@ -175,7 +175,7 @@ export default function DashboardShell({
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0a0a0a]">
-      <FloatingParticles count={8} />
+
       {!isChatWorkspace && (
       <aside 
         className={`fixed bottom-0 left-0 top-0 ${sidebarWidth} flex shrink-0 flex-col border-r z-40 transition-all duration-300 ease-in-out border-white/[0.04] bg-gradient-to-b from-[#0c0c0e] to-[#09090b] ${
@@ -204,12 +204,13 @@ export default function DashboardShell({
         <div className={`flex-1 overflow-y-auto ${isCollapsed ? "px-2" : "px-3"} py-4 space-y-6`}>
           {/* Main Nav */}
           <nav className="space-y-1">
-            {navItems.map((item) => (
+            {navItems.map((item, navIdx) => (
               <Link
                 key={item.name}
                 href={item.href}
                 title={isCollapsed ? item.name : undefined}
-                className={`relative flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                style={{ animationDelay: `${navIdx * 30}ms` }}
+                className={`sidebar-item relative flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
                   isCollapsed ? "justify-center" : "gap-3"
                 } ${
                   isActive(item.href)

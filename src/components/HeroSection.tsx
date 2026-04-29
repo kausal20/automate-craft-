@@ -8,9 +8,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, useScroll, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { ArrowUp, Mic, Paperclip, Sparkles } from "lucide-react";
-import HeroScene from "@/components/HeroScene";
+import dynamic from "next/dynamic";
+import { motion, useScroll, useSpring, useTransform, AnimatePresence, useReducedMotion } from "framer-motion";
+import { ArrowUp, Mic, Paperclip, Sparkles, MessageSquareText, Play, ChevronRight, ArrowRight } from "lucide-react";
+const HeroScene = dynamic(() => import("@/components/HeroScene"), { ssr: false });
 
 import SocialMiniButtons from "@/components/home/SocialMiniButtons";
 import { LoginModal } from "@/components/auth/LoginModal";
@@ -53,6 +54,12 @@ const promptExamples = [
   "Sync CRM contacts to my email list",
 ];
 
+/* LOGIC EXPLAINED:
+This hero already had rich motion, but some of it ignored reduced-motion preferences.
+The fix keeps the same premium animation for most users and falls back to instant or
+static transitions for people who prefer less movement.
+*/
+
 export default function HeroSection({
   user,
   socialAuthEnabled,
@@ -63,6 +70,7 @@ export default function HeroSection({
   ssoEnabled: boolean;
 }) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [prompt, setPrompt] = useState("");
   const [isPromptFocused, setIsPromptFocused] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(0);
@@ -93,17 +101,17 @@ export default function HeroSection({
   };
   
   const { scrollY } = useScroll();
-  const heroYRaw = useTransform(scrollY, [0, 280, 700], [0, -16, -40]);
-  const heroOpacityRaw = useTransform(scrollY, [0, 600], [1, 0.94]);
+  const heroYRaw = useTransform(scrollY, reduceMotion ? [0, 1] : [0, 280, 700], reduceMotion ? [0, 0] : [0, -16, -40]);
+  const heroOpacityRaw = useTransform(scrollY, reduceMotion ? [0, 1] : [0, 600], reduceMotion ? [1, 1] : [1, 0.94]);
   const heroY = useSpring(heroYRaw, {
-    stiffness: 88,
-    damping: 24,
-    mass: 0.55,
+    stiffness: reduceMotion ? 1000 : 88,
+    damping: reduceMotion ? 100 : 24,
+    mass: reduceMotion ? 1 : 0.55,
   });
   const heroOpacity = useSpring(heroOpacityRaw, {
-    stiffness: 90,
-    damping: 24,
-    mass: 0.55,
+    stiffness: reduceMotion ? 1000 : 90,
+    damping: reduceMotion ? 100 : 24,
+    mass: reduceMotion ? 1 : 0.55,
   });
 
   const adjustPromptHeight = useEffectEvent(() => {
@@ -214,9 +222,9 @@ export default function HeroSection({
         >
           <div className="mx-auto w-full max-w-4xl text-center">
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: reduceMotion ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="mx-auto max-w-4xl text-[3.3rem] font-semibold leading-[0.94] tracking-[-0.08em] text-foreground sm:text-[4.4rem] lg:text-[5.4rem]">
                 {user
@@ -231,9 +239,13 @@ export default function HeroSection({
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 22 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 22 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.85, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.85,
+                delay: reduceMotion ? 0 : 0.08,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="group relative mx-auto my-10 max-w-[600px] cursor-text"
               onClick={() => promptRef.current?.focus()}
             >
@@ -263,7 +275,11 @@ export default function HeroSection({
                           ? ["radial-gradient(circle at top, rgba(59,130,246,0.2), transparent 55%)"]
                           : ["radial-gradient(circle at top, rgba(59,130,246,0.05), transparent 45%)", "radial-gradient(circle at top, rgba(59,130,246,0.15), transparent 50%)", "radial-gradient(circle at top, rgba(59,130,246,0.05), transparent 45%)"]
                       }}
-                      transition={hasPrompt ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      transition={
+                        hasPrompt || reduceMotion
+                          ? {}
+                          : { duration: 4, repeat: Infinity, ease: "easeInOut" }
+                      }
                     />
 
                     <div className="relative">
@@ -272,10 +288,10 @@ export default function HeroSection({
                           <AnimatePresence mode="popLayout">
                             <motion.div
                               key={exampleIndex}
-                              initial={{ opacity: 0, x: 18 }}
+                              initial={{ opacity: 0, x: reduceMotion ? 0 : 18 }}
                               animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -18 }}
-                              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                              exit={{ opacity: 0, x: reduceMotion ? 0 : -18 }}
+                              transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
                               className="absolute inset-0 text-white/40"
                             >
                               {promptExamples[exampleIndex]}
@@ -318,7 +334,7 @@ export default function HeroSection({
                           onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
                           type="button"
                           aria-label="Attach file"
-                          whileTap={{ scale: 0.94 }}
+                          whileTap={reduceMotion ? undefined : { scale: 0.94 }}
                           className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
                         >
                           <Paperclip className="h-4 w-4" />
@@ -356,7 +372,7 @@ export default function HeroSection({
                               <motion.span
                                 className="block h-4 w-4 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.28)]"
                                 animate={{ x: ultraThinking ? 16 : 0 }}
-                                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                                transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }}
                               />
                             </span>
                           </button>
@@ -372,7 +388,7 @@ export default function HeroSection({
                           onClick={toggleListening}
                           type="button"
                           aria-label={isListening ? "Stop listening" : "Start dictation"}
-                          whileTap={{ scale: 0.94 }}
+                          whileTap={reduceMotion ? undefined : { scale: 0.94 }}
                           className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 ${
                             isListening
                               ? "bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse"
@@ -386,7 +402,7 @@ export default function HeroSection({
                           onClick={(e) => { e.stopPropagation(); handleSubmit(); }}
                           disabled={!canSubmit}
                           aria-label="Send automation prompt"
-                          whileTap={canSubmit ? { scale: 0.94, rotate: 8 } : undefined}
+                          whileTap={canSubmit && !reduceMotion ? { scale: 0.94, rotate: 8 } : undefined}
                           className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 ${
                             canSubmit
                               ? "bg-accent text-white shadow-[0_8px_18px_rgba(79,142,247,0.3)] hover:scale-[1.05] hover:bg-[#5c95fb]"
@@ -406,7 +422,7 @@ export default function HeroSection({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.2, duration: 0.8 }}
+              transition={{ delay: reduceMotion ? 0 : 1.2, duration: reduceMotion ? 0 : 0.8 }}
               className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12px] text-white/25"
             >
               <span className="flex items-center gap-1.5">
@@ -465,9 +481,7 @@ export default function HeroSection({
                   {
                     step: "01",
                     icon: (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.277 2.903 2.85 2.903h9.09c1.573 0 2.85-1.303 2.85-2.903V5.84c0-1.6-1.277-2.903-2.85-2.903H5.6c-1.573 0-2.85 1.303-2.85 2.903v7.42Z" />
-                      </svg>
+                      <MessageSquareText className="h-6 w-6" />
                     ),
                     title: "Describe your workflow",
                     desc: "Type what you want in plain English. \"Send a WhatsApp to new leads\" or \"Save form responses to Google Sheets\".",
@@ -478,9 +492,7 @@ export default function HeroSection({
                   {
                     step: "02",
                     icon: (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-                      </svg>
+                      <Sparkles className="h-6 w-6" />
                     ),
                     title: "AI builds the blueprint",
                     desc: "Our AI maps out the workflow steps, selects the right integrations, and generates a setup form tailored to your needs.",
@@ -491,9 +503,7 @@ export default function HeroSection({
                   {
                     step: "03",
                     icon: (
-                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-                      </svg>
+                      <Play className="h-6 w-6" />
                     ),
                     title: "Connect, configure & deploy",
                     desc: "Link your apps with one click, fill in your details, and activate. Your automation runs 24/7 from that moment.",
@@ -504,11 +514,13 @@ export default function HeroSection({
                 ].map((item, i) => (
                   <motion.div
                     key={item.step}
-                    initial={{ opacity: 0, y: 24 }}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{
-                      duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1],
+                      duration: reduceMotion ? 0 : 0.6,
+                      delay: reduceMotion ? 0 : i * 0.12,
+                      ease: [0.22, 1, 0.36, 1],
                     }}
                     className="group relative overflow-hidden rounded-[2rem] border border-white/[0.06] bg-gradient-to-b from-[#111113] to-[#0d0d0f] p-8 transition-all duration-300 hover:border-white/[0.1] hover:shadow-[0_20px_48px_rgba(0,0,0,0.6)] hover:-translate-y-1"
                     style={{ boxShadow: `0 0 60px ${item.glow}, 0 8px 32px rgba(0,0,0,0.4)` }}
@@ -536,9 +548,7 @@ export default function HeroSection({
                     {i < 2 && (
                       <div className="hidden md:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
                         <div className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.06] bg-[#0d0d0f]">
-                          <svg className="h-3 w-3 text-white/20" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                          </svg>
+                          <ChevronRight className="h-3 w-3 text-white/20" />
                         </div>
                       </div>
                     )}
@@ -550,12 +560,10 @@ export default function HeroSection({
               <div className="mt-14 text-center">
                 <Link
                   href="/signup"
-                  className="inline-flex h-13 items-center gap-2.5 rounded-full bg-gradient-to-r from-accent to-blue-600 px-8 py-3.5 text-[0.95rem] font-semibold text-white shadow-[0_4px_24px_rgba(59,130,246,0.3)] transition-all duration-200 hover:shadow-[0_8px_32px_rgba(59,130,246,0.4)] hover:translate-y-[-2px]"
+                  className="cta-glow inline-flex h-13 items-center gap-2.5 rounded-full bg-gradient-to-r from-accent to-blue-600 px-8 py-3.5 text-[0.95rem] font-semibold text-white shadow-[0_4px_24px_rgba(59,130,246,0.3)] transition-all duration-200 hover:shadow-[0_8px_32px_rgba(59,130,246,0.4)] hover:translate-y-[-2px]"
                 >
                   Start for free — no credit card
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                  </svg>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
                 <p className="mt-4 text-[12px] text-white/20">10 free credits on signup · No card required</p>
               </div>
@@ -576,10 +584,10 @@ export default function HeroSection({
                 ].map((stat) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 16 }}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }}
                     className="flex flex-col items-center gap-1 text-center"
                   >
                     <span className="font-mono text-3xl font-bold tracking-tight text-white sm:text-4xl">

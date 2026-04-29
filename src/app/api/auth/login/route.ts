@@ -14,11 +14,8 @@ const loginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    console.log("[api/auth/login] Request received.");
     const body = loginSchema.parse(await request.json());
-    console.log("[api/auth/login] Payload validated for:", body.email);
     const result = await signInWithCredentials(body);
-    console.log("[api/auth/login] Sign in result for:", result.user.email, "needsEmailVerification:", result.needsEmailVerification);
 
     if (result.needsEmailVerification) {
       return Response.json(

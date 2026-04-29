@@ -16,7 +16,7 @@ export default function BrandMark({
      wants the "Craft" half to carry the blue accent. Splitting the text into two
      spans lets us color only that part without changing the logo or layout. */
   const content = (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-2.5 transition-transform duration-200 hover:scale-[1.04]">
       <div className="relative flex items-center justify-center">
         <Image
           src="/logo-new.png"
@@ -24,6 +24,7 @@ export default function BrandMark({
           width={compact ? 42 : 54}
           height={compact ? 42 : 54}
           className="object-contain"
+          style={{ width: "auto", height: "auto" }}
           priority
         />
       </div>

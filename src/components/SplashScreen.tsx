@@ -29,6 +29,7 @@ export function SplashScreen() {
               width={64}
               height={64}
               className="object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+              style={{ width: "auto", height: "auto" }}
               priority
             />
           </div>

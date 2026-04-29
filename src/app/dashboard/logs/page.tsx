@@ -290,9 +290,29 @@ export default function LogsPage() {
 
       {/* ── Content ── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="h-7 w-7 animate-spin text-accent/50" />
-          <p className="mt-4 text-[13px] text-white/30">Loading your activity...</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+                <div className="h-[10px] w-1/2 rounded bg-white/[0.04] animate-shimmer" />
+                <div className="h-[24px] w-2/5 rounded bg-white/[0.04] animate-shimmer" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                <div className="flex items-center gap-4">
+                  <div className="h-2.5 w-2.5 rounded-full bg-white/[0.06]" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-[14px] w-3/5 rounded bg-white/[0.04] animate-shimmer" />
+                    <div className="h-[10px] w-2/5 rounded bg-white/[0.04] animate-shimmer" />
+                  </div>
+                  <div className="h-[22px] w-16 rounded-full bg-white/[0.04]" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : error ? (
         <div className="rounded-2xl border border-red-500/15 bg-red-500/[0.04] px-6 py-10 text-center">

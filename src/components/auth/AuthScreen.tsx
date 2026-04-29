@@ -47,7 +47,8 @@ function MailIcon() {
 /* ─── Orbiting integration icon ─── */
 /* Removed — replaced by LoginDemoPlayer */
 
-import LoginDemoPlayer from "@/components/auth/LoginDemoPlayer";
+import dynamic from "next/dynamic";
+const LoginDemoPlayer = dynamic(() => import("@/components/auth/LoginDemoPlayer"), { ssr: false });
 
 
 /* ═══════════════════════════════════════════════
@@ -195,7 +196,15 @@ export default function AuthScreen({
             className="mb-8 flex flex-col items-center"
           >
             <Link href="/" className="mb-6 block">
-              <Image src="/logo-new.png" alt="AutomateCraft" width={56} height={56} className="object-contain" priority />
+              <Image
+                src="/logo-new.png"
+                alt="AutomateCraft"
+                width={56}
+                height={56}
+                className="object-contain"
+                style={{ width: "auto", height: "auto" }}
+                priority
+              />
             </Link>
             <h1 className="text-center text-[1.85rem] font-semibold tracking-[-0.02em] text-white">
               {title}
@@ -262,8 +271,8 @@ export default function AuthScreen({
 
                   <p className="mt-10 text-center text-[0.7rem] leading-5 text-white/[0.18]">
                     By continuing, you agree to our{" "}
-                    <span className="text-white/30">Terms of Service</span> and{" "}
-                    <span className="text-white/30">Privacy Policy</span>.
+                    <Link href="/terms" className="text-white/30 underline underline-offset-2 hover:text-white/50 transition-colors">Terms of Service</Link> and{" "}
+                    <Link href="/privacy" className="text-white/30 underline underline-offset-2 hover:text-white/50 transition-colors">Privacy Policy</Link>.
                   </p>
                 </motion.div>
 
@@ -443,8 +452,8 @@ export default function AuthScreen({
 
               <p className="mt-8 text-center text-[0.7rem] leading-5 text-white/[0.18]">
                 By continuing, you agree to our{" "}
-                <span className="text-white/30">Terms of Service</span> and{" "}
-                <span className="text-white/30">Privacy Policy</span>.
+                <Link href="/terms" className="text-white/30 underline underline-offset-2 hover:text-white/50 transition-colors">Terms of Service</Link> and{" "}
+                <Link href="/privacy" className="text-white/30 underline underline-offset-2 hover:text-white/50 transition-colors">Privacy Policy</Link>.
               </p>
             </motion.div>
           )}

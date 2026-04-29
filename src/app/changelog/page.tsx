@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Reveal from "@/components/Reveal";
 
 export const metadata: Metadata = {
   title: "Changelog — AutomateCraft",
@@ -67,10 +68,11 @@ export default function ChangelogPage() {
           <div className="absolute left-[7px] top-2 bottom-2 w-px bg-white/[0.06]" />
 
           <div className="space-y-10">
-            {entries.map((entry) => {
+            {entries.map((entry, i) => {
               const colors = tagColors[entry.tag] || tagColors.feature;
               return (
-                <div key={entry.title} className="relative pl-8">
+                <Reveal key={entry.title} delay={i * 0.08}>
+                <div className="relative pl-8">
                   {/* Dot */}
                   <div className="absolute left-0 top-2 h-[15px] w-[15px] rounded-full border-2 border-white/[0.08] bg-[#09090b]">
                     <div className="absolute inset-[3px] rounded-full bg-accent/50" />
@@ -85,6 +87,7 @@ export default function ChangelogPage() {
                   </div>
                   <p className="mt-2 text-[14px] leading-7 text-white/40">{entry.desc}</p>
                 </div>
+                </Reveal>
               );
             })}
           </div>

@@ -7,9 +7,16 @@ import {
   MessageSquare, Mail, BarChart3, FileSpreadsheet,
   Bell, RefreshCw, Calendar, Webhook,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import HeroScene from "@/components/HeroScene";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import dynamic from "next/dynamic";
+const HeroScene = dynamic(() => import("@/components/HeroScene"), { ssr: false });
 import { DISPLAY_NAME_KEY } from "@/components/dashboard/ProfileModal";
+
+/* LOGIC EXPLAINED:
+This dashboard hero already had rich animation, but some transitions did not respect
+reduced-motion preferences. This fix preserves the same experience for most users
+while making motion instant or static for people who prefer less movement.
+*/
 
 /* ─── rotating placeholder examples ─── */
 const promptExamples = [
@@ -97,6 +104,7 @@ function createChatId() {
 ════════════════════════════════════════════════════════════ */
 export default function DashboardHomeClient({ firstName }: { firstName: string | null }) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const [prompt, setPrompt] = useState("");
   const [isPromptFocused, setIsPromptFocused] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(0);
@@ -225,18 +233,18 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
 
       <section className="relative flex min-h-screen items-center overflow-hidden pb-10 pt-24 md:pb-14">
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reduceMotion ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 items-center px-4 sm:px-6 lg:px-8"
         >
           <div className="mx-auto w-full max-w-4xl text-center">
 
             {/* ── Heading ── */}
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: reduceMotion ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="mx-auto max-w-4xl text-[3.3rem] font-semibold leading-[0.94] tracking-[-0.08em] text-foreground sm:text-[4.4rem] lg:text-[5.4rem]">
                 {displayName ? (
@@ -252,9 +260,13 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
 
             {/* ── Premium Prompt Box ── */}
             <motion.div
-              initial={{ opacity: 0, y: 22 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 22 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.85, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.85,
+                delay: reduceMotion ? 0 : 0.08,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="group relative mx-auto my-10 max-w-[600px] cursor-text"
               onClick={() => promptRef.current?.focus()}
             >
@@ -273,7 +285,11 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                     <motion.div
                       className="pointer-events-none absolute inset-0 rounded-[16px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                       animate={{ background: hasPrompt ? ["radial-gradient(circle at top, rgba(59,130,246,0.2), transparent 55%)"] : ["radial-gradient(circle at top, rgba(59,130,246,0.05), transparent 45%)", "radial-gradient(circle at top, rgba(59,130,246,0.15), transparent 50%)", "radial-gradient(circle at top, rgba(59,130,246,0.05), transparent 45%)"] }}
-                      transition={hasPrompt ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                      transition={
+                        hasPrompt || reduceMotion
+                          ? {}
+                          : { duration: 4, repeat: Infinity, ease: "easeInOut" }
+                      }
                     />
 
                     {/* textarea */}
@@ -281,7 +297,7 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                       {!prompt && (
                         <div className="pointer-events-none absolute inset-0 text-[1rem] leading-[1.55] sm:text-[1.05rem] overflow-hidden">
                           <AnimatePresence mode="popLayout">
-                            <motion.div key={exampleIndex} initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -18 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }} className="absolute inset-0 text-white/40">
+                            <motion.div key={exampleIndex} initial={{ opacity: 0, x: reduceMotion ? 0 : 18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reduceMotion ? 0 : -18 }} transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] }} className="absolute inset-0 text-white/40">
                               {promptExamples[exampleIndex]}
                             </motion.div>
                           </AnimatePresence>
@@ -307,7 +323,7 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                     <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-3.5">
                       <div className="flex items-center gap-2.5">
                         <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".txt,.csv,.json,.md" />
-                        <motion.button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} type="button" aria-label="Attach file" whileTap={{ scale: 0.94 }} className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white">
+                        <motion.button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }} type="button" aria-label="Attach file" whileTap={reduceMotion ? undefined : { scale: 0.94 }} className="inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white">
                           <Paperclip className="h-4 w-4" />
                         </motion.button>
                         <div className="relative z-20 flex items-center">
@@ -315,17 +331,17 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                             <span className={`flex h-5 w-5 items-center justify-center rounded-full ${ultraThinking ? "bg-accent/18 text-accent" : "bg-white/8 text-white/48"}`}><Sparkles className="h-3 w-3" /></span>
                             <span>Ultra Thinking</span>
                             <span className={`relative h-5 w-9 rounded-full p-[2px] transition-colors duration-200 ${ultraThinking ? "bg-accent/80" : "bg-white/16"}`}>
-                              <motion.span className="block h-4 w-4 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.28)]" animate={{ x: ultraThinking ? 16 : 0 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }} />
+                              <motion.span className="block h-4 w-4 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.28)]" animate={{ x: ultraThinking ? 16 : 0 }} transition={{ duration: reduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }} />
                             </span>
                           </button>
                         </div>
                         <p className="text-[0.7rem] font-medium tracking-[0.02em] text-white/30 hidden sm:block ml-1">Press Enter to generate</p>
                       </div>
                       <div className="flex items-center gap-2.5 ml-auto">
-                        <motion.button onClick={toggleListening} type="button" aria-label={isListening ? "Stop listening" : "Start dictation"} whileTap={{ scale: 0.94 }} className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 ${isListening ? "bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"}`}>
+                        <motion.button onClick={toggleListening} type="button" aria-label={isListening ? "Stop listening" : "Start dictation"} whileTap={reduceMotion ? undefined : { scale: 0.94 }} className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 ${isListening ? "bg-red-500/20 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"}`}>
                           <Mic className="h-4 w-4" />
                         </motion.button>
-                        <motion.button onClick={(e) => { e.stopPropagation(); handleSubmit(); }} disabled={!canSubmit} aria-label="Send automation prompt" whileTap={canSubmit ? { scale: 0.94, rotate: 8 } : undefined} className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 ${canSubmit ? "bg-accent text-white shadow-[0_8px_18px_rgba(79,142,247,0.3)] hover:scale-[1.05] hover:bg-[#5c95fb]" : "bg-white/10 text-white/30 opacity-80 border border-white/5"}`}>
+                        <motion.button onClick={(e) => { e.stopPropagation(); handleSubmit(); }} disabled={!canSubmit} aria-label="Send automation prompt" whileTap={canSubmit && !reduceMotion ? { scale: 0.94, rotate: 8 } : undefined} className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-all duration-300 ease-out z-10 ${canSubmit ? "bg-accent text-white shadow-[0_8px_18px_rgba(79,142,247,0.3)] hover:scale-[1.05] hover:bg-[#5c95fb]" : "bg-white/10 text-white/30 opacity-80 border border-white/5"}`}>
                           <ArrowUp className="h-4 w-4" />
                         </motion.button>
                       </div>
@@ -337,9 +353,13 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
 
             {/* ── Quick Start Template Chips ── */}
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.22, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: reduceMotion ? 0 : 0.22,
+                duration: reduceMotion ? 0 : 0.5,
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="mx-auto max-w-[640px]"
             >
               {/* label */}
@@ -355,7 +375,7 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                 <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[#0a0a0a] to-transparent" />
 
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none px-1" style={{ scrollbarWidth: "none" }}>
-                  {templates.map((t) => {
+                  {templates.map((t, tIdx) => {
                     const Icon = t.icon;
                     const isActive = activeTemplate === t.title;
                     return (
@@ -363,7 +383,14 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                         key={t.title}
                         type="button"
                         onClick={() => handleTemplateClick(t)}
-                        whileTap={{ scale: 0.96 }}
+                        whileTap={reduceMotion ? undefined : { scale: 0.96 }}
+                        initial={{ opacity: 0, x: reduceMotion ? 0 : 12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{
+                          duration: reduceMotion ? 0 : 0.35,
+                          delay: reduceMotion ? 0 : 0.3 + tIdx * 0.04,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                         className="group relative flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-left transition-all duration-200"
                         style={{
                           borderColor: isActive ? `${t.color}60` : "rgba(255,255,255,0.08)",
@@ -402,7 +429,7 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
                         {/* active check */}
                         {isActive && (
                           <motion.span
-                            initial={{ scale: 0 }}
+                            initial={{ scale: reduceMotion ? 1 : 0 }}
                             animate={{ scale: 1 }}
                             className="ml-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold"
                             style={{ background: t.color, color: "#000" }}
@@ -420,10 +447,10 @@ export default function DashboardHomeClient({ firstName }: { firstName: string |
               <AnimatePresence>
                 {activeTemplate && (
                   <motion.p
-                    initial={{ opacity: 0, y: 6 }}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 4 }}
-                    transition={{ duration: 0.25 }}
+                    exit={{ opacity: 0, y: reduceMotion ? 0 : 4 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.25 }}
                     className="mt-3 text-center text-[11.5px] text-white/35"
                   >
                     ✏️ Edit the prompt above or press{" "}

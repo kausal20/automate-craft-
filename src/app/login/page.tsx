@@ -3,6 +3,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { isSsoEnabled, isSupabaseAuthEnabled } from "@/lib/env";
 import { sanitizeNextPath } from "@/lib/navigation";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description: "Sign in to your AutomateCraft account to manage automations.",
+};
 
 type SearchParams = Promise<{
   next?: string | string[];

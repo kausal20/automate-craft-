@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Reveal from "@/components/Reveal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — AutomateCraft",
@@ -108,11 +109,13 @@ export default function PrivacyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
+    <Reveal>
     <section>
       <h2 className="mb-4 text-xl font-semibold tracking-tight text-white/90">{title}</h2>
       <div className="space-y-3 text-[15px] leading-7 text-white/45 [&_ul]:ml-5 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_strong]:text-white/60 [&_li]:pl-1">
         {children}
       </div>
     </section>
+    </Reveal>
   );
 }

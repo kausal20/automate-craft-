@@ -13,43 +13,18 @@ import { EngineAnalysisCard } from "./EngineAnalysisCard";
 import { IntegrationCard, IntegrationCardSubmitted } from "./IntegrationCard";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { SystemStatusBar, type SystemPhase } from "./SystemStatusBar";
+import { CommandPalette } from "./CommandPalette";
+import { useChatStore } from "@/store/chat-store";
+import type { 
+  FormDef, 
+  EngineCards, 
+  Message, 
+  ChatSequenceStep, 
+  WorkspaceState, 
+  ChatSession 
+} from "@/store/chat-store";
 
-type FormDef = {
-  title: string;
-  description: string;
-  fields: FieldDef[];
-};
-
-type EngineCards = {
-  trigger: string;
-  action: string;
-  setupFields: string[];
-};
-
-type Message = {
-  id: string;
-  role: "user" | "ai" | "system" | "thinking";
-  content: string;
-  state?: WorkspaceState;
-  form?: FormDef;
-  isReadyCard?: boolean;
-  isFormSubmitted?: boolean;
-  formValues?: Record<string, FieldValue>;
-  timestamp?: number;
-  engineCards?: EngineCards;
-};
-
-type ChatSequenceStep = "boot" | "wait_message" | "ready" | "deployed";
-type WorkspaceState = "understanding" | "collecting_inputs" | "ready_to_build" | "canvas_visible";
-
-type StoredChat = {
-  chatTitle?: string;
-  isStarred?: boolean;
-  messages?: Message[];
-  step?: ChatSequenceStep;
-  workspaceState?: WorkspaceState;
-  nodes?: FlowNode[];
-};
+type StoredChat = Partial<ChatSession>;
 
 type SpeechRecognitionResultEventLike = {
   results: {
@@ -138,16 +113,6 @@ function generateTitle(prompt: string): string {
   return resultWords.join(" ");
 }
 
-function readStoredChat(chatId: string): StoredChat | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const saved = localStorage.getItem(`chat_${chatId}`);
-    return saved ? (JSON.parse(saved) as StoredChat) : null;
-  } catch {
-    return null;
-  }
-}
-
 function sanitizeCustomTitle(value: string) {
   return value.replace(/[^\w\s-]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
 }
@@ -173,7 +138,14 @@ const SUGGESTION_CHIPS = [
 function AiAvatar({ isActive = false }: { isActive?: boolean }) {
   return (
     <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/10 shadow-[0_0_12px_rgba(59,130,246,0.08)]">
-      <Image src="/logo-new.png" alt="AI" width={18} height={18} className="object-contain" />
+      <Image
+        src="/logo-new.png"
+        alt="AI"
+        width={18}
+        height={18}
+        className="object-contain"
+        style={{ width: "auto", height: "auto" }}
+      />
       {isActive && (
         <motion.div
           className="absolute -inset-0.5 rounded-lg border border-accent/25"
@@ -200,7 +172,14 @@ const OrbitalCore = () => (
     
     {/* Center node */}
     <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 ring-1 ring-accent/20 shadow-[0_0_30px_rgba(59,130,246,0.15)] backdrop-blur-sm">
-      <Image src="/logo-new.png" alt="AutomateCraft" width={24} height={24} className="object-contain" />
+      <Image
+        src="/logo-new.png"
+        alt="AutomateCraft"
+        width={24}
+        height={24}
+        className="object-contain"
+        style={{ width: "auto", height: "auto" }}
+      />
       <motion.div
         className="absolute inset-0 rounded-2xl border border-accent/30"
         animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
@@ -488,17 +467,26 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const [chatTitle, setChatTitle] = useState<string>(() => {
-    const saved = readStoredChat(chatId);
-    if (saved?.chatTitle) return saved.chatTitle as string;
-    return generateTitle(initialPrompt || "");
-  });
+  // ── Zustand global store (must come before any derived state) ──
+  const { sessions, updateSession, setNodes: setStoreNodes } = useChatStore();
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+  const session = sessions[chatId];
+
+  const chatTitle = isClient ? (session?.chatTitle || generateTitle(initialPrompt || "")) : generateTitle(initialPrompt || "");
   const [draftTitle, setDraftTitle] = useState(chatTitle);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [isStarred, setIsStarred] = useState<boolean>(() => {
-    const saved = readStoredChat(chatId);
-    return Boolean(saved?.isStarred);
-  });
+  const isStarred = isClient ? (session?.isStarred || false) : false;
+
+  const setChatTitle = (update: string | ((prev: string) => string)) => {
+    const next = typeof update === "function" ? update(chatTitle) : update;
+    updateSession(chatId, { chatTitle: next });
+  };
+
+  const setIsStarred = (update: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof update === "function" ? update(isStarred) : update;
+    updateSession(chatId, { isStarred: next });
+  };
 
   useEffect(() => {
     if (!isEditingTitle) return;
@@ -518,38 +506,43 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
     setIsEditingTitle(false);
   };
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const saved = readStoredChat(chatId);
-    if (saved?.messages) return saved.messages as Message[];
-    return initialPrompt
-      ? [
-          { id: "init-user", role: "user", content: initialPrompt, timestamp: Date.now() },
-          { id: "init-sys", role: "system", content: "Understanding your automation...", timestamp: Date.now() }
-        ]
-      : [];
-  });
+  const defaultMessages: Message[] = initialPrompt
+    ? [
+        { id: "init-user", role: "user", content: initialPrompt, timestamp: Date.now() },
+        { id: "init-sys", role: "system", content: "Understanding your automation...", timestamp: Date.now() }
+      ]
+    : [];
 
-  const [step, setStep] = useState<ChatSequenceStep>(() => {
-    const saved = readStoredChat(chatId);
-    if (saved?.step) return saved.step as ChatSequenceStep;
-    return "boot";
-  });
+  const defaultNodes: FlowNode[] = [
+    { id: "n1", type: "trigger", label: "Form Submission", status: "completed", detail: "Awaiting incoming form data" },
+    { id: "n2", type: "process", label: "AI Analysis", status: "pending" },
+    { id: "n3", type: "action", label: "Send Notification", status: "pending" }
+  ];
 
-  const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(() => {
-    const saved = readStoredChat(chatId);
-    if (saved?.workspaceState) return saved.workspaceState as WorkspaceState;
-    return "understanding";
-  });
+  const messages = isClient ? (session?.messages || defaultMessages) : defaultMessages;
+  const step = isClient ? (session?.step || "boot") : "boot";
+  const workspaceState = isClient ? (session?.workspaceState || "understanding") : "understanding";
+  const nodes = isClient ? (session?.nodes || defaultNodes) : defaultNodes;
 
-  const [nodes, setNodes] = useState<FlowNode[]>(() => {
-    const saved = readStoredChat(chatId);
-    if (saved?.nodes) return saved.nodes as FlowNode[];
-    return [
-      { id: "n1", type: "trigger", label: "Form Submission", status: "completed", detail: "Awaiting incoming form data" },
-      { id: "n2", type: "process", label: "AI Analysis", status: "pending" },
-      { id: "n3", type: "action", label: "Send Notification", status: "pending" }
-    ];
-  });
+  const setMessages = (update: Message[] | ((prev: Message[]) => Message[])) => {
+    const next = typeof update === "function" ? update(messages) : update;
+    updateSession(chatId, { messages: next });
+  };
+
+  const setStep = (update: ChatSequenceStep | ((prev: ChatSequenceStep) => ChatSequenceStep)) => {
+    const next = typeof update === "function" ? update(step) : update;
+    updateSession(chatId, { step: next });
+  };
+
+  const setWorkspaceState = (update: WorkspaceState | ((prev: WorkspaceState) => WorkspaceState)) => {
+    const next = typeof update === "function" ? update(workspaceState) : update;
+    updateSession(chatId, { workspaceState: next });
+  };
+
+  const setNodes = (update: FlowNode[] | ((prev: FlowNode[]) => FlowNode[])) => {
+    const next = typeof update === "function" ? update(nodes) : update;
+    setStoreNodes(chatId, next);
+  };
 
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -642,11 +635,6 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem(
-        `chat_${chatId}`,
-        JSON.stringify({ messages, step, workspaceState, nodes, chatTitle, isStarred })
-      );
-
       const now = new Date().toISOString();
       const previous = readChatIndex().filter((entry) => entry && entry.chatId);
       const nextEntry: ChatIndexEntry = { chatId, title: chatTitle, updatedAt: now, isStarred };
@@ -938,6 +926,7 @@ export function ChatContainer({ chatId, initialPrompt, ultraThinking: ultraThink
 
   return (
     <div className="chat-shell-bg flex h-full w-full overflow-hidden">
+      <CommandPalette />
 
       {/* ─── Main Chat Area ─── */}
       <div className={`relative flex h-full flex-col min-w-0 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${

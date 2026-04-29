@@ -1,4 +1,4 @@
-import { ChatContainer } from "@/components/chat/ChatContainer";
+import { ChatWrapper } from "@/components/chat/ChatWrapper";
 
 interface ChatPageProps {
   params: Promise<{
@@ -15,7 +15,7 @@ export default async function ChatPage({ params, searchParams }: ChatPageProps) 
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-[#0a0a0a]">
-      <ChatContainer chatId={resolvedParams.chatId} initialPrompt={initialPrompt} ultraThinking={ultraThinking} />
+      <ChatWrapper chatId={resolvedParams.chatId} initialPrompt={initialPrompt} ultraThinking={ultraThinking} />
     </div>
   );
 }

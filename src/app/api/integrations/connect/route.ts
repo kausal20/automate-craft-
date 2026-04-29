@@ -15,24 +15,19 @@ const connectSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  console.log("[api/integrations/connect] Request received.");
   const user = await getCurrentUser();
 
   if (!user) {
-    console.log("[api/integrations/connect] No authenticated user found.");
     return jsonError("Authentication required.", 401);
   }
 
   try {
-    console.log("[api/integrations/connect] Authenticated user:", user.id);
     const body = connectSchema.parse(await request.json());
-    console.log("[api/integrations/connect] Integration validated:", body.integration);
     const connection = await upsertIntegrationConnection({
       userId: user.id,
       integration: body.integration,
       status: "connected",
     });
-    console.log("[api/integrations/connect] Connection saved.");
 
     return Response.json({ connection });
   } catch (error) {

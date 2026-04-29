@@ -20,6 +20,7 @@ export default function Loading() {
           width={64}
           height={64}
           className="relative object-contain drop-shadow-[0_0_20px_rgba(59,130,246,0.35)]"
+          style={{ width: "auto", height: "auto" }}
           priority
         />
       </div>

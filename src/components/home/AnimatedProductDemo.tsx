@@ -254,6 +254,7 @@ export default function AnimatedProductDemo() {
                         width={16}
                         height={16}
                         className="opacity-70"
+                        style={{ width: "auto", height: "auto" }}
                       />
                     </div>
 

@@ -2,11 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Brain, Check, ChevronDown, Sparkles, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { Brain, Check, ChevronDown, Sparkles, X, BadgeCheck, Lock, CircleDollarSign } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import PageIntro from "@/components/PageIntro";
 import { useGeoPricing } from "@/hooks/useGeoPricing";
+
+/* LOGIC EXPLAINED:
+The pricing page already had good visible motion, but some parts did not respect
+reduced-motion preferences. This fix keeps the current look and interaction for
+most users while making movement instant or static for people who prefer less motion.
+*/
 
 type CreditTier = {
   credits: string;
@@ -129,13 +135,14 @@ function PlanCard({
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const reduceMotion = useReducedMotion();
   const [selectedTierIndex, setSelectedTierIndex] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const isRecommended = Boolean(plan.highlighted);
   const isGoldSelected = isRecommended && isSelected;
-  const showRecommendedBadge = isRecommended && (isSelected || isHovered || isFocused);
+  const showRecommendedBadge = isRecommended;
   const showSelectedBadge = isSelected && !isRecommended;
   const showCardBadge = showRecommendedBadge || showSelectedBadge;
 
@@ -168,10 +175,12 @@ function PlanCard({
   };
 
   const badgeClassName = isGoldSelected
-    ? "border border-[#ffe876]/60 bg-[#ffe876]/14 text-[#ffe876] shadow-[0_0_18px_rgba(255,232,118,0.22)]"
+    ? "border border-[#ffe876]/60 bg-[#ffe876]/14 text-[#ffe876] shadow-[0_0_24px_rgba(255,232,118,0.35)]"
     : isSelected
       ? "border border-[#3b82f6]/40 bg-[#3b82f6]/18 text-[#3b82f6] shadow-[0_0_18px_rgba(59,130,246,0.24)]"
-      : "border border-[#ffe876]/45 bg-[#ffe876]/12 text-[#ffe876] shadow-[0_0_16px_rgba(255,232,118,0.14)]";
+      : isRecommended
+        ? "border border-[#ffe876]/50 bg-[#ffe876]/10 text-[#ffe876] shadow-[0_0_20px_rgba(255,232,118,0.2)]"
+        : "";
 
   const cardClassName = isSelected
     ? isGoldSelected
@@ -183,11 +192,11 @@ function PlanCard({
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: reduceMotion ? 0 : 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, ease: "easeOut" }}
-      whileHover={isRecommended ? { y: -16, scale: 1.03 } : { y: -10, scale: 1.018 }}
-      whileTap={{ scale: 0.992 }}
+      transition={{ delay: reduceMotion ? 0 : index * 0.1, duration: reduceMotion ? 0 : undefined, ease: "easeOut" }}
+      whileHover={reduceMotion ? undefined : isRecommended ? { y: -16, scale: 1.03 } : { y: -10, scale: 1.018 }}
+      whileTap={reduceMotion ? undefined : { scale: 0.992 }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       onClick={onSelect}
@@ -204,7 +213,7 @@ function PlanCard({
       aria-checked={isSelected}
       aria-label={`${plan.name} plan`}
       tabIndex={0}
-      className={`relative flex flex-col rounded-2xl p-8 transition-all duration-200 cursor-pointer focus-visible:outline-none ${cardClassName}`}
+      className={`relative flex h-full flex-col rounded-2xl p-8 transition-all duration-200 cursor-pointer focus-visible:outline-none ${cardClassName}`}
     >
       {isSelected && (
         <div
@@ -240,7 +249,7 @@ function PlanCard({
         </div>
       )}
 
-      <div>
+      <div className="flex flex-1 flex-col">
         <h3 className={`text-xl font-bold tracking-tight ${plan.highlighted ? "text-[#ffe876]" : "text-white"}`}>
           {plan.name}
         </h3>
@@ -347,41 +356,62 @@ function PlanCard({
           {plan.description}
         </p>
 
-        <div className="space-y-4">
+        <div className="flex-1 space-y-4">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
             Includes:
           </div>
-          {plan.features.map((feature) => {
+          {plan.features.map((feature, fIdx) => {
             if (feature === "__ultra_thinking__") {
               return (
-                <div key="ultra_thinking" className="mx-[-0.25rem] flex items-center gap-3 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] px-3 py-2">
-                  <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-30" />
-                    <Brain className="h-4 w-4 text-violet-400" />
+                <motion.div
+                  key="ultra_thinking"
+                  initial={{ opacity: 0, x: reduceMotion ? 0 : -6 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.3,
+                    delay: reduceMotion ? 0 : fIdx * 0.03,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="flex items-start gap-3"
+                >
+                  <Brain className="mt-0.5 h-4 w-4 shrink-0 text-violet-400" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white/65">
+                      Ultra Thinking
+                    </span>
+                    <span className="shrink-0 rounded-full bg-violet-500/15 px-1.5 py-[1px] text-[8px] font-bold uppercase tracking-wider text-violet-400 ring-1 ring-violet-500/20">
+                      New
+                    </span>
                   </div>
-                  <span className="text-sm font-bold text-violet-300">
-                    Ultra Thinking
-                  </span>
-                  <span className="ml-auto rounded-full bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-400">
-                    New
-                  </span>
-                </div>
+                </motion.div>
               );
             }
 
             return (
-              <div key={feature} className="flex items-start gap-3">
+              <motion.div
+                key={feature}
+                initial={{ opacity: 0, x: reduceMotion ? 0 : -6 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{
+                  duration: reduceMotion ? 0 : 0.3,
+                  delay: reduceMotion ? 0 : fIdx * 0.03,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="flex items-start gap-3"
+              >
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent/50" />
                 <span className="text-sm font-medium text-white/65">
                   {feature}
                 </span>
-              </div>
+              </motion.div>
             );
           })}
         </div>
       </div>
 
-      <div className="mt-10">
+      <div className="mt-auto pt-10">
         <button
           type="button"
           onClick={(event) => {
@@ -531,15 +561,15 @@ export default function PricingPage() {
         </div>
         <div className="mt-16 flex flex-col items-center justify-center gap-6 border-t border-white/[0.06] pt-12 text-center text-sm font-medium tracking-wide text-white/30 sm:flex-row sm:gap-12">
           <div className="flex items-center gap-3">
-            <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>
+            <BadgeCheck className="h-5 w-5 text-accent/60" />
             Secure Checkout
           </div>
           <div className="flex items-center gap-3">
-            <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+            <Lock className="h-5 w-5 text-accent/60" />
             Razorpay Secured
           </div>
           <div className="flex items-center gap-3">
-            <svg className="h-5 w-5 text-accent/60" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <CircleDollarSign className="h-5 w-5 text-accent/60" />
             Cancel Anytime
           </div>
         </div>

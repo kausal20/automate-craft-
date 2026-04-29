@@ -12,22 +12,18 @@ automations and runs were found before the summary is returned.
 */
 
 export async function GET() {
-  console.log("[api/automations] Request received.");
   const user = await getCurrentUser();
 
   if (!user) {
-    console.log("[api/automations] No authenticated user found.");
     return jsonError("Authentication required.", 401);
   }
 
   try {
-    console.log("[api/automations] Authenticated user:", user.id);
     const [automations, runs] = await Promise.all([
       listAutomationsForUser(user.id),
       listRunsForUser(user.id),
     ]);
-    console.log("[api/automations] Found automations:", automations.length);
-    console.log("[api/automations] Found runs:", runs.length);
+
 
     const summaries = automations.map((automation) => {
       const matchingRuns = runs.filter(
