@@ -37,3 +37,17 @@ export type {
   MonitoringAgent,
   AgentSessionRepo,
 } from "./interfaces";
+
+export {
+  AutomationAgentOrchestrator,
+  EngineNotWiredError,
+  SessionNotFoundError,
+  type AgentEngines,
+} from "./orchestrator";
+
+/* ── Phase B: Clarification Engine ──────────────────────────────── */
+export {
+  clarificationEngine,
+  deriveRequirements,
+  type DerivedRequirement,
+} from "./clarification";
