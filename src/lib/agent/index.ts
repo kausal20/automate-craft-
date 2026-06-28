@@ -55,6 +55,10 @@ export {
   type DerivedRequirement,
 } from "./clarification";
 
+/* ── Phase C: Workflow Planner ──────────────────────────────────── */
+export { workflowPlanner } from "./planning";
+export { topoSort, type DagEdge, type TopoResult } from "./planning";
+
 /* ── Session persistence ────────────────────────────────────────── */
 export { agentSessionRepo } from "./repo";
 

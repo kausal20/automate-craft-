@@ -24,6 +24,13 @@ export type {
   PlannedTrigger,
   PlannedStep,
   WorkflowPlan,
+  PlanIssueSeverity,
+  PlanIssueCode,
+  PlanningIssue,
+  RequiredCredential,
+  DataFlowEdge,
+  PlanRetryPolicy,
+  PlanTimeoutStrategy,
 } from "./plan";
 
 export type {

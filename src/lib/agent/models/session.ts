@@ -47,7 +47,10 @@ export interface AgentSession {
   /* ── stage artifacts (each null until its stage runs) ─────────── */
   intent: AutomationIntent | null;
   clarification: ClarificationSession | null;
+  /** Latest plan. Prior plans retained in `planHistory` (never overwritten). */
   plan: WorkflowPlan | null;
+  /** Append-only plan history for versioning + rollback. */
+  planHistory: WorkflowPlan[];
   /** Canonical Workflow IR — the single source of truth once generated. */
   workflowIR: WorkflowIR | null;
   /** Monotonic IR version; bumped on every regeneration (rollback support). */
@@ -82,6 +85,7 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     intent: null,
     clarification: null,
     plan: null,
+    planHistory: [],
     workflowIR: null,
     workflowVersion: 0,
     validation: null,

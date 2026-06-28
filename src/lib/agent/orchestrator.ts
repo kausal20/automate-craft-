@@ -226,11 +226,18 @@ export class AutomationAgentOrchestrator {
       return this.fail(session, "plan", "Blocking clarification questions remain.");
     }
     try {
+      // Version monotonically; never overwrite prior plans.
+      const version = (session.plan?.version ?? 0) + 1;
       const plan = this.deps.planner.plan({
         intent: session.intent,
         clarification: session.clarification,
+        knownConnections: session.knownConnections,
+        version,
       });
-      return this.commit(session, "PLANNING_WORKFLOW", { plan });
+      return this.commit(session, "PLANNING_WORKFLOW", {
+        plan,
+        planHistory: [...session.planHistory, plan],
+      });
     } catch (err) {
       return this.fail(session, "plan", errMsg(err));
     }

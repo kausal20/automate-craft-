@@ -57,19 +57,110 @@ export interface PlannedStep {
   maxRetries?: number;
 }
 
+/* ── Planning issues ──────────────────────────────────────────────── */
+
+export type PlanIssueSeverity = "error" | "warning" | "info";
+
+export type PlanIssueCode =
+  | "MISSING_TRIGGER"
+  | "MISSING_ACTION"
+  | "UNSUPPORTED_INTEGRATION"
+  | "UNSUPPORTED_OPERATION"
+  | "MISSING_REQUIRED_PARAM"
+  | "CREDENTIAL_REQUIRED"
+  | "CREDENTIAL_NOT_CONNECTED"
+  | "CIRCULAR_DEPENDENCY"
+  | "IMPOSSIBLE_ORDER"
+  | "DUPLICATE_ACTION"
+  | "CONFLICTING_ACTION"
+  | "LOW_CONFIDENCE";
+
+export interface PlanningIssue {
+  code: PlanIssueCode;
+  severity: PlanIssueSeverity;
+  message: string;
+  /** Step id / integration / param the issue concerns. */
+  target?: string;
+  /** How to resolve it. Required for errors. */
+  recommendation?: string;
+}
+
+/* ── Auxiliary plan facets ───────────────────────────────────────── */
+
+export interface RequiredCredential {
+  integration: SupportedIntegration;
+  /** Why the workflow needs it (which step/operation). */
+  reason: string;
+  /** Whether the session already has this connection (advisory only). */
+  connected: boolean;
+}
+
+export interface DataFlowEdge {
+  /** Target step id consuming the value. */
+  stepId: string;
+  /** Param being filled. */
+  param: string;
+  /** Human-readable source description (e.g. "trigger.payload.email"). */
+  from: string;
+}
+
+export interface PlanRetryPolicy {
+  /** Total attempts including the first. */
+  maxAttempts: number;
+  backoff: "none" | "fixed" | "exponential";
+  baseDelayMs: number;
+}
+
+export interface PlanTimeoutStrategy {
+  perStepMs: number;
+  workflowMs: number;
+}
+
 export interface WorkflowPlan {
   sessionId: string;
-  /** Business-readable workflow name derived from intent. */
+  /** Monotonic plan version within the session (never overwrites prior). */
+  version: number;
+
+  /* ── identity ─────────────────────────────────────────────────── */
   name: string;
   summary: string;
+  businessGoal: string | null;
+
+  /* ── trigger ──────────────────────────────────────────────────── */
   trigger: PlannedTrigger;
+  /** Resolved trigger source identifier (form/sheet/webhook), if known. */
+  triggerSource: string | null;
+
+  /* ── logical steps + graph ────────────────────────────────────── */
   steps: PlannedStep[];
-  /** All integrations referenced (trigger + steps), deduped. */
+  /** Topologically ordered ids: trigger first, then steps. */
+  executionOrder: string[];
+  /** DAG edges (from → to), including trigger → first steps. */
+  dependencies: Array<{ from: string; to: string }>;
+  /** Per-param provenance for explainability. */
+  dataFlow: DataFlowEdge[];
+
+  /* ── integrations + credentials ───────────────────────────────── */
   integrations: SupportedIntegration[];
-  /**
-   * Requirements the planner could NOT fill from clarification and
-   * resolved via documented defaults. Surfaced to the user for trust.
-   */
-  assumedDefaults: Array<{ requirementKey: string; value: string; reason: string }>;
+  requiredCredentials: RequiredCredential[];
+
+  /* ── resilience strategy ──────────────────────────────────────── */
+  retryPolicy: PlanRetryPolicy;
+  timeoutStrategy: PlanTimeoutStrategy;
+  /** Summary of error policy decisions, per step id. */
+  errorStrategy: Array<{ stepId: string; policy: PlannedErrorPolicy; reason: string }>;
+
+  /* ── reasoning + gaps ─────────────────────────────────────────── */
+  assumptions: Array<{ key: string; value: string; reason: string }>;
+  unresolvedItems: string[];
+  planningNotes: string[];
+  issues: PlanningIssue[];
+
+  /* ── verdict ──────────────────────────────────────────────────── */
+  /** True when no error-severity issue exists. */
+  ok: boolean;
+  /** 0–100. 100 = fully explicit; <70 = recommend more clarification. */
+  confidence: number;
+
   createdAt: number;
 }

@@ -13,10 +13,12 @@
 import { AutomationAgentOrchestrator } from "./orchestrator";
 import { intentEngine } from "./intent";
 import { clarificationEngine } from "./clarification";
+import { workflowPlanner } from "./planning";
 import { agentSessionRepo } from "./repo";
 
 export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
   repo: agentSessionRepo,
   intent: intentEngine,
   clarification: clarificationEngine,
+  planner: workflowPlanner,
 });

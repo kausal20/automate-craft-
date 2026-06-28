@@ -52,10 +52,17 @@ export interface ClarificationEngine {
 /* ── Planning ─────────────────────────────────────────────────────── */
 
 export interface WorkflowPlanner {
-  /** Build a logical plan from intent + resolved requirements. */
+  /**
+   * Build a logical plan from intent + resolved requirements. `knownConnections`
+   * lets the planner flag required-but-unconnected integrations (advisory; the
+   * Validator is authoritative). `version` stamps the plan for session
+   * versioning. Deterministic: identical inputs → identical output.
+   */
   plan(input: {
     intent: AutomationIntent;
     clarification: ClarificationSession;
+    knownConnections?: KnownConnection[];
+    version?: number;
   }): WorkflowPlan;
 }
 
