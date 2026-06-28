@@ -32,6 +32,7 @@ import type {
   PlannedStep,
   PlannedTrigger,
   PlanningIssue,
+  PlanningWarning,
   RequiredCredential,
   WorkflowPlan,
 } from "../models/plan";
@@ -178,6 +179,15 @@ class DeterministicWorkflowPlanner implements WorkflowPlanner {
     const name = deriveName(ctx.intent, steps);
     const summary = deriveSummary(trigger, steps);
 
+    const planningWarnings = this.buildWarnings({
+      ctx,
+      trigger,
+      steps,
+      requiredCredentials,
+      executionOrder: topo.order,
+      confidence,
+    });
+
     return {
       sessionId: input.intent.sessionId,
       version: input.version ?? 1,
@@ -199,10 +209,152 @@ class DeterministicWorkflowPlanner implements WorkflowPlanner {
       unresolvedItems: ctx.unresolved,
       planningNotes: ctx.notes,
       issues: ctx.issues,
+      planningWarnings,
       ok,
       confidence,
       createdAt: Date.now(),
     };
+  }
+
+  /* ── warnings (informational, never blocking) ───────────────────── */
+
+  /**
+   * Derive advisory warnings from the final planner state. Deterministic:
+   * fixed emission order, dedup by (code + relatedStepId + relatedIntegration),
+   * no wall-clock / random. Every warning maps to a concrete piece of state —
+   * the planner never invents a risk.
+   */
+  private buildWarnings(p: {
+    ctx: Ctx;
+    trigger: PlannedTrigger;
+    steps: PlannedStep[];
+    requiredCredentials: RequiredCredential[];
+    executionOrder: string[];
+    confidence: number;
+  }): PlanningWarning[] {
+    const { ctx, trigger, steps, requiredCredentials, executionOrder, confidence } = p;
+    const warnings: PlanningWarning[] = [];
+
+    // 1. Config-level assumed defaults (NOT routine trigger-payload mappings).
+    const configAssumptions = ctx.assumptions.filter(
+      (a) => !a.value.startsWith("trigger.payload"),
+    );
+    for (const a of configAssumptions) {
+      warnings.push({
+        code: "ASSUMED_DEFAULT",
+        severity: "MEDIUM",
+        title: `Assumed default: ${a.key}`,
+        description: `${a.reason} Value: "${a.value}".`,
+        recommendation: `Confirm "${a.key}" is correct, or provide an explicit value.`,
+      });
+    }
+
+    // 2. Missing connected accounts + 5. credential required.
+    for (const cred of requiredCredentials) {
+      if (!cred.connected) {
+        warnings.push({
+          code: "UNVERIFIED_CONNECTION",
+          severity: "MEDIUM",
+          title: `${cap(cred.integration)} connection not verified`,
+          description: `${cap(cred.integration)} is required but no confirmed connection was found.`,
+          recommendation: `Connect ${cred.integration} before deployment.`,
+          relatedIntegration: cred.integration,
+        });
+      } else {
+        warnings.push({
+          code: "CREDENTIAL_REQUIRED",
+          severity: "INFO",
+          title: `${cap(cred.integration)} credentials required at deploy`,
+          description: `${cap(cred.integration)} credentials will be used when the workflow runs.`,
+          recommendation: `Ensure the ${cred.integration} connection stays valid.`,
+          relatedIntegration: cred.integration,
+        });
+      }
+    }
+
+    // 3. Unsupported conditional branching (planner is linear-only).
+    if (steps.length > 0 && mentionsBranching(ctx.intent.sourceText)) {
+      warnings.push({
+        code: "UNSUPPORTED_CONDITIONAL",
+        severity: "HIGH",
+        title: "Conditional branching not supported",
+        description:
+          "The request implies conditional logic, but the planner produced a linear sequence.",
+        recommendation: "Review the flow; branching must be handled manually for now.",
+      });
+    }
+
+    // 4. Confidence below 90.
+    if (confidence < 90) {
+      const severity = confidence < 70 ? "HIGH" : "MEDIUM";
+      warnings.push({
+        code: "LOW_CONFIDENCE",
+        severity,
+        title: `Plan confidence ${confidence}%`,
+        description: confidenceReason(ctx),
+        recommendation:
+          "Confirm the assumptions and unresolved items before generating the workflow.",
+      });
+    }
+
+    // 6. External webhook dependency.
+    const dependsOnWebhook =
+      trigger.kind === "webhook" || trigger.integration === "webhook";
+    if (dependsOnWebhook) {
+      warnings.push({
+        code: "EXTERNAL_DEPENDENCY",
+        severity: "MEDIUM",
+        title: "Depends on an external webhook",
+        description: "This workflow is triggered by an inbound webhook from an external system.",
+        recommendation: "Ensure the external source is configured to call the webhook reliably.",
+      });
+    }
+
+    // 7. Retry recommendations — one per distinct integration with a retry step.
+    const retrySeen = new Set<string>();
+    for (const s of steps) {
+      if (s.errorPolicy !== "retry" || !s.integration) continue;
+      if (retrySeen.has(s.integration)) continue;
+      retrySeen.add(s.integration);
+      warnings.push({
+        code: "RETRY_RECOMMENDED",
+        severity: "LOW",
+        title: `${cap(s.integration)} uses retry logic`,
+        description: `${cap(s.integration)} writes can fail on transient network errors; retries are planned.`,
+        recommendation: "No action needed; retries will handle transient failures.",
+        relatedStepId: s.id,
+        relatedIntegration: s.integration,
+      });
+    }
+
+    // 8. Long execution chain (latency risk).
+    if (executionOrder.length > 5) {
+      warnings.push({
+        code: "LONG_CHAIN",
+        severity: "MEDIUM",
+        title: `Long sequential chain (${executionOrder.length} nodes)`,
+        description:
+          "Many sequential steps increase end-to-end execution latency and failure surface.",
+        recommendation: "Consider whether any steps can be removed, merged, or parallelized.",
+      });
+    }
+
+    // 9. Manual review — significant assumptions or notable risk present.
+    const hasHighOrMedium = warnings.some(
+      (w) => w.severity === "HIGH" || w.severity === "MEDIUM",
+    );
+    if (configAssumptions.length >= 2 || confidence < 80 || hasHighOrMedium) {
+      warnings.push({
+        code: "MANUAL_REVIEW",
+        severity: "LOW",
+        title: "Manual review recommended",
+        description:
+          "The plan relies on assumptions or carries advisory risks worth a human check.",
+        recommendation: "Review the workflow before deployment.",
+      });
+    }
+
+    return dedupeWarnings(warnings);
   }
 
   /* ── trigger ────────────────────────────────────────────────────── */
@@ -492,6 +644,38 @@ class DeterministicWorkflowPlanner implements WorkflowPlanner {
 }
 
 /* ── helpers ──────────────────────────────────────────────────────── */
+
+/** Detect conditional-branching intent in the original request text. */
+function mentionsBranching(text: string): boolean {
+  const n = (text ?? "").toLowerCase();
+  return /\b(if|else|otherwise|depending on|conditional|branch|when .+ then|in case)\b/.test(n);
+}
+
+/** Human reason for a sub-90 confidence score, from concrete counts. */
+function confidenceReason(ctx: Ctx): string {
+  const parts: string[] = [];
+  if (ctx.unresolved.length > 0) parts.push(`${ctx.unresolved.length} unresolved item(s)`);
+  const warn = ctx.issues.filter((i) => i.severity === "warning").length;
+  if (warn > 0) parts.push(`${warn} warning issue(s)`);
+  const configAssumptions = ctx.assumptions.filter((a) => !a.value.startsWith("trigger.payload"));
+  if (configAssumptions.length > 0) parts.push(`${configAssumptions.length} assumed default(s)`);
+  return parts.length > 0
+    ? `Confidence reduced by ${parts.join(", ")}.`
+    : "Confidence reduced by minor inferences.";
+}
+
+/** Dedup warnings by (code + relatedStepId + relatedIntegration). */
+function dedupeWarnings(warnings: PlanningWarning[]): PlanningWarning[] {
+  const seen = new Set<string>();
+  const out: PlanningWarning[] = [];
+  for (const w of warnings) {
+    const key = `${w.code}|${w.relatedStepId ?? ""}|${w.relatedIntegration ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(w);
+  }
+  return out;
+}
 
 function decideErrorPolicy(op: ResolvedOperation): PlannedErrorPolicy {
   if (NOTIFICATION_OPS.has(op.operation)) return "continue";

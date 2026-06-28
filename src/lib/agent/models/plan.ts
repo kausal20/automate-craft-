@@ -85,6 +85,40 @@ export interface PlanningIssue {
   recommendation?: string;
 }
 
+/* ── Planning warnings (informational, never blocking) ───────────── */
+
+/**
+ * Warnings are advisory transparency, NOT blockers. Blocking conditions live
+ * in `PlanningIssue`. A warning explains an assumption, limitation, or risk so
+ * the user understands what the planner did before generation — reducing AI
+ * overconfidence. Every warning is derived from actual planner state; the
+ * planner never invents a risk.
+ */
+export type PlanWarningSeverity = "INFO" | "LOW" | "MEDIUM" | "HIGH";
+
+export type PlanWarningCode =
+  | "ASSUMED_DEFAULT"
+  | "UNVERIFIED_CONNECTION"
+  | "CREDENTIAL_REQUIRED"
+  | "UNSUPPORTED_CONDITIONAL"
+  | "LOW_CONFIDENCE"
+  | "EXTERNAL_DEPENDENCY"
+  | "RETRY_RECOMMENDED"
+  | "LONG_CHAIN"
+  | "MANUAL_REVIEW";
+
+export interface PlanningWarning {
+  code: PlanWarningCode;
+  severity: PlanWarningSeverity;
+  title: string;
+  description: string;
+  recommendation: string;
+  /** Step the warning concerns, when applicable. */
+  relatedStepId?: string;
+  /** Integration the warning concerns, when applicable. */
+  relatedIntegration?: SupportedIntegration;
+}
+
 /* ── Auxiliary plan facets ───────────────────────────────────────── */
 
 export interface RequiredCredential {
@@ -154,7 +188,10 @@ export interface WorkflowPlan {
   assumptions: Array<{ key: string; value: string; reason: string }>;
   unresolvedItems: string[];
   planningNotes: string[];
+  /** Blocking + advisory problems that affect deployability. */
   issues: PlanningIssue[];
+  /** Informational transparency — assumptions, limitations, risks. Never blocks. */
+  planningWarnings: PlanningWarning[];
 
   /* ── verdict ──────────────────────────────────────────────────── */
   /** True when no error-severity issue exists. */
