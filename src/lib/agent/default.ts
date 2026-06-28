@@ -1,0 +1,22 @@
+/**
+ * Default-wired orchestrator.
+ *
+ * Wires the engines that exist today (intent + clarification) plus the real
+ * session repo into one ready-to-use orchestrator. Stages whose engines are
+ * not yet implemented (planner/generator/validator/testing/monitoring) remain
+ * unwired and throw EngineNotWiredError if called — loud, not silent.
+ *
+ * The live chat route consumes THIS instance, making the catalog-driven
+ * Clarification Engine the single production clarification system.
+ */
+
+import { AutomationAgentOrchestrator } from "./orchestrator";
+import { intentEngine } from "./intent";
+import { clarificationEngine } from "./clarification";
+import { agentSessionRepo } from "./repo";
+
+export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
+  repo: agentSessionRepo,
+  intent: intentEngine,
+  clarification: clarificationEngine,
+});

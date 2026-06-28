@@ -45,9 +45,18 @@ export {
   type AgentEngines,
 } from "./orchestrator";
 
+/* ── Intent engine ──────────────────────────────────────────────── */
+export { intentEngine } from "./intent";
+
 /* ── Phase B: Clarification Engine ──────────────────────────────── */
 export {
   clarificationEngine,
   deriveRequirements,
   type DerivedRequirement,
 } from "./clarification";
+
+/* ── Session persistence ────────────────────────────────────────── */
+export { agentSessionRepo } from "./repo";
+
+/* ── Default-wired orchestrator ─────────────────────────────────── */
+export { defaultAgentOrchestrator } from "./default";

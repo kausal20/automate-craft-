@@ -15,6 +15,8 @@ import { handleRouteError, jsonError } from "@/lib/api";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 import { withRetry, RETRY_POLICIES } from "@/lib/retry";
+import { upsertChatMessagesForUser } from "@/lib/chat-message-store";
+import { defaultAgentOrchestrator } from "@/lib/agent";
 import { checkRateLimit } from "./rate-limit";
 import {
   CONTEXT_WINDOW_ERROR_MESSAGE,
@@ -139,273 +141,6 @@ function getMessageText(message: UIMessage) {
 const AUTOMATION_INTENT_RE =
   /\b(automate|automation|workflow|when|whenever|if|trigger|send|notify|create|update|sync|route|lead|form|submission|webhook|sheet|email|whatsapp|slack|crm|hubspot|salesforce)\b/i;
 
-/* ── Workflow output detection ── */
-
-function messageHasWorkflowOutput(message: UIMessage) {
-  return (message.parts || []).some((part) => {
-    const toolPart = part as { type?: string; toolName?: string; state?: string; output?: unknown };
-    return (
-      (toolPart.type === "tool-buildWorkflow" ||
-        (toolPart.type === "dynamic-tool" && toolPart.toolName === "buildWorkflow")) &&
-      toolPart.state === "output-available" &&
-      typeof toolPart.output === "object" &&
-      toolPart.output !== null
-    );
-  });
-}
-
-function hasWorkflowOutput(messages: UIMessage[]) {
-  return messages.some(messageHasWorkflowOutput);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   CLARIFICATION ORCHESTRATION ENGINE (stateful conversation scanner)
-   ══════════════════════════════════════════════════════════════════
-
-   Design: every POST request already receives the full conversation
-   history in `messages[]`. We scan that history ONCE to:
-     1. Detect the workflow's declared INTENT (what integrations it
-        involves) from the earliest automation-intent user message.
-     2. Accumulate RESOLVED FACTS from ALL user messages combined.
-     3. Ask only for facts that are STILL MISSING given the intent.
-
-   This is entirely server-side — no DB, no client changes.
-*/
-
-interface WorkflowIntent {
-  mentionsForm: boolean;
-  mentionsSheet: boolean;
-  mentionsWebhook: boolean;
-  mentionsWhatsapp: boolean;
-  mentionsSlack: boolean;
-  mentionsEmail: boolean;
-  mentionsCrm: boolean;
-  mentionsGenericTrigger: boolean;
-  hasKnownSource: boolean;       // intent already names the source
-  hasKnownDestination: boolean;  // intent already names the destination
-  hasPayloadFields: boolean;     // intent already specifies field list
-}
-
-interface ResolvedFacts {
-  triggerSource: boolean;       // form / sheet / webhook named or identified
-  whatsappRecipient: boolean;   // phone number or named group
-  slackChannel: boolean;        // #channel or named channel
-  emailRecipient: boolean;      // email address or "send to them / lead"
-  payloadFields: boolean;       // which fields to include
-  crmTarget: boolean;           // hubspot / salesforce identified
-}
-
-// ── Intent scanner — run against the FIRST automation message ──────
-
-function scanIntent(text: string): WorkflowIntent {
-  const n = text.toLowerCase();
-
-  const mentionsForm    = /\b(form|google form|typeform|jotform|submission|lead form)\b/.test(n);
-  const mentionsSheet   = /\b(sheet|spreadsheet|google sheets|row|airtable)\b/.test(n);
-  const mentionsWebhook = /\b(webhook|api|endpoint)\b/.test(n);
-  const mentionsWhatsapp = /\b(whatsapp|wa message|wa notification)\b/.test(n);
-  const mentionsSlack   = /\b(slack|slack channel)\b/.test(n);
-  const mentionsEmail   = /\b(email|gmail|inbox|mail)\b/.test(n);
-  const mentionsCrm     = /\b(crm|hubspot|salesforce|pipedrive)\b/.test(n);
-  const mentionsGenericTrigger =
-    /\b(when|whenever|if|trigger|new lead|new signup|signs up|signup|submitted)\b/.test(n);
-
-  // Source is already named if text contains a specific form/sheet/webhook identifier
-  const hasKnownSource =
-    /\b(google form[s]?|typeform|jotform|contact form|signup form|lead form|website form|website lead form|typeform|hubspot form|airtable|razorpay|stripe|shopify|woocommerce|google sheets|sheet named|spreadsheet named|webhook url|endpoint url)\b/.test(n);
-
-  // Destination is already named with an address/number/channel
-  const hasKnownDestination =
-    /[^\s@]+@[^\s@]+\.[^\s@]+/.test(n) ||   // email address
-    /\+?[\d][\d\s().-]{6,}/.test(n) ||       // phone number
-    /#[a-z0-9_-]+/.test(n) ||                // slack #channel
-    /\b(sales alerts|support alerts|ops alerts|team whatsapp|team slack|alerts group|group named|group called|named group)\b/.test(n);
-
-  const hasPayloadFields =
-    /\b(all fields|field|fields|name and|name \+|include name|14 fields|lead details|payload|all 14|name, email|name and email)\b/.test(n);
-
-  return {
-    mentionsForm, mentionsSheet, mentionsWebhook,
-    mentionsWhatsapp, mentionsSlack, mentionsEmail,
-    mentionsCrm, mentionsGenericTrigger,
-    hasKnownSource, hasKnownDestination, hasPayloadFields,
-  };
-}
-
-// ── Fact extractor — run against COMBINED text of ALL user messages ─
-
-function extractResolvedFacts(allUserText: string): ResolvedFacts {
-  const n = allUserText.toLowerCase();
-
-  // triggerSource: named form, sheet, webhook, or platform
-  const triggerSource =
-    /\b(google form[s]?|typeform|jotform|contact form|signup form|lead form|website form|website lead form|hubspot form|google sheets|sheet named|spreadsheet named|webhook url|endpoint url|razorpay|stripe|shopify|woocommerce|airtable|pipedrive|salesforce|hubspot)\b/.test(n) ||
-    /\bform (id|name|url)\b/.test(n) ||
-    /\bmy (form|sheet|spreadsheet|webhook)\b/.test(n);
-
-  // whatsappRecipient: phone number, named group, or team reference
-  const whatsappRecipient =
-    /\+?[\d][\d\s().-]{6,}/.test(n) ||   // phone number (7+ digits)
-    /\b(sales alerts|support alerts|ops alerts|team whatsapp|alerts group)\b/.test(n) ||
-    /\b[a-z][a-z0-9 ]{1,28}\s+group\b/.test(n) ||  // "sales team group", "X group"
-    /\b(group named|group called|group id|whatsapp group)\b/.test(n) ||
-    /\bmy (number|phone|whatsapp)\b/.test(n);
-
-  // slackChannel: #channel or named channel
-  const slackChannel =
-    /#[a-z0-9_-]+/.test(n) ||
-    /\b(channel named|channel called|channel id|slack workspace|workspace named)\b/.test(n) ||
-    /\bmy (channel|slack)\b/.test(n);
-
-  // emailRecipient: email address or "send to them / lead / user"
-  const emailRecipient =
-    /[^\s@]+@[^\s@]+\.[^\s@]+/.test(allUserText) ||  // actual email address
-    /\b(send to them|send to the user|send to lead|send to customer|send to subscriber|their email|user.s email)\b/.test(n) ||
-    /\b(inbox alias|shared inbox|support inbox|sales inbox)\b/.test(n) ||
-    /\bmy (email|inbox)\b/.test(n);
-
-  // payloadFields: user specified which fields to include
-  const payloadFields =
-    /\b(all fields|all 14|name and (email|phone)|name, email|name \+ phone|include (name|phone|email|all)|just name|only name|full details|lead details|14 fields|all information)\b/.test(n);
-
-  // crmTarget: specific CRM named
-  const crmTarget =
-    /\b(hubspot|salesforce|pipedrive|zoho|crm named|crm called)\b/.test(n);
-
-  return { triggerSource, whatsappRecipient, slackChannel, emailRecipient, payloadFields, crmTarget };
-}
-
-// ── Question builder — only emits what's STILL MISSING ─────────────
-
-function buildRemainingQuestions(intent: WorkflowIntent, facts: ResolvedFacts): string[] {
-  const questions: string[] = [];
-
-  // Q1 — trigger source
-  if (!facts.triggerSource && !intent.hasKnownSource) {
-    if (intent.mentionsForm) {
-      questions.push("Which Google Form should I watch? Share the form URL or name.");
-    } else if (intent.mentionsSheet) {
-      questions.push("Which Google Sheet should I monitor? Share the sheet name or URL.");
-    } else if (intent.mentionsWebhook) {
-      questions.push("Which webhook or source endpoint should trigger this workflow?");
-    } else if (intent.mentionsGenericTrigger) {
-      questions.push("Which app, form, sheet, or event should trigger this workflow?");
-    }
-  }
-
-  // Q2 — destination / recipient
-  if (!intent.hasKnownDestination) {
-    if (intent.mentionsWhatsapp && !facts.whatsappRecipient) {
-      questions.push("Who should receive the WhatsApp notification? Share the phone number or group name.");
-    } else if (intent.mentionsSlack && !facts.slackChannel) {
-      questions.push("Which Slack workspace/channel should receive the notification?");
-    } else if (intent.mentionsEmail && !facts.emailRecipient) {
-      questions.push("Which email address or inbox should receive the message?");
-    }
-  }
-
-  // Q3 — payload fields (only if sending a notification without field spec)
-  if (!facts.payloadFields && !intent.hasPayloadFields) {
-    const needsFieldSpec = intent.mentionsWhatsapp || intent.mentionsSlack || intent.mentionsEmail;
-    if (needsFieldSpec) {
-      questions.push("Which lead fields should appear in the message — just name + phone, or all 14 fields?");
-    }
-  }
-
-  // Q4 — CRM target (only if CRM vaguely mentioned without naming one)
-  if (intent.mentionsCrm && !facts.crmTarget) {
-    questions.push("Which CRM should this connect to — HubSpot, Salesforce, or another?");
-  }
-
-  return questions.slice(0, 4);
-}
-
-// ── Low-signal answer guard ─────────────────────────────────────────
-
-function isLowSignalClarificationAnswer(text: string) {
-  return /^(yes|ok|okay|sure|go ahead|proceed|continue|do it|you choose|whatever|anything|not sure)$/i.test(text.trim());
-}
-
-// ── Main gate ───────────────────────────────────────────────────────
-
-function shouldGateForClarification(messages: UIMessage[]) {
-  // Never intercept once a workflow has been successfully built.
-  if (hasWorkflowOutput(messages)) {
-    log.info("[clarification-gate] bypassed — workflow already built");
-    return null;
-  }
-
-  const latestUserText = getLatestUserText(messages);
-  if (!latestUserText) return null;
-
-  // Low-signal answer: user said "yes/ok/sure" without specifics.
-  // Give them a unified re-ask rather than re-running detection.
-  if (isLowSignalClarificationAnswer(latestUserText)) {
-    const allUserText = messages
-      .filter((m) => m.role === "user")
-      .map(getMessageText)
-      .join(" ");
-    const firstIntentMsg = messages
-      .filter((m) => m.role === "user")
-      .find((m) => AUTOMATION_INTENT_RE.test(getMessageText(m)));
-    if (!firstIntentMsg) return null;
-
-    const intent = scanIntent(getMessageText(firstIntentMsg));
-    if (!intent.mentionsForm && !intent.mentionsSheet && !intent.mentionsWebhook &&
-        !intent.mentionsWhatsapp && !intent.mentionsSlack && !intent.mentionsEmail &&
-        !intent.mentionsGenericTrigger) {
-      return null;
-    }
-
-    const facts = extractResolvedFacts(allUserText);
-    const remaining = buildRemainingQuestions(intent, facts);
-    if (remaining.length === 0) return null;
-
-    log.info("[clarification-gate] low-signal answer, re-asking remaining", { remaining });
-    return { questions: remaining };
-  }
-
-  // Find the FIRST user message that expressed automation intent.
-  // This is our source of truth for what the workflow NEEDS.
-  const allUserMessages = messages.filter((m) => m.role === "user");
-  const firstIntentMsg = allUserMessages.find((m) => AUTOMATION_INTENT_RE.test(getMessageText(m)));
-  if (!firstIntentMsg) return null;
-
-  const intentText = getMessageText(firstIntentMsg);
-  const intent = scanIntent(intentText);
-
-  // If the first intent message has no recognizable integration signals, skip gating.
-  const hasIntegrationSignal =
-    intent.mentionsForm || intent.mentionsSheet || intent.mentionsWebhook ||
-    intent.mentionsWhatsapp || intent.mentionsSlack || intent.mentionsEmail ||
-    intent.mentionsCrm || intent.mentionsGenericTrigger;
-
-  if (!hasIntegrationSignal) {
-    log.info("[clarification-gate] no integration signal — letting LLM handle");
-    return null;
-  }
-
-  // Accumulate ALL facts from ALL user messages in the thread.
-  const allUserText = allUserMessages.map(getMessageText).join(" ");
-  const facts = extractResolvedFacts(allUserText);
-
-  log.info("[clarification-gate] intent scan", {
-    intentText: intentText.slice(0, 120),
-    intent,
-    facts,
-  });
-
-  const remaining = buildRemainingQuestions(intent, facts);
-
-  if (remaining.length === 0) {
-    log.info("[clarification-gate] all facts resolved — proceeding to LLM");
-    return null;
-  }
-
-  log.info("[clarification-gate] gating with remaining questions", { remaining });
-  return { questions: remaining };
-}
-
 /* ── Clarification response helpers ──────────────────────────────── */
 
 function isAutomationRequest(text: string) {
@@ -430,7 +165,15 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function createClarificationResponse(messages: UIMessage[], questions: string[]) {
+function createClarificationResponse({
+  messages,
+  questions,
+  onFinish,
+}: {
+  messages: UIMessage[];
+  questions: string[];
+  onFinish?: (event: { messages: UIMessage[] }) => Promise<void> | void;
+}) {
   const clarificationText = createClarificationText(questions);
   const stream = createUIMessageStream({
     originalMessages: messages,
@@ -445,6 +188,7 @@ function createClarificationResponse(messages: UIMessage[], questions: string[])
 
       writer.write({ type: "text-end", id: textId });
     },
+    onFinish,
     onError: createPublicProviderError,
   });
 
@@ -607,6 +351,39 @@ function createPublicProviderError(error: unknown) {
   return `AI provider error: ${safeErrorMessage(error)}`;
 }
 
+async function persistChatMessages({
+  userId,
+  chatId,
+  messages,
+  requestId,
+  stage,
+}: {
+  userId: string;
+  chatId: string | null;
+  messages: UIMessage[];
+  requestId: string;
+  stage: "incoming" | "finish";
+}) {
+  if (!chatId) return;
+
+  try {
+    const saved = await upsertChatMessagesForUser({ userId, chatId, messages });
+    if (CHAT_DEBUG) {
+      log.info(`[${requestId}] persisted chat messages`, {
+        chatId,
+        stage,
+        saved,
+      });
+    }
+  } catch (error) {
+    log.warn(`[${requestId}] chat message persistence failed`, {
+      chatId,
+      stage,
+      error: safeErrorMessage(error),
+    });
+  }
+}
+
 // Chat-specific retry policy — 3 attempts, exponential backoff, provider errors only
 const CHAT_RETRY_POLICY = {
   ...RETRY_POLICIES.quick,
@@ -655,14 +432,30 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { messages, ultraThinking = false } = body as {
+    const { id, chatId: bodyChatId, messages, ultraThinking = false } = body as {
+      id?: string;
+      chatId?: string;
       messages: UIMessage[];
       ultraThinking?: boolean;
     };
+    const resolvedChatId =
+      typeof bodyChatId === "string" && bodyChatId.trim()
+        ? bodyChatId.trim().slice(0, 140)
+        : typeof id === "string" && id.trim()
+          ? id.trim().slice(0, 140)
+          : null;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return handleRouteError(new Error("No messages provided."), "No messages.", 400);
     }
+
+    await persistChatMessages({
+      userId: user.id,
+      chatId: resolvedChatId,
+      messages,
+      requestId,
+      stage: "incoming",
+    });
 
     const modelMessages = sanitizeMessagesForModel(messages);
     if (modelMessages.length === 0) {
@@ -675,14 +468,25 @@ export async function POST(req: Request) {
 
     const modelId = resolveChatModelId();
     const latestUserText = getLatestUserText(modelMessages);
-    const clarificationGate = shouldGateForClarification(modelMessages);
+
+    // ── Clarification via the Automation Agent (single production path) ──
+    // The catalog-driven Clarification Engine, behind the orchestrator,
+    // decides whether blocking implementation details are still missing.
+    const agentClarification = await defaultAgentOrchestrator.runClarification({
+      sessionId: resolvedChatId ?? `chat:${user.id}`,
+      userId: user.id,
+      latestUserText,
+    });
+    const clarificationQuestions = agentClarification.questions.map((q) => q.prompt);
 
     if (CHAT_DEBUG) {
       log.info(`[${requestId}] outgoing chat payload`, {
         messageCount: messages.length,
         modelMessageCount: modelMessages.length,
+        chatId: resolvedChatId,
         latestUserText,
-        clarificationGate: Boolean(clarificationGate),
+        agentState: agentClarification.session.state,
+        clarificationQuestionCount: clarificationQuestions.length,
         ultraThinking,
         configuredModel: env.openaiModel,
         resolvedModel: modelId,
@@ -690,14 +494,26 @@ export async function POST(req: Request) {
       });
     }
 
-    if (clarificationGate) {
+    if (clarificationQuestions.length > 0) {
       if (CHAT_DEBUG) {
         log.info(`[${requestId}] clarification gate active`, {
-          questions: clarificationGate.questions,
+          questions: clarificationQuestions,
         });
       }
 
-      return createClarificationResponse(modelMessages, clarificationGate.questions);
+      return createClarificationResponse({
+        messages,
+        questions: clarificationQuestions,
+        onFinish: async ({ messages: finishedMessages }) => {
+          await persistChatMessages({
+            userId: user.id,
+            chatId: resolvedChatId,
+            messages: finishedMessages,
+            requestId,
+            stage: "finish",
+          });
+        },
+      });
     }
 
     if (!env.openaiApiKey) {
@@ -810,7 +626,7 @@ export async function POST(req: Request) {
     );
 
     return result.toUIMessageStreamResponse({
-      originalMessages: modelMessages,
+      originalMessages: messages,
       consumeSseStream: CHAT_DEBUG
         ? async ({ stream }) => {
             const reader = stream.getReader();
@@ -839,7 +655,15 @@ export async function POST(req: Request) {
             }
           }
         : undefined,
-      onFinish: ({ responseMessage, messages: finishedMessages, finishReason }) => {
+      onFinish: async ({ responseMessage, messages: finishedMessages, finishReason }) => {
+        await persistChatMessages({
+          userId: user.id,
+          chatId: resolvedChatId,
+          messages: finishedMessages,
+          requestId,
+          stage: "finish",
+        });
+
         if (!CHAT_DEBUG) return;
 
         const assistantText = responseMessage.parts

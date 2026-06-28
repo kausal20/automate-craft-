@@ -38,9 +38,11 @@ import type {
   AgentSessionRepo,
 } from "./interfaces";
 import {
+  emptyAgentSession,
   emptyClarificationSession,
   isClarificationComplete,
   type AgentSession,
+  type ClarificationQuestion,
   type ExecutionReport,
 } from "./models";
 
@@ -141,13 +143,10 @@ export class AutomationAgentOrchestrator {
         session: current,
         latestUserText,
       });
-      // Legal moves into COLLECTING_REQUIREMENTS: from ANALYZING_INTENT
-      // (first round) or self-loop (subsequent rounds).
-      const to: AgentState =
-        session.state === "COLLECTING_REQUIREMENTS"
-          ? "COLLECTING_REQUIREMENTS"
-          : "COLLECTING_REQUIREMENTS";
-      return this.commit(session, to, { clarification: next });
+      // Legal into COLLECTING_REQUIREMENTS from ANALYZING_INTENT (first
+      // round), self-loop (subsequent rounds), or READY_FOR_DEPLOYMENT
+      // (revision) — all enumerated in the transition table.
+      return this.commit(session, "COLLECTING_REQUIREMENTS", { clarification: next });
     } catch (err) {
       return this.fail(session, "clarify", errMsg(err));
     }
@@ -157,6 +156,62 @@ export class AutomationAgentOrchestrator {
   isReadyToPlan(session: AgentSession): boolean {
     if (!session.clarification) return false;
     return isClarificationComplete(session.clarification);
+  }
+
+  /**
+   * High-level entry for the live chat route. Ensures a session exists,
+   * detects intent exactly once (first turn), advances clarification with
+   * the latest user message, persists, and returns the outstanding blocking
+   * questions. Empty `questions` ⇒ nothing to ask (proceed to generation /
+   * LLM answer).
+   *
+   * This is the single production clarification path.
+   */
+  async runClarification(input: {
+    sessionId: string;
+    userId: string;
+    latestUserText: string;
+  }): Promise<{ session: AgentSession; questions: ClarificationQuestion[] }> {
+    if (!this.deps.clarification) throw new EngineNotWiredError("clarification");
+
+    let session = await this.deps.repo.get(input.sessionId);
+    if (!session) {
+      session = await this.deps.repo.save(
+        emptyAgentSession(input.sessionId, input.userId),
+      );
+    }
+
+    // Detect intent once (first turn). Later turns reuse the stored intent
+    // so requirement derivation stays anchored to the original request.
+    if (!session.intent && this.deps.intent) {
+      session = await this.analyzeIntent(input.sessionId, input.latestUserText);
+      if (session.state === "FAILED") return { session, questions: [] };
+    }
+
+    // No intent engine or non-automation text → nothing to clarify.
+    if (!session.intent) return { session, questions: [] };
+
+    // Only (re)gather requirements in clarification-eligible states. Once the
+    // pipeline has advanced past COLLECTING (planning/generating/deployed/…),
+    // a new message is not a clarification answer — skip rather than force an
+    // illegal transition.
+    const eligible: AgentState[] = [
+      "IDLE",
+      "ANALYZING_INTENT",
+      "COLLECTING_REQUIREMENTS",
+      "READY_FOR_DEPLOYMENT",
+    ];
+    if (!eligible.includes(session.state)) {
+      return { session, questions: [] };
+    }
+
+    session = await this.clarify(input.sessionId, input.latestUserText);
+    if (session.state === "FAILED") return { session, questions: [] };
+
+    const questions = this.deps.clarification.outstanding(
+      session.clarification ?? emptyClarificationSession(input.sessionId),
+    );
+    return { session, questions };
   }
 
   /* ── stage 3: plan ─────────────────────────────────────────────── */

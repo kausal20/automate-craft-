@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { UIMessage } from "ai";
 import type {
   AutomationRecord,
   AutomationRunRecord,
@@ -7,6 +8,7 @@ import type {
 } from "@/lib/automation";
 import type { WorkflowRunRecord, StepLogRecord } from "@/lib/workflow-run-store";
 import type { WorkflowVersion } from "@/lib/workflow";
+import type { AgentSession } from "@/lib/agent/models";
 import { isOpenAccessMode } from "@/lib/env";
 import { GUEST_USER_EMAIL, GUEST_USER_ID, GUEST_USER_NAME } from "@/lib/guest-access";
 import { createLogger } from "@/lib/logger";
@@ -151,6 +153,29 @@ export type LocalScheduleRecord = {
   updatedAt: string;
 };
 
+export type LocalRecentChatRecord = {
+  id: string;
+  userId: string;
+  title: string;
+  preview: string | null;
+  href: string;
+  messageCount: number;
+  isStarred: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LocalChatMessageRecord = {
+  id: string;
+  userId: string;
+  chatId: string;
+  sequenceIndex: number;
+  role: UIMessage["role"];
+  message: UIMessage;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type LocalDatabase = {
   users: LocalUserRecord[];
   automations: AutomationRecord[];
@@ -170,6 +195,9 @@ type LocalDatabase = {
   runtimeEvents: LocalRuntimeEventRecord[];
   oauthState: LocalOAuthStateRecord[];
   schedules: LocalScheduleRecord[];
+  recentChats: LocalRecentChatRecord[];
+  chatMessages: LocalChatMessageRecord[];
+  agentSessions: AgentSession[];
 };
 
 const STORAGE_DIR = path.join(process.cwd(), "data");
@@ -209,6 +237,9 @@ const emptyDatabase: LocalDatabase = {
   runtimeEvents: [],
   oauthState: [],
   schedules: [],
+  recentChats: [],
+  chatMessages: [],
+  agentSessions: [],
   plans: [
     {
       id: "plan_starter",
@@ -285,6 +316,9 @@ function normalizeLocalDatabase(
     runtimeEvents: database?.runtimeEvents ?? [],
     oauthState: database?.oauthState ?? [],
     schedules: database?.schedules ?? [],
+    recentChats: database?.recentChats ?? [],
+    chatMessages: database?.chatMessages ?? [],
+    agentSessions: database?.agentSessions ?? [],
   };
 
   if (
