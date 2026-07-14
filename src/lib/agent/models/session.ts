@@ -13,7 +13,7 @@
  * Repo wiring lands with the engine phases; the model is stable now.
  */
 
-import type { WorkflowIR } from "@/lib/workflow";
+import type { AgentWorkflowIR } from "./workflow-ir";
 import type { AgentState } from "../state-machine";
 import type { AutomationIntent } from "./intent";
 import type { ClarificationSession } from "./clarification";
@@ -51,9 +51,14 @@ export interface AgentSession {
   plan: WorkflowPlan | null;
   /** Append-only plan history for versioning + rollback. */
   planHistory: WorkflowPlan[];
-  /** Canonical Workflow IR — the single source of truth once generated. */
-  workflowIR: WorkflowIR | null;
-  /** Monotonic IR version; bumped on every regeneration (rollback support). */
+  /**
+   * Canonical Workflow IR document — the single source of truth once
+   * generated. `workflowIR.core` is the deployable canonical `WorkflowIR`.
+   */
+  workflowIR: AgentWorkflowIR | null;
+  /** Append-only IR revisions for rollback. Never overwritten. */
+  workflowIRHistory: AgentWorkflowIR[];
+  /** Monotonic IR revision; bumped on every regeneration (rollback support). */
   workflowVersion: number;
   validation: ValidationReport | null;
   test: TestReport | null;
@@ -87,6 +92,7 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     plan: null,
     planHistory: [],
     workflowIR: null,
+    workflowIRHistory: [],
     workflowVersion: 0,
     validation: null,
     test: null,

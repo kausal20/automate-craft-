@@ -12,6 +12,7 @@
  */
 
 import type { WorkflowIR } from "@/lib/workflow";
+import type { AgentWorkflowIR } from "./models/workflow-ir";
 import type { AutomationIntent } from "./models/intent";
 import type {
   ClarificationSession,
@@ -70,10 +71,12 @@ export interface WorkflowPlanner {
 
 export interface WorkflowGenerator {
   /**
-   * Deterministically lower a plan into Canonical Workflow IR. No AI.
-   * Assigns ids, builds the DAG, attaches metadata, sets schemaVersion.
+   * Deterministically lower a plan into the canonical Workflow IR document.
+   * No AI, no validation, no deployment. Assigns stable ids, builds the graph,
+   * derives variables/mappings/schemas, and attaches metadata.
+   * `version` becomes the IR revision. Identical plan ⇒ identical IR.
    */
-  generate(input: { plan: WorkflowPlan; version: number }): WorkflowIR;
+  generate(input: { plan: WorkflowPlan; version: number }): AgentWorkflowIR;
 }
 
 /* ── Validation ───────────────────────────────────────────────────── */

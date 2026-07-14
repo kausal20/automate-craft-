@@ -64,3 +64,22 @@ export type {
   AgentSession,
 } from "./session";
 export { emptyAgentSession } from "./session";
+
+export type {
+  AgentWorkflowIR,
+  IRVariableType,
+  IRVariable,
+  IRMapping,
+  IRRetryPolicy,
+  IRTimeoutPolicy,
+  IRErrorPolicy,
+  IRNode,
+  IREdge,
+  IRFieldSchema,
+  IOSchema,
+  IRParamSchema,
+  IRNodeSchema,
+  IRConnectionSchema,
+  IRMetadata,
+} from "./workflow-ir";
+export { AGENT_IR_SCHEMA_VERSION, GENERATOR_VERSION } from "./workflow-ir";

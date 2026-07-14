@@ -22,7 +22,6 @@
  * intent path). The orchestrator shape is stable from here.
  */
 
-import type { WorkflowIR } from "@/lib/workflow";
 import {
   assertTransition,
   type AgentState,
@@ -249,14 +248,24 @@ export class AutomationAgentOrchestrator {
     if (!this.deps.generator) throw new EngineNotWiredError("generator");
     const session = await this.load(sessionId);
     if (!session.plan) return this.fail(session, "generate", "No plan to generate from.");
+    // Only a plan without blocking issues may be lowered into IR.
+    if (!session.plan.ok) {
+      return this.fail(
+        session,
+        "generate",
+        "Plan has blocking issues; cannot generate workflow IR.",
+      );
+    }
     try {
+      // Revision monotonically; prior IR revisions are retained for rollback.
       const version = session.workflowVersion + 1;
-      const workflowIR: WorkflowIR = this.deps.generator.generate({
+      const workflowIR = this.deps.generator.generate({
         plan: session.plan,
         version,
       });
       return this.commit(session, "GENERATING_WORKFLOW", {
         workflowIR,
+        workflowIRHistory: [...session.workflowIRHistory, workflowIR],
         workflowVersion: version,
       });
     } catch (err) {
@@ -273,7 +282,8 @@ export class AutomationAgentOrchestrator {
     try {
       const validation = this.deps.validator.validate({
         sessionId,
-        workflow: session.workflowIR,
+        // Downstream phases consume the canonical deployable core.
+        workflow: session.workflowIR.core,
         knownConnections: session.knownConnections,
       });
       // Validation runs IN this state; failure routes back to planning.
@@ -296,7 +306,7 @@ export class AutomationAgentOrchestrator {
       return this.fail(session, "test", "Validation has blocking errors; cannot test.");
     }
     try {
-      const test = this.deps.testing.test({ sessionId, workflow: session.workflowIR });
+      const test = this.deps.testing.test({ sessionId, workflow: session.workflowIR.core });
       return this.commit(session, "TESTING_WORKFLOW", { test });
     } catch (err) {
       return this.fail(session, "test", errMsg(err));

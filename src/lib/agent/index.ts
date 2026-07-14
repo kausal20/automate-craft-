@@ -59,6 +59,9 @@ export {
 export { workflowPlanner } from "./planning";
 export { topoSort, type DagEdge, type TopoResult } from "./planning";
 
+/* ── Phase D: Workflow Generator ────────────────────────────────── */
+export { workflowGenerator, GeneratorPreconditionError } from "./generation";
+
 /* ── Session persistence ────────────────────────────────────────── */
 export { agentSessionRepo } from "./repo";
 
