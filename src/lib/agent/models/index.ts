@@ -38,8 +38,11 @@ export type {
 
 export type {
   ValidationSeverity,
+  ValidationCategory,
   ValidationIssueCode,
   ValidationIssue,
+  DeploymentStatus,
+  CategoryResult,
   ValidationReport,
 } from "./validation";
 export { buildValidationReport } from "./validation";

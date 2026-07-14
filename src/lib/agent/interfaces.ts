@@ -11,7 +11,7 @@
  * an engine's output is a deterministic function of its inputs.
  */
 
-import type { WorkflowIR } from "@/lib/workflow";
+import type { PlanTier, WorkflowIR } from "@/lib/workflow";
 import type { AgentWorkflowIR } from "./models/workflow-ir";
 import type { AutomationIntent } from "./models/intent";
 import type {
@@ -83,14 +83,17 @@ export interface WorkflowGenerator {
 
 export interface ValidatorAgent {
   /**
-   * Run IR validators PLUS agent-level checks (credentials, connection
-   * status, duplicate actions). Pure: connection facts are passed in,
-   * not fetched, so the validator stays deterministic + testable.
+   * Inspect the Workflow IR document and produce a ValidationReport. Never
+   * modifies the IR. Connection facts are passed in (not fetched) so the
+   * validator stays deterministic + unit testable; `createdAt` is injectable
+   * for the same reason.
    */
   validate(input: {
     sessionId: string;
-    workflow: WorkflowIR;
+    ir: AgentWorkflowIR;
     knownConnections: KnownConnection[];
+    plan?: PlanTier;
+    createdAt?: number;
   }): ValidationReport;
 }
 

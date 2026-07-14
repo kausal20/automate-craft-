@@ -282,15 +282,18 @@ export class AutomationAgentOrchestrator {
     try {
       const validation = this.deps.validator.validate({
         sessionId,
-        // Downstream phases consume the canonical deployable core.
-        workflow: session.workflowIR.core,
+        // The Validator inspects the whole IR document (core + graph +
+        // variables + mappings + schemas + metadata).
+        ir: session.workflowIR,
         knownConnections: session.knownConnections,
       });
-      // Validation runs IN this state; failure routes back to planning.
-      const committed = await this.commit(session, "VALIDATING_WORKFLOW", {
+      // Validation runs IN this state; a failing report does NOT throw —
+      // the report itself carries the BLOCKED verdict. Reports are appended,
+      // never overwritten.
+      return this.commit(session, "VALIDATING_WORKFLOW", {
         validation,
+        validationHistory: [...session.validationHistory, validation],
       });
-      return committed;
     } catch (err) {
       return this.fail(session, "validate", errMsg(err));
     }

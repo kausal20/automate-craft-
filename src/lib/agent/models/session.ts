@@ -60,7 +60,10 @@ export interface AgentSession {
   workflowIRHistory: AgentWorkflowIR[];
   /** Monotonic IR revision; bumped on every regeneration (rollback support). */
   workflowVersion: number;
+  /** Latest validation report. Prior reports retained in `validationHistory`. */
   validation: ValidationReport | null;
+  /** Append-only report history. Never overwritten. */
+  validationHistory: ValidationReport[];
   test: TestReport | null;
   monitoring: MonitoringSummary | null;
 
@@ -93,6 +96,7 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     planHistory: [],
     workflowIR: null,
     workflowIRHistory: [],
+    validationHistory: [],
     workflowVersion: 0,
     validation: null,
     test: null,
