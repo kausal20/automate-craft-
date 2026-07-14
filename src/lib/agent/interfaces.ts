@@ -11,8 +11,9 @@
  * an engine's output is a deterministic function of its inputs.
  */
 
-import type { PlanTier, WorkflowIR } from "@/lib/workflow";
+import type { PlanTier } from "@/lib/workflow";
 import type { AgentWorkflowIR } from "./models/workflow-ir";
+import type { ApiProbe, CredentialProbe } from "./testing/probes";
 import type { AutomationIntent } from "./models/intent";
 import type {
   ClarificationSession,
@@ -100,8 +101,26 @@ export interface ValidatorAgent {
 /* ── Testing ──────────────────────────────────────────────────────── */
 
 export interface TestingAgent {
-  /** Deterministic dry-run simulation over the IR. No real integration calls. */
-  test(input: { sessionId: string; workflow: WorkflowIR }): TestReport;
+  /**
+   * Simulate a validated Workflow IR before deployment. Never deploys, never
+   * mutates the IR, never performs a destructive call.
+   *
+   * Live credential/API checks happen only through the injected probes (which
+   * are contractually read-only). With no probe, those modules report SKIPPED
+   * rather than claiming a result they never obtained — which also keeps the
+   * report deterministic by default. `createdAt` is injectable for the same
+   * reason.
+   */
+  test(input: {
+    sessionId: string;
+    userId: string;
+    ir: AgentWorkflowIR;
+    validation: ValidationReport | null;
+    knownConnections: KnownConnection[];
+    apiProbe?: ApiProbe;
+    credentialProbe?: CredentialProbe;
+    createdAt?: number;
+  }): Promise<TestReport>;
 }
 
 /* ── Monitoring ───────────────────────────────────────────────────── */

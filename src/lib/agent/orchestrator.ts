@@ -309,8 +309,19 @@ export class AutomationAgentOrchestrator {
       return this.fail(session, "test", "Validation has blocking errors; cannot test.");
     }
     try {
-      const test = this.deps.testing.test({ sessionId, workflow: session.workflowIR.core });
-      return this.commit(session, "TESTING_WORKFLOW", { test });
+      const test = await this.deps.testing.test({
+        sessionId,
+        userId: session.userId,
+        // The Testing Agent simulates the whole IR document.
+        ir: session.workflowIR,
+        validation: session.validation,
+        knownConnections: session.knownConnections,
+      });
+      // Reports are appended, never overwritten.
+      return this.commit(session, "TESTING_WORKFLOW", {
+        test,
+        testHistory: [...session.testHistory, test],
+      });
     } catch (err) {
       return this.fail(session, "test", errMsg(err));
     }

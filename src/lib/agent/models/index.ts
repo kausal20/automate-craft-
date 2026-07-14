@@ -48,8 +48,15 @@ export type {
 export { buildValidationReport } from "./validation";
 
 export type {
-  StepTestStatus,
-  StepTestResult,
+  TestStatus,
+  TestModule,
+  TestIssueSeverity,
+  TestIssueCode,
+  TestIssue,
+  NodeTestResult,
+  ModuleResult,
+  TimelineEntry,
+  DeploymentRecommendation,
   TestReport,
 } from "./testing";
 export { buildTestReport } from "./testing";

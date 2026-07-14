@@ -64,7 +64,10 @@ export interface AgentSession {
   validation: ValidationReport | null;
   /** Append-only report history. Never overwritten. */
   validationHistory: ValidationReport[];
+  /** Latest test report. Prior reports retained in `testHistory`. */
   test: TestReport | null;
+  /** Append-only report history. Never overwritten. */
+  testHistory: TestReport[];
   monitoring: MonitoringSummary | null;
 
   /* ── memory ───────────────────────────────────────────────────── */
@@ -97,6 +100,7 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     workflowIR: null,
     workflowIRHistory: [],
     validationHistory: [],
+    testHistory: [],
     workflowVersion: 0,
     validation: null,
     test: null,

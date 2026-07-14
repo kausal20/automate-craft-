@@ -66,6 +66,18 @@ export { workflowGenerator, GeneratorPreconditionError } from "./generation";
 export { workflowValidator } from "./validation";
 export type { ValidatorContext } from "./validation";
 
+/* ── Phase F: Workflow Testing Agent ────────────────────────────── */
+export { workflowTestingAgent } from "./testing";
+export {
+  offlineApiProbe,
+  offlineCredentialProbe,
+  type ApiProbe,
+  type ApiProbeResult,
+  type CredentialProbe,
+  type CredentialProbeResult,
+  type TestingContext,
+} from "./testing";
+
 /* ── Session persistence ────────────────────────────────────────── */
 export { agentSessionRepo } from "./repo";
 
