@@ -17,6 +17,22 @@ export type N8nNode = {
   credentials?: Record<string, { id: string; name: string }>;
   /** Disable a node (used for pause). */
   disabled?: boolean;
+
+  /* ── Resilience policy (n8n per-node fields) ─────────────────
+   * Written by the Deployment Agent's compiler so the IR's retry /
+   * error policy survives into the executable workflow. */
+  /** n8n retries the node on failure when true. */
+  retryOnFail?: boolean;
+  /** Total attempts n8n makes when retryOnFail is set. */
+  maxTries?: number;
+  /** Delay between retries, ms. */
+  waitBetweenTries?: number;
+  /**
+   * n8n error routing:
+   *   "stopWorkflow"          — abort the run (IR "fail" / "retry" exhausted)
+   *   "continueRegularOutput" — log + carry on (IR "continue")
+   */
+  onError?: "stopWorkflow" | "continueRegularOutput";
 };
 
 export type N8nConnections = Record<
@@ -29,7 +45,15 @@ export type N8nWorkflow = {
   active?: boolean;
   nodes: N8nNode[];
   connections: N8nConnections;
-  settings?: { saveExecutionProgress?: boolean; saveDataSuccessExecution?: string };
+  settings?: {
+    saveExecutionProgress?: boolean;
+    saveDataSuccessExecution?: string;
+    /**
+     * Workflow-level timeout, SECONDS. n8n has no per-node timeout, so the
+     * Deployment Agent maps the IR's workflow timeout budget here.
+     */
+    executionTimeout?: number;
+  };
   staticData?: Record<string, unknown> | null;
 };
 

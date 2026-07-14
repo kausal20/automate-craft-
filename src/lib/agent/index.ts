@@ -78,6 +78,23 @@ export {
   type TestingContext,
 } from "./testing";
 
+/* ── Phase G: Deployment Agent ──────────────────────────────────── */
+export {
+  deploymentAgent,
+  compileIrToN8n,
+  CompilationError,
+  resolveCredentials,
+  requiredIntegrations,
+  liveN8nDeploymentClient,
+  type N8nDeploymentClient,
+  type DeployedWorkflowRef,
+  type CompileResult,
+  type CredentialResolution,
+  type CredentialResolver,
+  type LifecycleInput,
+  type PreviousDeployment,
+} from "./deployment";
+
 /* ── Session persistence ────────────────────────────────────────── */
 export { agentSessionRepo } from "./repo";
 

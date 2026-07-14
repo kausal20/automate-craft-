@@ -41,6 +41,7 @@ export type {
   ValidationCategory,
   ValidationIssueCode,
   ValidationIssue,
+  /** Pre-deploy READINESS verdict (READY / BLOCKED) — not the deploy outcome. */
   DeploymentStatus,
   CategoryResult,
   ValidationReport,
@@ -60,6 +61,17 @@ export type {
   TestReport,
 } from "./testing";
 export { buildTestReport } from "./testing";
+
+export type {
+  DeploymentOutcome,
+  ActivationStatus,
+  DeploymentOperation,
+  DeploymentErrorCode,
+  DeploymentIssue,
+  RollbackReport,
+  DeploymentReport,
+} from "./deployment";
+export { buildDeploymentReport, COMPILER_VERSION } from "./deployment";
 
 export type {
   HealthStatus,

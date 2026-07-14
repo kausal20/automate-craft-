@@ -20,6 +20,7 @@ import type { ClarificationSession } from "./clarification";
 import type { WorkflowPlan } from "./plan";
 import type { ValidationReport } from "./validation";
 import type { TestReport } from "./testing";
+import type { ActivationStatus, DeploymentReport } from "./deployment";
 import type { MonitoringSummary } from "./monitoring";
 
 /** Integrations the user has actually connected — fed into validation. */
@@ -68,6 +69,18 @@ export interface AgentSession {
   test: TestReport | null;
   /** Append-only report history. Never overwritten. */
   testHistory: TestReport[];
+
+  /* ── deployment ───────────────────────────────────────────────── */
+  /** Latest deployment report. Prior reports retained in `deploymentHistory`. */
+  deployment: DeploymentReport | null;
+  /** Append-only deployment history. Never overwritten. */
+  deploymentHistory: DeploymentReport[];
+  /** n8n's workflow id for the currently deployed revision. */
+  externalWorkflowId: string | null;
+  /** Activation state as last reported by n8n. */
+  activationState: ActivationStatus | null;
+  /** IR revision currently live in n8n. */
+  deployedRevision: number | null;
   monitoring: MonitoringSummary | null;
 
   /* ── memory ───────────────────────────────────────────────────── */
@@ -101,6 +114,11 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     workflowIRHistory: [],
     validationHistory: [],
     testHistory: [],
+    deployment: null,
+    deploymentHistory: [],
+    externalWorkflowId: null,
+    activationState: null,
+    deployedRevision: null,
     workflowVersion: 0,
     validation: null,
     test: null,

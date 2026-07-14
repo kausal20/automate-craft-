@@ -14,6 +14,10 @@
 import type { PlanTier } from "@/lib/workflow";
 import type { AgentWorkflowIR } from "./models/workflow-ir";
 import type { ApiProbe, CredentialProbe } from "./testing/probes";
+import type { DeploymentReport } from "./models/deployment";
+import type { N8nDeploymentClient } from "./deployment/client";
+import type { CredentialResolver } from "./deployment/credentials";
+import type { LifecycleInput, PreviousDeployment } from "./deployment/agent";
 import type { AutomationIntent } from "./models/intent";
 import type {
   ClarificationSession,
@@ -121,6 +125,36 @@ export interface TestingAgent {
     credentialProbe?: CredentialProbe;
     createdAt?: number;
   }): Promise<TestReport>;
+}
+
+/* ── Deployment ───────────────────────────────────────────────────── */
+
+export interface DeploymentAgent {
+  /**
+   * Compile → upload → verify → activate. Never modifies the IR. Returns a
+   * structured DeploymentReport on every path (success or failure) rather than
+   * throwing. Rolls back a partial deployment automatically.
+   *
+   * The n8n client is injected so the full lifecycle is exercisable without a
+   * live instance; production uses the live client by default.
+   */
+  deploy(input: {
+    sessionId: string;
+    userId: string;
+    ir: AgentWorkflowIR;
+    validation: ValidationReport | null;
+    test: TestReport | null;
+    previous?: PreviousDeployment | null;
+    client?: N8nDeploymentClient;
+    credentialResolver?: CredentialResolver;
+    now?: () => number;
+    deploymentId?: string;
+  }): Promise<DeploymentReport>;
+
+  pause(input: LifecycleInput): Promise<DeploymentReport>;
+  resume(input: LifecycleInput): Promise<DeploymentReport>;
+  deactivate(input: LifecycleInput): Promise<DeploymentReport>;
+  remove(input: LifecycleInput): Promise<DeploymentReport>;
 }
 
 /* ── Monitoring ───────────────────────────────────────────────────── */

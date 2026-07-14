@@ -17,6 +17,7 @@ import { workflowPlanner } from "./planning";
 import { workflowGenerator } from "./generation";
 import { workflowValidator } from "./validation";
 import { workflowTestingAgent } from "./testing";
+import { deploymentAgent } from "./deployment";
 import { agentSessionRepo } from "./repo";
 
 export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
@@ -27,4 +28,5 @@ export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
   generator: workflowGenerator,
   validator: workflowValidator,
   testing: workflowTestingAgent,
+  deployment: deploymentAgent,
 });

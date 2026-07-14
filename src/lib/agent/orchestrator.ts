@@ -33,6 +33,7 @@ import type {
   WorkflowGenerator,
   ValidatorAgent,
   TestingAgent,
+  DeploymentAgent,
   MonitoringAgent,
   AgentSessionRepo,
 } from "./interfaces";
@@ -54,6 +55,7 @@ export interface AgentEngines {
   generator?: WorkflowGenerator;
   validator?: ValidatorAgent;
   testing?: TestingAgent;
+  deployment?: DeploymentAgent;
   monitoring?: MonitoringAgent;
 }
 
@@ -333,10 +335,76 @@ export class AutomationAgentOrchestrator {
     if (!session.validation?.ok) {
       return this.fail(session, "deploy-ready", "Validation not passed.");
     }
-    if (!session.test?.passed) {
-      return this.fail(session, "deploy-ready", "Testing not passed.");
+    // `test.passed` is a module COUNT, not a boolean — the verdict is the
+    // report's recommendation.
+    if (!session.test || session.test.deploymentRecommendation === "DO_NOT_DEPLOY") {
+      return this.fail(session, "deploy-ready", "Testing did not clear this workflow.");
     }
     return this.commit(session, "READY_FOR_DEPLOYMENT", {});
+  }
+
+  /* ── stage 7: deploy ───────────────────────────────────────────── */
+
+  /**
+   * Deploy the current IR revision to n8n. The agent returns a structured
+   * report on every path; a failed deployment is persisted (with its rollback
+   * record) and routes the session to FAILED rather than throwing.
+   */
+  async deploy(sessionId: string): Promise<AgentSession> {
+    if (!this.deps.deployment) throw new EngineNotWiredError("deployment");
+    const session = await this.load(sessionId);
+    if (!session.workflowIR) return this.fail(session, "deploy", "No workflow IR.");
+    if (!session.validation?.ok) {
+      return this.fail(session, "deploy", "Validation has blocking errors; cannot deploy.");
+    }
+    if (session.test?.deploymentRecommendation === "DO_NOT_DEPLOY") {
+      return this.fail(session, "deploy", "Testing recommended against deploying.");
+    }
+
+    try {
+      const previous =
+        session.externalWorkflowId && session.deployedRevision !== null
+          ? {
+              workflowId: session.externalWorkflowId,
+              revision: session.deployedRevision,
+              active: session.activationState === "ACTIVE",
+            }
+          : null;
+
+      const report = await this.deps.deployment.deploy({
+        sessionId,
+        userId: session.userId,
+        ir: session.workflowIR,
+        validation: session.validation,
+        test: session.test,
+        previous,
+      });
+
+      // History is append-only regardless of outcome — a failed deployment is
+      // part of the record.
+      const patch: Partial<AgentSession> = {
+        deployment: report,
+        deploymentHistory: [...session.deploymentHistory, report],
+      };
+
+      if (report.status === "DEPLOYED") {
+        patch.externalWorkflowId = report.workflowId;
+        patch.activationState = report.activationStatus;
+        patch.deployedRevision = report.revision;
+        return this.commit(session, "DEPLOYING", patch);
+      }
+
+      // Persist the failed report, then mark the session FAILED.
+      await this.deps.repo.patch(sessionId, patch);
+      const reloaded = await this.load(sessionId);
+      return this.fail(
+        reloaded,
+        "deploy",
+        report.errors[0]?.message ?? "Deployment did not complete.",
+      );
+    } catch (err) {
+      return this.fail(session, "deploy", errMsg(err));
+    }
   }
 
   /* ── stage 8: monitor ──────────────────────────────────────────── */
