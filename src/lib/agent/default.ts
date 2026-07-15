@@ -1,10 +1,9 @@
 /**
  * Default-wired orchestrator.
  *
- * Wires the engines that exist today (intent + clarification) plus the real
- * session repo into one ready-to-use orchestrator. Stages whose engines are
- * not yet implemented (planner/generator/validator/testing/monitoring) remain
- * unwired and throw EngineNotWiredError if called — loud, not silent.
+ * Wires every engine (intent → clarification → planner → generator →
+ * validator → testing → deployment → monitoring) plus the real session repo
+ * into one ready-to-use orchestrator.
  *
  * The live chat route consumes THIS instance, making the catalog-driven
  * Clarification Engine the single production clarification system.
@@ -18,6 +17,7 @@ import { workflowGenerator } from "./generation";
 import { workflowValidator } from "./validation";
 import { workflowTestingAgent } from "./testing";
 import { deploymentAgent } from "./deployment";
+import { monitoringAgent } from "./monitoring";
 import { agentSessionRepo } from "./repo";
 
 export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
@@ -29,4 +29,5 @@ export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
   validator: workflowValidator,
   testing: workflowTestingAgent,
   deployment: deploymentAgent,
+  monitoring: monitoringAgent,
 });

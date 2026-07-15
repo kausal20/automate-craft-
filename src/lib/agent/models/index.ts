@@ -74,11 +74,29 @@ export type {
 export { buildDeploymentReport, COMPILER_VERSION } from "./deployment";
 
 export type {
-  HealthStatus,
-  ExecutionReport,
-  MonitoringSummary,
+  ExecutionStatus,
+  ExecutionRecord,
+  NodeExecutionStatus,
+  NodeExecutionRecord,
+  RuntimeEventLevel,
+  RuntimeEventRecord,
+  CredentialObservation,
+  MonitoringHealth,
+  AlertSeverity,
+  AlertCode,
+  Alert,
+  MonitoringModule,
+  ExecutionSummary,
+  NodeStats,
+  PerformanceStats,
+  RetryStats,
+  FailurePattern,
+  Analytics,
+  MonitoringRecommendation,
+  ModuleOutcome,
+  MonitoringReport,
 } from "./monitoring";
-export { deriveHealth, successRate } from "./monitoring";
+export { deriveHealth, deriveHealthScore, orderModules } from "./monitoring";
 
 export type {
   KnownConnection,

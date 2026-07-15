@@ -95,6 +95,10 @@ export {
   type PreviousDeployment,
 } from "./deployment";
 
+/* ── Phase H: Monitoring Agent ──────────────────────────────────── */
+export { monitoringAgent, THRESHOLDS as MONITORING_THRESHOLDS } from "./monitoring";
+export type { MonitoringContext } from "./monitoring";
+
 /* ── Session persistence ────────────────────────────────────────── */
 export { agentSessionRepo } from "./repo";
 

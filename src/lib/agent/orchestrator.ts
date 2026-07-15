@@ -43,7 +43,10 @@ import {
   isClarificationComplete,
   type AgentSession,
   type ClarificationQuestion,
-  type ExecutionReport,
+  type CredentialObservation,
+  type ExecutionRecord,
+  type NodeExecutionRecord,
+  type RuntimeEventRecord,
 } from "./models";
 
 /** Engine + repo dependencies. Engines are optional until their phase lands. */
@@ -409,16 +412,41 @@ export class AutomationAgentOrchestrator {
 
   /* ── stage 8: monitor ──────────────────────────────────────────── */
 
+  /**
+   * Run one monitoring cycle over observed runtime history.
+   *
+   * History is supplied by the caller (whatever collected it from the runtime
+   * store), keeping the agent a pure function and the report reproducible.
+   * Reports are appended, never overwritten, so trends can be read from
+   * `monitoringHistory`.
+   */
   async monitor(
     sessionId: string,
-    automationId: string,
-    report: ExecutionReport,
+    observed: {
+      executions: ExecutionRecord[];
+      nodeExecutions: NodeExecutionRecord[];
+      runtimeEvents: RuntimeEventRecord[];
+      credentials: CredentialObservation[];
+      now?: number;
+    },
   ): Promise<AgentSession> {
     if (!this.deps.monitoring) throw new EngineNotWiredError("monitoring");
     const session = await this.load(sessionId);
     try {
-      const monitoring = this.deps.monitoring.summarize({ automationId, report });
-      return this.commit(session, "MONITORING", { monitoring });
+      const monitoring = this.deps.monitoring.observe({
+        sessionId,
+        ir: session.workflowIR,
+        deployment: session.deployment,
+        executions: observed.executions,
+        nodeExecutions: observed.nodeExecutions,
+        runtimeEvents: observed.runtimeEvents,
+        credentials: observed.credentials,
+        now: observed.now ?? Date.now(),
+      });
+      return this.commit(session, "MONITORING", {
+        monitoring,
+        monitoringHistory: [...session.monitoringHistory, monitoring],
+      });
     } catch (err) {
       return this.fail(session, "monitor", errMsg(err));
     }

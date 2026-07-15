@@ -26,7 +26,13 @@ import type {
 import type { WorkflowPlan } from "./models/plan";
 import type { ValidationReport } from "./models/validation";
 import type { TestReport } from "./models/testing";
-import type { ExecutionReport, MonitoringSummary } from "./models/monitoring";
+import type {
+  CredentialObservation,
+  ExecutionRecord,
+  MonitoringReport,
+  NodeExecutionRecord,
+  RuntimeEventRecord,
+} from "./models/monitoring";
 import type { AgentSession, KnownConnection } from "./models/session";
 
 /* ── Intent detection ─────────────────────────────────────────────── */
@@ -160,11 +166,26 @@ export interface DeploymentAgent {
 /* ── Monitoring ───────────────────────────────────────────────────── */
 
 export interface MonitoringAgent {
-  /** Aggregate stored run rows into a health summary. */
-  summarize(input: {
-    automationId: string;
-    report: ExecutionReport;
-  }): MonitoringSummary;
+  /**
+   * Observe a deployed workflow and produce a MonitoringReport. Never modifies
+   * the IR, never deploys, never optimizes.
+   *
+   * Execution history is PASSED IN (not fetched) and `now` is injected, so the
+   * report is a pure function of its inputs: identical history ⇒ identical
+   * report. Health is derived only from observed records — zero executions
+   * yields UNKNOWN, never HEALTHY.
+   */
+  observe(input: {
+    sessionId: string;
+    ir: AgentWorkflowIR | null;
+    deployment: DeploymentReport | null;
+    executions: ExecutionRecord[];
+    nodeExecutions: NodeExecutionRecord[];
+    runtimeEvents: RuntimeEventRecord[];
+    credentials: CredentialObservation[];
+    now: number;
+    createdAt?: number;
+  }): MonitoringReport;
 }
 
 /* ── Session persistence ──────────────────────────────────────────── */

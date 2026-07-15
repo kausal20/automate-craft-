@@ -21,7 +21,7 @@ import type { WorkflowPlan } from "./plan";
 import type { ValidationReport } from "./validation";
 import type { TestReport } from "./testing";
 import type { ActivationStatus, DeploymentReport } from "./deployment";
-import type { MonitoringSummary } from "./monitoring";
+import type { MonitoringReport } from "./monitoring";
 
 /** Integrations the user has actually connected — fed into validation. */
 export interface KnownConnection {
@@ -81,7 +81,10 @@ export interface AgentSession {
   activationState: ActivationStatus | null;
   /** IR revision currently live in n8n. */
   deployedRevision: number | null;
-  monitoring: MonitoringSummary | null;
+  /** Latest monitoring report. Prior reports retained in `monitoringHistory`. */
+  monitoring: MonitoringReport | null;
+  /** Append-only report history — enables trend analysis across cycles. */
+  monitoringHistory: MonitoringReport[];
 
   /* ── memory ───────────────────────────────────────────────────── */
   knownConnections: KnownConnection[];
@@ -123,6 +126,7 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     validation: null,
     test: null,
     monitoring: null,
+    monitoringHistory: [],
     knownConnections: [],
     preferences: {},
     priorWorkflowIds: [],
