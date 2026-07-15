@@ -123,3 +123,23 @@ export type {
   IRMetadata,
 } from "./workflow-ir";
 export { AGENT_IR_SCHEMA_VERSION, GENERATOR_VERSION } from "./workflow-ir";
+
+export type {
+  OptimizationCategory,
+  OptimizationPriority,
+  OptimizationSeverity,
+  OptimizationConfidence,
+  ImplementationDifficulty,
+  RiskLevel,
+  OptimizationCode,
+  EstimatedImpact,
+  OptimizationRecommendation,
+  OptimizationScores,
+  OptimizationReport,
+} from "./optimization";
+export {
+  confidenceFromSample,
+  recommendationId,
+  rankRecommendations,
+  aggregateImprovements,
+} from "./optimization";

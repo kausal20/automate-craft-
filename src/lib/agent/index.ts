@@ -35,6 +35,7 @@ export type {
   ValidatorAgent,
   TestingAgent,
   MonitoringAgent,
+  OptimizationAgent,
   AgentSessionRepo,
 } from "./interfaces";
 
@@ -98,6 +99,10 @@ export {
 /* ── Phase H: Monitoring Agent ──────────────────────────────────── */
 export { monitoringAgent, THRESHOLDS as MONITORING_THRESHOLDS } from "./monitoring";
 export type { MonitoringContext } from "./monitoring";
+
+/* ── Phase I: Optimization Agent ────────────────────────────────── */
+export { optimizationAgent, OPT_THRESHOLDS } from "./optimization";
+export type { OptimizationContext } from "./optimization";
 
 /* ── Session persistence ────────────────────────────────────────── */
 export { agentSessionRepo } from "./repo";

@@ -15,6 +15,7 @@ import type { PlanTier } from "@/lib/workflow";
 import type { AgentWorkflowIR } from "./models/workflow-ir";
 import type { ApiProbe, CredentialProbe } from "./testing/probes";
 import type { DeploymentReport } from "./models/deployment";
+import type { OptimizationReport } from "./models/optimization";
 import type { N8nDeploymentClient } from "./deployment/client";
 import type { CredentialResolver } from "./deployment/credentials";
 import type { LifecycleInput, PreviousDeployment } from "./deployment/agent";
@@ -186,6 +187,29 @@ export interface MonitoringAgent {
     now: number;
     createdAt?: number;
   }): MonitoringReport;
+}
+
+/* ── Optimization ─────────────────────────────────────────────────── */
+
+export interface OptimizationAgent {
+  /**
+   * Analyse observed behaviour and recommend improvements. Never modifies the
+   * IR, never deploys, never changes a production workflow — every output is a
+   * proposal for a human.
+   *
+   * Pure function of its inputs (`createdAt` injected) ⇒ identical inputs give
+   * an identical report. Below the minimum observed sample it returns ZERO
+   * recommendations and explains why rather than guessing.
+   */
+  analyze(input: {
+    sessionId: string;
+    ir: AgentWorkflowIR | null;
+    validation: ValidationReport | null;
+    test: TestReport | null;
+    deployment: DeploymentReport | null;
+    monitoring: MonitoringReport | null;
+    createdAt?: number;
+  }): OptimizationReport;
 }
 
 /* ── Session persistence ──────────────────────────────────────────── */

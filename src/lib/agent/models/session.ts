@@ -22,6 +22,7 @@ import type { ValidationReport } from "./validation";
 import type { TestReport } from "./testing";
 import type { ActivationStatus, DeploymentReport } from "./deployment";
 import type { MonitoringReport } from "./monitoring";
+import type { OptimizationReport } from "./optimization";
 
 /** Integrations the user has actually connected — fed into validation. */
 export interface KnownConnection {
@@ -86,6 +87,12 @@ export interface AgentSession {
   /** Append-only report history — enables trend analysis across cycles. */
   monitoringHistory: MonitoringReport[];
 
+  /* ── optimization ─────────────────────────────────────────────── */
+  /** Latest optimization report. Prior reports retained in history. */
+  optimization: OptimizationReport | null;
+  /** Append-only history — enables longitudinal comparison of advice. */
+  optimizationHistory: OptimizationReport[];
+
   /* ── memory ───────────────────────────────────────────────────── */
   knownConnections: KnownConnection[];
   preferences: BusinessPreferences;
@@ -127,6 +134,8 @@ export function emptyAgentSession(sessionId: string, userId: string): AgentSessi
     test: null,
     monitoring: null,
     monitoringHistory: [],
+    optimization: null,
+    optimizationHistory: [],
     knownConnections: [],
     preferences: {},
     priorWorkflowIds: [],

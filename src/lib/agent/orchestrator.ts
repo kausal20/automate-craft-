@@ -35,6 +35,7 @@ import type {
   TestingAgent,
   DeploymentAgent,
   MonitoringAgent,
+  OptimizationAgent,
   AgentSessionRepo,
 } from "./interfaces";
 import {
@@ -60,6 +61,7 @@ export interface AgentEngines {
   testing?: TestingAgent;
   deployment?: DeploymentAgent;
   monitoring?: MonitoringAgent;
+  optimization?: OptimizationAgent;
 }
 
 export class EngineNotWiredError extends Error {
@@ -449,6 +451,38 @@ export class AutomationAgentOrchestrator {
       });
     } catch (err) {
       return this.fail(session, "monitor", errMsg(err));
+    }
+  }
+
+  /* ── stage 9: optimize ─────────────────────────────────────────── */
+
+  /**
+   * Run ONE optimization cycle over the artifacts already on the session.
+   *
+   * Reads only — the IR, the deployment, and the production workflow are all
+   * left untouched; the output is a set of proposals for a human to accept.
+   * Every input comes from session state, so the cycle is reproducible: the
+   * same session yields the same report. Reports are appended, never
+   * overwritten, so `optimizationHistory` supports longitudinal comparison.
+   */
+  async optimize(sessionId: string): Promise<AgentSession> {
+    if (!this.deps.optimization) throw new EngineNotWiredError("optimization");
+    const session = await this.load(sessionId);
+    try {
+      const optimization = this.deps.optimization.analyze({
+        sessionId,
+        ir: session.workflowIR,
+        validation: session.validation,
+        test: session.test,
+        deployment: session.deployment,
+        monitoring: session.monitoring,
+      });
+      return this.commit(session, "OPTIMIZING", {
+        optimization,
+        optimizationHistory: [...session.optimizationHistory, optimization],
+      });
+    } catch (err) {
+      return this.fail(session, "optimize", errMsg(err));
     }
   }
 }
