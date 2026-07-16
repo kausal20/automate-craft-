@@ -212,6 +212,21 @@ export interface OptimizationAgent {
   }): OptimizationReport;
 }
 
+/* ── Connections ──────────────────────────────────────────────────── */
+
+/**
+ * Supplies the user's real integration connections.
+ *
+ * Injected rather than imported so the pipeline stays testable and the agent
+ * never reaches into the connections domain itself. Connections are re-read at
+ * the start of every run: a credential the user connected between two messages
+ * must be visible to the very next one, and a revoked one must stop being
+ * treated as present.
+ */
+export interface ConnectionProvider {
+  list(userId: string): Promise<KnownConnection[]>;
+}
+
 /* ── Session persistence ──────────────────────────────────────────── */
 
 export interface AgentSessionRepo {

@@ -18,6 +18,7 @@ import { workflowValidator } from "./validation";
 import { workflowTestingAgent } from "./testing";
 import { deploymentAgent } from "./deployment";
 import { monitoringAgent } from "./monitoring";
+import { liveConnectionProvider } from "./connections";
 import { optimizationAgent } from "./optimization";
 import { agentSessionRepo } from "./repo";
 
@@ -32,4 +33,5 @@ export const defaultAgentOrchestrator = new AutomationAgentOrchestrator({
   deployment: deploymentAgent,
   monitoring: monitoringAgent,
   optimization: optimizationAgent,
+  connections: liveConnectionProvider,
 });

@@ -2,9 +2,16 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FlowNode } from "@/components/chat/InteractiveCanvas";
 import type { ProcessedAttachments } from "@/lib/file-utils";
+import type {
+  AgentState,
+  CanvasWorkflow,
+  PipelineErrorCode,
+  PipelineEvent,
+  PipelineStage,
+} from "@/lib/agent";
 import {
   MAX_DOCUMENT_CHARS_PER_FILE,
   MAX_DOCUMENT_CONTEXT_CHARS,
@@ -12,6 +19,29 @@ import {
   MAX_USER_PROMPT_CHARS,
   truncateText,
 } from "@/lib/ai/context-limits";
+
+/** Pipeline view state, assembled only from server events. */
+export interface PipelineUiState {
+  /** Stage currently running, or null when idle/paused/finished. */
+  activeStage: PipelineStage | null;
+  /** Progress label for `activeStage`, as sent by the server. */
+  label: string | null;
+  completed: PipelineStage[];
+  error: { stage: PipelineStage; code: PipelineErrorCode; reason: string } | null;
+  awaitingClarification: boolean;
+  state: AgentState | null;
+  events: PipelineEvent[];
+}
+
+const EMPTY_PIPELINE: PipelineUiState = {
+  activeStage: null,
+  label: null,
+  completed: [],
+  error: null,
+  awaitingClarification: false,
+  state: null,
+  events: [],
+};
 
 interface UseAutomationChatOptions {
   chatId: string;
@@ -52,49 +82,33 @@ function toUiMessage(message: { id: string; role: "user" | "assistant"; content:
   };
 }
 
-type WorkflowOutput = {
-  nodes?: unknown;
-  workflowName?: unknown;
-  summary?: unknown;
-};
+type PipelineDataPart = { type: string; data?: unknown };
 
-type LegacyToolCall = {
-  toolName?: string;
-  result?: unknown;
-};
-
-type WorkflowToolPart = {
-  type: string;
-  toolName?: string;
-  state?: string;
-  output?: unknown;
-};
-
-function isWorkflowOutput(value: unknown): value is WorkflowOutput {
-  return typeof value === "object" && value !== null;
-}
-
-function readWorkflowOutput(message: UIMessage): WorkflowOutput | null {
-  const legacyToolCalls = (message as UIMessage & { toolInvocations?: unknown }).toolInvocations;
-  if (Array.isArray(legacyToolCalls)) {
-    const legacyResult = (legacyToolCalls as LegacyToolCall[]).find(
-      (call) => call.toolName === "buildWorkflow" && isWorkflowOutput(call.result),
-    )?.result;
-    if (isWorkflowOutput(legacyResult)) return legacyResult;
-  }
-
+/**
+ * Pipeline events streamed by /api/chat as `data-pipeline` parts.
+ *
+ * The workflow shown on the canvas is a view of the server's canonical
+ * Workflow IR — the client never builds or edits workflow structure, it only
+ * renders what the pipeline produced.
+ */
+function readPipelineEvents(message: UIMessage): PipelineEvent[] {
+  const events: PipelineEvent[] = [];
   for (const part of message.parts || []) {
-    const toolPart = part as WorkflowToolPart;
-    const isBuildWorkflow =
-      toolPart.type === "tool-buildWorkflow" ||
-      (toolPart.type === "dynamic-tool" && toolPart.toolName === "buildWorkflow");
-
-    if (isBuildWorkflow && toolPart.state === "output-available" && isWorkflowOutput(toolPart.output)) {
-      return toolPart.output;
+    const p = part as PipelineDataPart;
+    if (p.type === "data-pipeline" && p.data && typeof p.data === "object") {
+      events.push(p.data as PipelineEvent);
     }
   }
+  return events;
+}
 
-  return null;
+function readWorkflowView(message: UIMessage): CanvasWorkflow | null {
+  // Last one wins: a later revision supersedes an earlier view.
+  const generated = readPipelineEvents(message).filter(
+    (e): e is Extract<PipelineEvent, { type: "workflow_generated" }> =>
+      e.type === "workflow_generated",
+  );
+  return generated.length > 0 ? generated[generated.length - 1].workflow : null;
 }
 
 function mapWorkflowNodes(nodes: unknown): FlowNode[] {
@@ -232,10 +246,10 @@ export function useAutomationChat({
     return new DefaultChatTransport({
       api: "/api/chat",
       credentials: "same-origin",
-      body: { ultraThinking },
+      body: { chatId, ultraThinking },
       fetch: fetcher,
     });
-  }, [ultraThinking]);
+  }, [chatId, ultraThinking]);
 
   /**
    * Accept either legacy {id,role,content} entries or full UIMessage[].
@@ -274,7 +288,7 @@ export function useAutomationChat({
       });
     }
 
-    const workflow = readWorkflowOutput(event.message);
+    const workflow = readWorkflowView(event.message);
     if (!workflow) return;
 
     const flowNodes = mapWorkflowNodes(workflow.nodes);
@@ -282,10 +296,7 @@ export function useAutomationChat({
       callbacksRef.current.onNodesUpdate?.(flowNodes);
     }
 
-    callbacksRef.current.onWorkflowBuilt?.(
-      typeof workflow.workflowName === "string" ? workflow.workflowName : "Automation Workflow",
-      typeof workflow.summary === "string" ? workflow.summary : "",
-    );
+    callbacksRef.current.onWorkflowBuilt?.(workflow.workflowName, workflow.summary);
   }, []);
 
   const handleError = useCallback((error: Error) => {
@@ -295,10 +306,60 @@ export function useAutomationChat({
     );
   }, []);
 
+  /**
+   * Live pipeline stage, straight from the server's events. The UI shows what
+   * the pipeline reports and never guesses which stage is running.
+   */
+  const [pipeline, setPipeline] = useState<PipelineUiState>(EMPTY_PIPELINE);
+
+  const handleData = useCallback((dataPart: { type: string; data?: unknown }) => {
+    if (dataPart.type !== "data-pipeline" || !dataPart.data) return;
+    const event = dataPart.data as PipelineEvent;
+
+    setPipeline((prev) => {
+      const next: PipelineUiState = { ...prev, events: [...prev.events, event] };
+      switch (event.type) {
+        case "stage_started":
+          next.activeStage = event.stage;
+          next.label = event.label;
+          next.error = null;
+          break;
+        case "stage_completed":
+          next.completed = [...prev.completed, event.stage];
+          break;
+        case "stage_failed":
+          next.activeStage = null;
+          next.label = null;
+          next.error = { stage: event.stage, code: event.code, reason: event.reason };
+          break;
+        case "clarification_required":
+          next.activeStage = null;
+          next.label = null;
+          next.awaitingClarification = true;
+          break;
+        case "pipeline_finished":
+          next.activeStage = null;
+          next.label = null;
+          next.state = event.state;
+          break;
+        default:
+          break;
+      }
+      return next;
+    });
+
+    if (event.type === "workflow_generated") {
+      const flowNodes = mapWorkflowNodes(event.workflow.nodes);
+      if (flowNodes.length > 0) callbacksRef.current.onNodesUpdate?.(flowNodes);
+      callbacksRef.current.onWorkflowBuilt?.(event.workflow.workflowName, event.workflow.summary);
+    }
+  }, []);
+
   const chat = useChat({
     id: chatId,
     messages: initialUiMessages,
     transport,
+    onData: handleData,
     onFinish: handleFinish,
     onError: handleError,
   });
@@ -366,5 +427,7 @@ export function useAutomationChat({
     messages: safeMessages,
     submitPrompt,
     isGenerating,
+    /** Deterministic pipeline progress for the UI to render. */
+    pipeline,
   };
 }

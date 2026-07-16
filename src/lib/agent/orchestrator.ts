@@ -26,6 +26,13 @@ import {
   assertTransition,
   type AgentState,
 } from "./state-machine";
+import {
+  STAGE_LABEL,
+  type PipelineEmit,
+  type PipelineErrorCode,
+  type PipelineStage,
+} from "./pipeline";
+import { projectIRToCanvas } from "./projection";
 import type {
   IntentEngine,
   ClarificationEngine,
@@ -37,13 +44,13 @@ import type {
   MonitoringAgent,
   OptimizationAgent,
   AgentSessionRepo,
+  ConnectionProvider,
 } from "./interfaces";
 import {
   emptyAgentSession,
   emptyClarificationSession,
   isClarificationComplete,
   type AgentSession,
-  type ClarificationQuestion,
   type CredentialObservation,
   type ExecutionRecord,
   type NodeExecutionRecord,
@@ -62,6 +69,8 @@ export interface AgentEngines {
   deployment?: DeploymentAgent;
   monitoring?: MonitoringAgent;
   optimization?: OptimizationAgent;
+  /** Supplies the user's real connections at the start of every run. */
+  connections?: ConnectionProvider;
 }
 
 export class EngineNotWiredError extends Error {
@@ -162,62 +171,6 @@ export class AutomationAgentOrchestrator {
   isReadyToPlan(session: AgentSession): boolean {
     if (!session.clarification) return false;
     return isClarificationComplete(session.clarification);
-  }
-
-  /**
-   * High-level entry for the live chat route. Ensures a session exists,
-   * detects intent exactly once (first turn), advances clarification with
-   * the latest user message, persists, and returns the outstanding blocking
-   * questions. Empty `questions` ⇒ nothing to ask (proceed to generation /
-   * LLM answer).
-   *
-   * This is the single production clarification path.
-   */
-  async runClarification(input: {
-    sessionId: string;
-    userId: string;
-    latestUserText: string;
-  }): Promise<{ session: AgentSession; questions: ClarificationQuestion[] }> {
-    if (!this.deps.clarification) throw new EngineNotWiredError("clarification");
-
-    let session = await this.deps.repo.get(input.sessionId);
-    if (!session) {
-      session = await this.deps.repo.save(
-        emptyAgentSession(input.sessionId, input.userId),
-      );
-    }
-
-    // Detect intent once (first turn). Later turns reuse the stored intent
-    // so requirement derivation stays anchored to the original request.
-    if (!session.intent && this.deps.intent) {
-      session = await this.analyzeIntent(input.sessionId, input.latestUserText);
-      if (session.state === "FAILED") return { session, questions: [] };
-    }
-
-    // No intent engine or non-automation text → nothing to clarify.
-    if (!session.intent) return { session, questions: [] };
-
-    // Only (re)gather requirements in clarification-eligible states. Once the
-    // pipeline has advanced past COLLECTING (planning/generating/deployed/…),
-    // a new message is not a clarification answer — skip rather than force an
-    // illegal transition.
-    const eligible: AgentState[] = [
-      "IDLE",
-      "ANALYZING_INTENT",
-      "COLLECTING_REQUIREMENTS",
-      "READY_FOR_DEPLOYMENT",
-    ];
-    if (!eligible.includes(session.state)) {
-      return { session, questions: [] };
-    }
-
-    session = await this.clarify(input.sessionId, input.latestUserText);
-    if (session.state === "FAILED") return { session, questions: [] };
-
-    const questions = this.deps.clarification.outstanding(
-      session.clarification ?? emptyClarificationSession(input.sessionId),
-    );
-    return { session, questions };
   }
 
   /* ── stage 3: plan ─────────────────────────────────────────────── */
@@ -454,6 +407,379 @@ export class AutomationAgentOrchestrator {
     }
   }
 
+  /* ── the production pipeline ───────────────────────────────────── */
+
+  /**
+   * Drive the whole pipeline for one user message. THE production entry point.
+   *
+   *   intent → clarify → plan → generate → validate → test
+   *          → deploy-ready → deploy → monitor → optimize
+   *
+   * Resumable, not restartable. Every stage is guarded by the artifact it
+   * produces, so a stage that already ran is skipped rather than repeated —
+   * each phase executes at most once per session. A reload mid-pipeline picks
+   * up at the first stage with no artifact; a clarification answer resumes at
+   * `clarify` instead of re-detecting intent.
+   *
+   * Persistence happens inside each stage (via `commit`), not at the end, so a
+   * crash after validation resumes from validation.
+   *
+   * Stops dead on the first blocking failure. Nothing downstream of a failure
+   * runs, and no event claims work that did not happen.
+   */
+  async run(input: {
+    sessionId: string;
+    userId: string;
+    latestUserText: string;
+    /**
+     * Observed runtime history for the monitoring stage. A freshly deployed
+     * workflow has none — the Monitoring Agent then reports UNKNOWN and the
+     * Optimization Agent withholds advice, which is the honest outcome. Never
+     * synthesise records here to make the pipeline look complete.
+     */
+    observed?: {
+      executions: ExecutionRecord[];
+      nodeExecutions: NodeExecutionRecord[];
+      runtimeEvents: RuntimeEventRecord[];
+      credentials: CredentialObservation[];
+      now?: number;
+    };
+    emit?: PipelineEmit;
+  }): Promise<AgentSession> {
+    const emit: PipelineEmit = input.emit ?? (() => {});
+    const completed: PipelineStage[] = [];
+    const at = () => Date.now();
+
+    const started = (stage: PipelineStage) =>
+      emit({ type: "stage_started", stage, label: STAGE_LABEL[stage], at: at() });
+    const done = (stage: PipelineStage, state: AgentState, detail: string) => {
+      completed.push(stage);
+      emit({ type: "stage_completed", stage, state, detail, at: at() });
+    };
+    /**
+     * Reuse a stage's existing artifact instead of re-running its engine.
+     *
+     * Skipping the WORK must not skip the STATE. The state machine enumerates
+     * a path, not a set, so a resumed session still has to walk through each
+     * stage's state — otherwise it arrives at a later stage from a state that
+     * cannot legally reach it. The transition is only replayed when the
+     * session has not already progressed past that stage.
+     */
+    const skip = async (stage: PipelineStage, reason: string) => {
+      emit({ type: "stage_skipped", stage, reason, at: at() });
+      const target = STAGE_STATE_FOR[stage];
+      if (STATE_ORDER[session.state] < STATE_ORDER[target]) {
+        session = await this.commit(session, target, {});
+      }
+    };
+    const failEvent = (stage: PipelineStage, code: PipelineErrorCode, reason: string) =>
+      emit({ type: "stage_failed", stage, code, reason, at: at() });
+    const finish = (session: AgentSession) => {
+      emit({ type: "pipeline_finished", state: session.state, completed, at: at() });
+      return session;
+    };
+    const reasonOf = (session: AgentSession, fallback: string) =>
+      session.failure?.reason ?? fallback;
+
+    /* ── session ───────────────────────────────────────────────── */
+    let session =
+      (await this.deps.repo.get(input.sessionId)) ??
+      (await this.deps.repo.save(emptyAgentSession(input.sessionId, input.userId)));
+
+    // FAILED is terminal until an explicit reset. A new user message IS that
+    // reset — the user has seen the failure and is trying again.
+    //
+    // The retry must clear the failed stage's artifact and everything
+    // downstream of it. Without that, the resume guards below would see the
+    // BAD artifact still sitting there, skip the very stage that failed, and
+    // fail again on the same input forever.
+    if (session.state === "FAILED") {
+      session = await this.deps.repo.patch(input.sessionId, {
+        state: "IDLE",
+        failure: null,
+        ...clearFrom(session.failure?.stage),
+      });
+    }
+
+    // Re-read connections every run. Credentials change between messages, and
+    // the Planner and Validator must both see the current truth — a stale
+    // snapshot would either block a workflow the user just connected or claim
+    // a revoked credential still works.
+    if (this.deps.connections) {
+      const knownConnections = await this.deps.connections.list(session.userId);
+      session = await this.deps.repo.patch(input.sessionId, { knownConnections });
+    }
+
+    /* ── 1. intent ─────────────────────────────────────────────── */
+    // Runs when there is no intent yet, and again from IDLE — a retry resets
+    // to IDLE, and IDLE's only legal exit is ANALYZING_INTENT. Skipping intent
+    // there would strand the session with nowhere legal to go.
+    if (!session.intent || session.state === "IDLE") {
+      started("intent");
+      session = await this.analyzeIntent(input.sessionId, input.latestUserText);
+      if (session.state === "FAILED") {
+        failEvent("intent", "INTENT_FAILED", reasonOf(session, "Intent detection failed."));
+        return finish(session);
+      }
+      done(
+        "intent",
+        session.state,
+        session.intent?.isAutomationRequest
+          ? `Identified ${session.intent.integrations.length} integration(s).`
+          : "Not an automation request.",
+      );
+    } else {
+      await skip("intent", "Intent already detected for this session.");
+    }
+
+    // No intent engine wired, or the message is not an automation request.
+    // Neither is a failure: there is simply no workflow to build, and the
+    // caller answers conversationally. Running the build stages anyway would
+    // manufacture a workflow the user never asked for.
+    if (!session.intent || !session.intent.isAutomationRequest) {
+      return finish(session);
+    }
+
+    /* ── 2. clarify ────────────────────────────────────────────── */
+    // Only re-gather requirements while the session is still in a
+    // clarification-eligible state. Past that point a new message is not an
+    // answer to a pending question, and forcing the transition would be
+    // illegal.
+    const clarifyEligible: AgentState[] = [
+      "IDLE",
+      "ANALYZING_INTENT",
+      "COLLECTING_REQUIREMENTS",
+      "READY_FOR_DEPLOYMENT",
+    ];
+    if (clarifyEligible.includes(session.state)) {
+      if (!this.deps.clarification) throw new EngineNotWiredError("clarification");
+      started("clarify");
+      session = await this.clarify(input.sessionId, input.latestUserText);
+      if (session.state === "FAILED") {
+        failEvent("clarify", "CLARIFICATION_FAILED", reasonOf(session, "Clarification failed."));
+        return finish(session);
+      }
+
+      const outstanding = this.deps.clarification.outstanding(
+        session.clarification ?? emptyClarificationSession(input.sessionId),
+      );
+      if (outstanding.length > 0) {
+        // PAUSE — not a failure. The session stays in COLLECTING_REQUIREMENTS
+        // and the next message resumes here, never from the top.
+        emit({
+          type: "clarification_required",
+          questions: outstanding.map((q) => ({
+            id: q.id,
+            prompt: q.prompt,
+            requirementKey: q.requirementKey,
+            blocking: q.blocking,
+          })),
+          at: at(),
+        });
+        return finish(session);
+      }
+      done("clarify", session.state, "All required details resolved.");
+    } else {
+      await skip("clarify", "Requirements already resolved.");
+    }
+
+    /* ── 3. plan ───────────────────────────────────────────────── */
+    if (!session.plan) {
+      started("plan");
+      session = await this.plan(input.sessionId);
+      if (session.state === "FAILED") {
+        failEvent("plan", "PLANNING_FAILED", reasonOf(session, "Planning failed."));
+        return finish(session);
+      }
+      done("plan", session.state, `${session.plan?.steps.length ?? 0} step(s) planned.`);
+    } else {
+      await skip("plan", "Plan already exists for this session.");
+    }
+
+    // A plan carrying blocking issues cannot be lowered into IR. Stop here
+    // with the planner's own reason rather than letting generation fail with
+    // a vaguer one.
+    if (session.plan && !session.plan.ok) {
+      const issue = session.plan.issues.find((i) => i.severity === "error");
+      const reason = issue?.message ?? "The plan has blocking issues.";
+      session = await this.fail(session, "plan", reason);
+      failEvent("plan", "PLANNING_FAILED", reason);
+      return finish(session);
+    }
+
+    /* ── 4. generate ───────────────────────────────────────────── */
+    if (!session.workflowIR) {
+      started("generate");
+      session = await this.generate(input.sessionId);
+      if (session.state === "FAILED") {
+        failEvent("generate", "GENERATION_FAILED", reasonOf(session, "Generation failed."));
+        return finish(session);
+      }
+      done(
+        "generate",
+        session.state,
+        `Workflow IR revision ${session.workflowIR?.revision ?? 0} with ${
+          session.workflowIR?.graph.nodes.length ?? 0
+        } node(s).`,
+      );
+    } else {
+      await skip("generate", "Workflow IR already generated.");
+    }
+
+    // Publish the canvas view of the IR. Emitted on both the fresh and the
+    // resumed path so a reloaded session still renders its workflow.
+    if (session.workflowIR) {
+      emit({
+        type: "workflow_generated",
+        workflow: projectIRToCanvas(session.workflowIR),
+        at: at(),
+      });
+    }
+
+    /* ── 5. validate ───────────────────────────────────────────── */
+    if (!session.validation) {
+      started("validate");
+      session = await this.validate(input.sessionId);
+      if (session.state === "FAILED") {
+        failEvent("validate", "VALIDATION_FAILED", reasonOf(session, "Validation failed."));
+        return finish(session);
+      }
+      done(
+        "validate",
+        session.state,
+        session.validation?.ok
+          ? "Validation passed."
+          : `${session.validation?.summary.errorCount ?? 0} blocking issue(s).`,
+      );
+    } else {
+      await skip("validate", "Validation report already exists.");
+    }
+
+    // BLOCKED is a real verdict, not an exception — the report exists and is
+    // persisted. The pipeline still stops: never deploy a workflow the
+    // Validator rejected.
+    if (!session.validation?.ok) {
+      const reason =
+        session.validation?.issues.find((i) => i.severity === "error")?.message ??
+        "Validation blocked this workflow.";
+      session = await this.fail(session, "validate", reason);
+      failEvent("validate", "VALIDATION_FAILED", reason);
+      return finish(session);
+    }
+
+    /* ── 6. test ───────────────────────────────────────────────── */
+    if (!session.test) {
+      started("test");
+      session = await this.test(input.sessionId);
+      if (session.state === "FAILED") {
+        failEvent("test", "TESTING_FAILED", reasonOf(session, "Testing failed."));
+        return finish(session);
+      }
+      done(
+        "test",
+        session.state,
+        `Testing recommendation: ${session.test?.deploymentRecommendation ?? "UNKNOWN"}.`,
+      );
+    } else {
+      await skip("test", "Test report already exists.");
+    }
+
+    if (session.test?.deploymentRecommendation === "DO_NOT_DEPLOY") {
+      const reason =
+        session.test.issues.find((i) => i.severity === "error")?.message ??
+        "Testing recommended against deploying this workflow.";
+      session = await this.fail(session, "test", reason);
+      failEvent("test", "TESTING_FAILED", reason);
+      return finish(session);
+    }
+
+    /* ── 7. deploy-ready ───────────────────────────────────────── */
+    if (session.state !== "READY_FOR_DEPLOYMENT" && !session.deployment) {
+      started("deploy-ready");
+      session = await this.markDeployReady(input.sessionId);
+      if (session.state === "FAILED") {
+        failEvent("deploy-ready", "DEPLOY_BLOCKED", reasonOf(session, "Not ready to deploy."));
+        return finish(session);
+      }
+      done("deploy-ready", session.state, "Cleared for deployment.");
+    } else {
+      await skip("deploy-ready", "Already cleared for deployment.");
+    }
+
+    /* ── 8. deploy ─────────────────────────────────────────────── */
+    if (!session.deployment || session.deployment.status !== "DEPLOYED") {
+      started("deploy");
+      session = await this.deploy(input.sessionId);
+      // The report is persisted on every path, including failure.
+      const report = session.deployment;
+      if (report) {
+        emit({
+          type: "deployment_finished",
+          status: report.status,
+          workflowId: report.workflowId,
+          activationStatus: report.activationStatus,
+          at: at(),
+        });
+      }
+      if (session.state === "FAILED") {
+        failEvent("deploy", "DEPLOYMENT_FAILED", reasonOf(session, "Deployment failed."));
+        return finish(session);
+      }
+      done("deploy", session.state, `Deployed as ${report?.workflowId ?? "unknown"}.`);
+    } else {
+      await skip("deploy", "Workflow already deployed.");
+    }
+
+    /* ── 9. monitor ────────────────────────────────────────────── */
+    if (!session.monitoring) {
+      started("monitor");
+      session = await this.monitor(input.sessionId, {
+        executions: input.observed?.executions ?? [],
+        nodeExecutions: input.observed?.nodeExecutions ?? [],
+        runtimeEvents: input.observed?.runtimeEvents ?? [],
+        credentials: input.observed?.credentials ?? [],
+        ...(input.observed?.now !== undefined ? { now: input.observed.now } : {}),
+      });
+      if (session.state === "FAILED") {
+        failEvent("monitor", "MONITORING_UNAVAILABLE", reasonOf(session, "Monitoring failed."));
+        return finish(session);
+      }
+      // A just-deployed workflow has no runs yet. UNKNOWN is the correct
+      // answer, and saying so beats implying health nobody observed.
+      done(
+        "monitor",
+        session.state,
+        `Health: ${session.monitoring?.health ?? "UNKNOWN"} over ${
+          session.monitoring?.execution.total ?? 0
+        } observed run(s).`,
+      );
+    } else {
+      await skip("monitor", "Monitoring report already exists.");
+    }
+
+    /* ── 10. optimize ──────────────────────────────────────────── */
+    if (!session.optimization) {
+      started("optimize");
+      session = await this.optimize(input.sessionId);
+      if (session.state === "FAILED") {
+        failEvent("optimize", "OPTIMIZATION_FAILED", reasonOf(session, "Optimization failed."));
+        return finish(session);
+      }
+      const opt = session.optimization;
+      emit({
+        type: "optimization_finished",
+        score: opt?.scores.optimization ?? null,
+        recommendations: opt?.recommendations.length ?? 0,
+        at: at(),
+      });
+      done("optimize", session.state, opt?.summary ?? "No optimization report produced.");
+    } else {
+      await skip("optimize", "Optimization report already exists.");
+    }
+
+    return finish(session);
+  }
+
   /* ── stage 9: optimize ─────────────────────────────────────────── */
 
   /**
@@ -489,4 +815,77 @@ export class AutomationAgentOrchestrator {
 
 function errMsg(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+/** The state a session occupies once a stage has been completed. */
+const STAGE_STATE_FOR: Record<PipelineStage, AgentState> = {
+  intent: "ANALYZING_INTENT",
+  clarify: "COLLECTING_REQUIREMENTS",
+  plan: "PLANNING_WORKFLOW",
+  generate: "GENERATING_WORKFLOW",
+  validate: "VALIDATING_WORKFLOW",
+  test: "TESTING_WORKFLOW",
+  "deploy-ready": "READY_FOR_DEPLOYMENT",
+  deploy: "DEPLOYING",
+  monitor: "MONITORING",
+  optimize: "OPTIMIZING",
+};
+
+/**
+ * How far along the pipeline each state sits. Lets a resumed run tell "not
+ * there yet" (replay the transition) from "already past it" (leave alone).
+ * FAILED is off the path and never compared.
+ */
+const STATE_ORDER: Record<AgentState, number> = {
+  IDLE: 0,
+  ANALYZING_INTENT: 1,
+  COLLECTING_REQUIREMENTS: 2,
+  PLANNING_WORKFLOW: 3,
+  GENERATING_WORKFLOW: 4,
+  VALIDATING_WORKFLOW: 5,
+  TESTING_WORKFLOW: 6,
+  READY_FOR_DEPLOYMENT: 7,
+  DEPLOYING: 8,
+  MONITORING: 9,
+  OPTIMIZING: 10,
+  FAILED: -1,
+};
+
+/**
+ * Artifacts produced by each stage, in pipeline order. Used to decide what a
+ * retry must discard.
+ */
+const STAGE_ARTIFACTS: Array<{ stage: string; keys: Array<keyof AgentSession> }> = [
+  { stage: "intent", keys: ["intent"] },
+  { stage: "clarify", keys: ["clarification"] },
+  { stage: "plan", keys: ["plan"] },
+  { stage: "generate", keys: ["workflowIR"] },
+  { stage: "validate", keys: ["validation"] },
+  { stage: "test", keys: ["test"] },
+  { stage: "deploy-ready", keys: [] },
+  { stage: "deploy", keys: ["deployment"] },
+  { stage: "monitor", keys: ["monitoring"] },
+  { stage: "optimize", keys: ["optimization"] },
+];
+
+/**
+ * Null out the failed stage's artifact and every artifact after it, so a retry
+ * genuinely re-runs from the failure instead of inheriting the bad result.
+ *
+ * History arrays are deliberately untouched: they are append-only records of
+ * what happened, and a failed attempt is part of that record.
+ */
+function clearFrom(failedStage: string | undefined): Partial<AgentSession> {
+  if (!failedStage) return {};
+  const index = STAGE_ARTIFACTS.findIndex((s) => s.stage === failedStage);
+  if (index < 0) return {};
+
+  const patch: Partial<AgentSession> = {};
+  for (const { keys } of STAGE_ARTIFACTS.slice(index)) {
+    for (const key of keys) {
+      // Every cleared artifact is a nullable pointer to the latest result.
+      (patch as Record<string, unknown>)[key] = null;
+    }
+  }
+  return patch;
 }

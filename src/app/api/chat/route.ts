@@ -1,14 +1,29 @@
+/**
+ * POST /api/chat — the ONLY production chat entry point.
+ *
+ * This route is a thin orchestration layer and nothing more. It:
+ *   1. authenticates + rate-limits + charges credits,
+ *   2. resolves the session id (chat id == agent session id),
+ *   3. hands the message to `AutomationAgentOrchestrator.run`,
+ *   4. streams the pipeline's real events back to the UI.
+ *
+ * It contains NO workflow logic, NO planning, NO generation, NO validation and
+ * NO deployment logic — every one of those lives behind the orchestrator, and
+ * the canonical Workflow IR is the only workflow representation produced. The
+ * route never builds nodes and never calls an engine directly.
+ *
+ * The LLM is used for exactly one thing: answering messages the Intent Engine
+ * determined are NOT automation requests. It cannot construct workflows.
+ */
+
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   convertToModelMessages,
   streamText,
-  stepCountIs,
-  tool,
   type UIMessage,
 } from "ai";
-import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { deductCredits, getUserCredits } from "@/lib/credit-store";
 import { handleRouteError, jsonError } from "@/lib/api";
@@ -16,7 +31,7 @@ import { env } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 import { withRetry, RETRY_POLICIES } from "@/lib/retry";
 import { upsertChatMessagesForUser } from "@/lib/chat-message-store";
-import { defaultAgentOrchestrator } from "@/lib/agent";
+import { defaultAgentOrchestrator, summarizeRun, type PipelineEvent } from "@/lib/agent";
 import { checkRateLimit } from "./rate-limit";
 import {
   CONTEXT_WINDOW_ERROR_MESSAGE,
@@ -68,56 +83,23 @@ function getOpenAIProvider() {
   return openaiProvider;
 }
 
-const SYSTEM_PROMPT = `You are an expert automation architect for AutomateCraft, a business automation SaaS.
+/**
+ * Conversational system prompt.
+ *
+ * Deliberately has no workflow-building instructions and no tools. Automation
+ * requests never reach the model — the Intent Engine routes those into the
+ * pipeline before this prompt is used.
+ */
+const CONVERSATION_PROMPT = `You are an automation expert for AutomateCraft, a business automation SaaS.
 
-Conversation orchestration:
-- Gather required implementation details before building a workflow.
-- If this conversation already contains your clarification questions and the user has answered them, proceed with workflow generation.
-- The server performs missing-detail gating before this prompt. If an automation request reaches this workflow-ready path, do not ask more clarification questions.
-- Names or labels such as "Website Lead Form" and "Sales Alerts" are sufficient for draft workflow generation; credentials and exact IDs can be connected later.
-- Never invent credentials, destination IDs, channel names, phone numbers, form names, or payload fields.
-- Never claim questions were auto-answered. Wait for the user.
+The user's message has already been classified as NOT an automation build request, so answer it directly and conversationally.
 
-When the workflow is ready to build:
-1. Acknowledge the resolved request briefly and confidently (1-2 sentences max). No filler words.
-2. Call the "buildWorkflow" tool to construct the visual automation graph.
+- Be concise, confident and technically precise. No filler.
+- Never claim to have built, deployed, validated or tested a workflow. You cannot do any of those things — a separate pipeline does, and it is not running for this message.
+- If the user seems to want an automation built, invite them to describe the trigger and the action they want, and the pipeline will take over on their next message.
+- Never invent credentials, IDs, channel names, or field names.
 
-Rules for tool calls:
-- Call buildWorkflow only after critical setup details are present or after the user has answered clarification questions.
-- For workflow-ready automation requests, call buildWorkflow instead of asking for more details.
-- Build nodes in this order: trigger first, then process/transform steps, then action/notification last.
-- Node labels must be specific and business-readable (e.g. "New Google Form Submission" not "Trigger").
-- Node types: "trigger" for input events, "process" for logic/data/filter steps, "action" for outputs/notifications.
-- Include 2-6 nodes total.
-
-Rules for file attachments:
-- When the user attaches IMAGES, analyze them carefully. They may contain screenshots of workflows, UI mockups, data tables, or business processes. Describe what you see and build an automation that matches the visual content.
-- When the user attaches DOCUMENTS (text, CSV, JSON, markdown), read the content thoroughly. Use the data structure, field names, and context to build a precise automation pipeline.
-- If images show a workflow diagram or process flow, replicate it as automation nodes.
-- If documents contain data schemas or sample records, create automations that process that specific data shape.
-
-Rules for conversation:
-- If the user asks a modification, acknowledge briefly and call buildWorkflow again with the full updated nodes array.
-- If asked a non-automation question, answer concisely without calling the tool.
-- Be the confident expert - short, decisive, technically precise responses.
-
-Supported integrations: Google Forms, Google Sheets, WhatsApp, Email/Gmail, Slack, HubSpot, Salesforce, Razorpay, Webhooks, CRM.`;
-
-function createWorkflowName(nodes: Array<{ type: string; label: string }>) {
-  const trigger = nodes.find((node) => node.type === "trigger")?.label;
-  const action = nodes.find((node) => node.type === "action")?.label;
-
-  if (action?.toLowerCase().includes("whatsapp")) return "WhatsApp Automation";
-  if (action?.toLowerCase().includes("email")) return "Email Automation";
-  if (trigger?.toLowerCase().includes("form")) return "Form Automation";
-
-  return "Automation Workflow";
-}
-
-function createWorkflowSummary(nodes: Array<{ label: string }>) {
-  if (nodes.length === 0) return "Your automation workflow is ready to review.";
-  return nodes.map((node) => node.label).join(" -> ");
-}
+Supported integrations: Google Forms, Google Sheets, WhatsApp, Email/Gmail, Slack, HubSpot, Salesforce, Razorpay, Stripe, Webhooks, CRM.`;
 
 function getLatestUserText(messages: UIMessage[]) {
   const latestUserMessage = [...messages].reverse().find((message) => message.role === "user");
@@ -136,63 +118,6 @@ function getMessageText(message: UIMessage) {
     .map((part) => part.text)
     .join(" ")
     .trim();
-}
-
-const AUTOMATION_INTENT_RE =
-  /\b(automate|automation|workflow|when|whenever|if|trigger|send|notify|create|update|sync|route|lead|form|submission|webhook|sheet|email|whatsapp|slack|crm|hubspot|salesforce)\b/i;
-
-/* ── Clarification response helpers ──────────────────────────────── */
-
-function isAutomationRequest(text: string) {
-  return AUTOMATION_INTENT_RE.test(text);
-}
-
-function createClarificationText(questions: string[]) {
-  return [
-    "I need a few implementation details before I build this workflow:",
-    "",
-    ...questions.map((question, index) => `${index + 1}. ${question}`),
-    "",
-    "Answer these and I will generate the workflow.",
-  ].join("\n");
-}
-
-function splitStreamText(text: string) {
-  return text.match(/.{1,48}(?:\s|$)/g) ?? [text];
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function createClarificationResponse({
-  messages,
-  questions,
-  onFinish,
-}: {
-  messages: UIMessage[];
-  questions: string[];
-  onFinish?: (event: { messages: UIMessage[] }) => Promise<void> | void;
-}) {
-  const clarificationText = createClarificationText(questions);
-  const stream = createUIMessageStream({
-    originalMessages: messages,
-    execute: async ({ writer }) => {
-      const textId = crypto.randomUUID();
-      writer.write({ type: "text-start", id: textId });
-
-      for (const delta of splitStreamText(clarificationText)) {
-        writer.write({ type: "text-delta", id: textId, delta });
-        await wait(18);
-      }
-
-      writer.write({ type: "text-end", id: textId });
-    },
-    onFinish,
-    onError: createPublicProviderError,
-  });
-
-  return createUIMessageStreamResponse({ stream });
 }
 
 type UIMessagePart = UIMessage["parts"][number];
@@ -369,11 +294,7 @@ async function persistChatMessages({
   try {
     const saved = await upsertChatMessagesForUser({ userId, chatId, messages });
     if (CHAT_DEBUG) {
-      log.info(`[${requestId}] persisted chat messages`, {
-        chatId,
-        stage,
-        saved,
-      });
+      log.info(`[${requestId}] persisted chat messages`, { chatId, stage, saved });
     }
   } catch (error) {
     log.warn(`[${requestId}] chat message persistence failed`, {
@@ -394,7 +315,6 @@ const CHAT_RETRY_POLICY = {
     if (error instanceof TypeError) return true; // network failure
     const e = error as { status?: number; code?: string };
     if (typeof e?.status === "number") {
-      // Retry on 5xx, 429 (rate limit from provider), 408 (timeout)
       return e.status >= 500 || e.status === 429 || e.status === 408;
     }
     if (e?.code === "ECONNRESET" || e?.code === "ETIMEDOUT") return true;
@@ -402,20 +322,19 @@ const CHAT_RETRY_POLICY = {
   },
 } as const;
 
+function splitStreamText(text: string) {
+  return text.match(/.{1,48}(?:\s|$)/g) ?? [text];
+}
+
 export async function POST(req: Request) {
   const requestId = crypto.randomUUID();
 
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return handleRouteError(
-        new Error("Authentication required."),
-        "Authentication required.",
-        401,
-      );
+      return handleRouteError(new Error("Authentication required."), "Authentication required.", 401);
     }
 
-    // ── Per-user rate limiting ────────────────────────────────────
     const rateCheck = checkRateLimit(user.id);
     if (!rateCheck.allowed) {
       const retryAfterSec = Math.ceil(rateCheck.retryAfterMs / 1000);
@@ -423,10 +342,7 @@ export async function POST(req: Request) {
         JSON.stringify({ error: `Too many requests. Please wait ${retryAfterSec}s before trying again.` }),
         {
           status: 429,
-          headers: {
-            "Content-Type": "application/json",
-            "Retry-After": String(retryAfterSec),
-          },
+          headers: { "Content-Type": "application/json", "Retry-After": String(retryAfterSec) },
         },
       );
     }
@@ -461,78 +377,17 @@ export async function POST(req: Request) {
     if (modelMessages.length === 0) {
       return jsonError("Please enter a shorter prompt or attach a smaller file.", 400);
     }
-
     if (!modelMessages.some((message) => message.role === "user")) {
       return jsonError("Please enter a message before sending.", 400);
     }
 
-    const modelId = resolveChatModelId();
     const latestUserText = getLatestUserText(modelMessages);
-
-    // ── Clarification via the Automation Agent (single production path) ──
-    // The catalog-driven Clarification Engine, behind the orchestrator,
-    // decides whether blocking implementation details are still missing.
-    const agentClarification = await defaultAgentOrchestrator.runClarification({
-      sessionId: resolvedChatId ?? `chat:${user.id}`,
-      userId: user.id,
-      latestUserText,
-    });
-    const clarificationQuestions = agentClarification.questions.map((q) => q.prompt);
-
-    if (CHAT_DEBUG) {
-      log.info(`[${requestId}] outgoing chat payload`, {
-        messageCount: messages.length,
-        modelMessageCount: modelMessages.length,
-        chatId: resolvedChatId,
-        latestUserText,
-        agentState: agentClarification.session.state,
-        clarificationQuestionCount: clarificationQuestions.length,
-        ultraThinking,
-        configuredModel: env.openaiModel,
-        resolvedModel: modelId,
-        baseURL: env.openaiBaseUrl || "default",
-      });
-    }
-
-    if (clarificationQuestions.length > 0) {
-      if (CHAT_DEBUG) {
-        log.info(`[${requestId}] clarification gate active`, {
-          questions: clarificationQuestions,
-        });
-      }
-
-      return createClarificationResponse({
-        messages,
-        questions: clarificationQuestions,
-        onFinish: async ({ messages: finishedMessages }) => {
-          await persistChatMessages({
-            userId: user.id,
-            chatId: resolvedChatId,
-            messages: finishedMessages,
-            requestId,
-            stage: "finish",
-          });
-        },
-      });
-    }
-
-    if (!env.openaiApiKey) {
-      return jsonError(
-        "OPENAI_API_KEY is missing. Add it to .env.local and restart the dev server.",
-        500,
-      );
-    }
-
-    if (isOpenRouter && modelId !== env.openaiModel) {
-      log.warn("Normalized OpenRouter model slug", {
-        configuredModel: env.openaiModel,
-        resolvedModel: modelId,
-      });
-    }
+    // The chat id IS the agent session id, so the conversation and the
+    // pipeline restore together under one key.
+    const sessionId = resolvedChatId ?? `chat:${user.id}`;
 
     const creditCost = ultraThinking ? ULTRA_COST : STANDARD_COST;
     await getUserCredits(user.id);
-
     const credited = CHAT_FREE_TEST_MODE
       ? true
       : await deductCredits(
@@ -540,149 +395,99 @@ export async function POST(req: Request) {
           creditCost,
           ultraThinking ? "Ultra Chat Generation" : "Chat Generation",
         );
-
     if (!credited) {
       return handleRouteError(new Error("Not enough credits."), "Not enough credits.", 402);
     }
 
-    const openai = getOpenAIProvider();
-
-    // ── Build streamText result — wrapped in retry for transient provider errors ──
-    const result = await withRetry(
-      async () => {
-        const modelMsgs = await convertToModelMessages(modelMessages, { ignoreIncompleteToolCalls: true });
-        return streamText({
-          model: isOpenRouter ? openai.chat(modelId) : openai(modelId),
-          system: SYSTEM_PROMPT,
-          messages: modelMsgs,
-      maxOutputTokens: ultraThinking ? ULTRA_MAX_OUTPUT_TOKENS : STANDARD_MAX_OUTPUT_TOKENS,
-      stopWhen: stepCountIs(3),
-      toolChoice: isAutomationRequest(latestUserText) ? "required" : "auto",
-      onError: ({ error }) => {
-        log.error(`[${requestId}] streamText provider error`, error);
-      },
-      onFinish: ({ text, finishReason, usage, totalUsage }) => {
-        if (!CHAT_DEBUG) return;
-        log.info(`[${requestId}] model stream finished`, {
-          finishReason,
-          usage,
-          totalUsage,
-          assistantPreview: text.slice(0, 500),
-        });
-      },
-      tools: {
-        buildWorkflow: tool({
-          description:
-            "Build or update the visual automation workflow graph displayed in the canvas panel. Call this every time the user describes or modifies an automation.",
-          inputSchema: z.object({
-            nodes: z
-              .array(
-                z.object({
-                  id: z.string().describe("Unique node ID, e.g. 'n1', 'n2', 'n3'"),
-                  type: z
-                    .enum(["trigger", "process", "action"])
-                    .describe("trigger = input event, process = logic/transform, action = output"),
-                  label: z
-                    .string()
-                    .min(3)
-                    .max(60)
-                    .describe("Short, specific, business-readable label for this step"),
-                  detail: z
-                    .string()
-                    .max(80)
-                    .optional()
-                    .describe("Optional one-line detail shown beneath the label"),
-                  icon: z
-                    .string()
-                    .optional()
-                    .describe("Lucide icon name if appropriate, e.g., 'Mail', 'Slack', 'Database'"),
-                }),
-              )
-              .describe("The steps in the workflow."),
-            edges: z
-              .array(
-                z.object({
-                  id: z.string().describe("Unique edge ID, e.g. 'e1-2'"),
-                  source: z.string().describe("Source node ID"),
-                  target: z.string().describe("Target node ID"),
-                }),
-              )
-              .describe("The connections between steps. Must form a valid directed acyclic graph."),
-          }),
-          execute: async ({ nodes, edges }) => {
-            log.info("Workflow tool executed", { nodes: nodes.length, edges: edges.length });
-            return {
-              nodes,
-              edges,
-              workflowName: createWorkflowName(nodes),
-              summary: createWorkflowSummary(nodes),
-            };
-          },
-        }),
-      },
+    const onFinish = async ({ messages: finishedMessages }: { messages: UIMessage[] }) => {
+      await persistChatMessages({
+        userId: user.id,
+        chatId: resolvedChatId,
+        messages: finishedMessages,
+        requestId,
+        stage: "finish",
       });
-      },
-      CHAT_RETRY_POLICY,
-    );
+    };
 
-    return result.toUIMessageStreamResponse({
+    const stream = createUIMessageStream({
       originalMessages: messages,
-      consumeSseStream: CHAT_DEBUG
-        ? async ({ stream }) => {
-            const reader = stream.getReader();
-            let raw = "";
-            let truncated = false;
+      execute: async ({ writer }) => {
+        const events: PipelineEvent[] = [];
 
-            try {
-              while (raw.length < 12000) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                raw += value;
-              }
-
-              if (raw.length >= 12000) {
-                truncated = true;
-                await reader.cancel();
-              }
-
-              log.info(`[${requestId}] raw API response`, {
-                raw: truncated ? `${raw.slice(0, 12000)}\n...[truncated]` : raw,
-              });
-            } catch (error) {
-              log.error(`[${requestId}] failed to read raw API response`, error);
-            } finally {
-              reader.releaseLock();
-            }
-          }
-        : undefined,
-      onFinish: async ({ responseMessage, messages: finishedMessages, finishReason }) => {
-        await persistChatMessages({
+        // ── The single production execution path ──────────────────
+        const session = await defaultAgentOrchestrator.run({
+          sessionId,
           userId: user.id,
-          chatId: resolvedChatId,
-          messages: finishedMessages,
-          requestId,
-          stage: "finish",
+          latestUserText,
+          emit: (event) => {
+            events.push(event);
+            // Deterministic stage events. The UI renders these; it never
+            // infers pipeline state from prose.
+            writer.write({ type: "data-pipeline", data: event });
+          },
         });
 
-        if (!CHAT_DEBUG) return;
+        if (CHAT_DEBUG) {
+          log.info(`[${requestId}] pipeline finished`, {
+            sessionId,
+            state: session.state,
+            events: events.map((e) => `${e.type}:${"stage" in e ? e.stage : ""}`),
+          });
+        }
 
-        const assistantText = responseMessage.parts
-          .filter((part) => part.type === "text")
-          .map((part) => part.text)
-          .join("");
+        // An automation request produces a deterministic summary built from
+        // the artifacts the pipeline actually produced — no model involved,
+        // so it cannot report work that did not happen.
+        const summary = summarizeRun(events);
+        if (summary) {
+          const textId = crypto.randomUUID();
+          writer.write({ type: "text-start", id: textId });
+          for (const delta of splitStreamText(summary)) {
+            writer.write({ type: "text-delta", id: textId, delta });
+          }
+          writer.write({ type: "text-end", id: textId });
+          return;
+        }
 
-        log.info(`[${requestId}] parsed assistant message`, {
-          finishReason,
-          messageCount: finishedMessages.length,
-          partTypes: responseMessage.parts.map((part) => part.type),
-          assistantPreview: assistantText.slice(0, 500),
-        });
+        // Not an automation request: answer conversationally. The model has no
+        // tools and cannot build a workflow.
+        if (!env.openaiApiKey) {
+          const textId = crypto.randomUUID();
+          writer.write({ type: "text-start", id: textId });
+          writer.write({
+            type: "text-delta",
+            id: textId,
+            delta: "OPENAI_API_KEY is missing. Add it to .env.local and restart the dev server.",
+          });
+          writer.write({ type: "text-end", id: textId });
+          return;
+        }
+
+        const openai = getOpenAIProvider();
+        const modelId = resolveChatModelId();
+        const result = await withRetry(async () => {
+          const modelMsgs = await convertToModelMessages(modelMessages, {
+            ignoreIncompleteToolCalls: true,
+          });
+          return streamText({
+            model: isOpenRouter ? openai.chat(modelId) : openai(modelId),
+            system: CONVERSATION_PROMPT,
+            messages: modelMsgs,
+            maxOutputTokens: ultraThinking ? ULTRA_MAX_OUTPUT_TOKENS : STANDARD_MAX_OUTPUT_TOKENS,
+            onError: ({ error }) => log.error(`[${requestId}] streamText provider error`, error),
+          });
+        }, CHAT_RETRY_POLICY);
+
+        writer.merge(result.toUIMessageStream());
       },
+      onFinish,
       onError: (error) => {
-        log.error(`[${requestId}] provider stream failed`, error);
+        log.error(`[${requestId}] chat stream failed`, error);
         return createPublicProviderError(error);
       },
     });
+
+    return createUIMessageStreamResponse({ stream });
   } catch (error) {
     log.error(`[${requestId}] chat stream error`, error);
     if (isContextWindowError(error)) {

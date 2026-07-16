@@ -35,6 +35,8 @@ export type {
   ValidatorAgent,
   TestingAgent,
   MonitoringAgent,
+  DeploymentAgent,
+  ConnectionProvider,
   OptimizationAgent,
   AgentSessionRepo,
 } from "./interfaces";
@@ -45,6 +47,27 @@ export {
   SessionNotFoundError,
   type AgentEngines,
 } from "./orchestrator";
+
+/* ── Canvas projection (a VIEW of the IR, never a second source) ── */
+export {
+  projectIRToCanvas,
+  type CanvasWorkflow,
+  type CanvasNode,
+  type CanvasEdge,
+  type CanvasNodeType,
+} from "./projection";
+
+/* ── Pipeline event contract (what the UI renders) ──────────────── */
+export {
+  PIPELINE_STAGES,
+  STAGE_LABEL,
+  summarizeRun,
+  type PipelineStage,
+  type PipelineEvent,
+  type PipelineErrorCode,
+  type PipelineQuestion,
+  type PipelineEmit,
+} from "./pipeline";
 
 /* ── Intent engine ──────────────────────────────────────────────── */
 export { intentEngine } from "./intent";
