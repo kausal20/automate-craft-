@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /onboarding/
+Disallow: /setup/
+
+Sitemap: https://automatecraft.ai/sitemap.xml
