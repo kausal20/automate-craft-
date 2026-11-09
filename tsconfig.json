@@ -32,6 +32,7 @@
   ],
   "exclude": [
     "node_modules",
+    "src/**/*.test.ts",
     "water-pump-report",
     "aurora-drive-os",
     "claude-chat-design",

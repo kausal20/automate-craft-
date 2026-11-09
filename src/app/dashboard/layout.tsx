@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import DashboardShell from "@/components/dashboard/DashboardShell";
+import WatchdogBanner from "@/components/dashboard/WatchdogBanner";
 import { requireUser } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -13,5 +14,10 @@ export default async function DashboardLayout({
   */
   const user = await requireUser();
 
-  return <DashboardShell user={user}>{children}</DashboardShell>;
+  return (
+    <DashboardShell user={user}>
+      <WatchdogBanner />
+      {children}
+    </DashboardShell>
+  );
 }
