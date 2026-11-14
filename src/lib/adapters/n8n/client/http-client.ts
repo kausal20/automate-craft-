@@ -57,7 +57,7 @@ function ensureConfigured(): { baseUrl: string; apiKey: string } {
 }
 
 async function request<TBody, TResponse>(
-  method: "GET" | "POST" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
   body?: TBody,
   signal?: AbortSignal,
@@ -79,7 +79,7 @@ async function request<TBody, TResponse>(
 
   const text = await response.text();
   if (!response.ok) {
-    log.error("n8n request failed", { status: response.status, body: text });
+    log.error("n8n request failed", { status: response.status, method, path });
     throw new N8nApiError(
       response.status,
       text,
@@ -156,6 +156,45 @@ export const n8nClient = {
       "GET",
       `/executions/${executionId}`,
       undefined,
+      signal,
+    );
+  },
+
+  getWorkflow(workflowId: string, signal?: AbortSignal) {
+    return request<undefined, N8nWorkflowResponse>(
+      "GET",
+      `/workflows/${encodeURIComponent(workflowId)}`,
+      undefined,
+      signal,
+    );
+  },
+
+  /** GET /workflows with optional name filter (public API v1). */
+  listWorkflows(query: { name?: string; limit?: number } = {}, signal?: AbortSignal) {
+    const params = new URLSearchParams();
+    if (query.name) params.set("name", query.name);
+    params.set("limit", String(query.limit ?? 50));
+    return request<undefined, { data: N8nWorkflowResponse[]; nextCursor?: string | null }>(
+      "GET",
+      `/workflows?${params.toString()}`,
+      undefined,
+      signal,
+    );
+  },
+
+  listTags(signal?: AbortSignal) {
+    return request<undefined, { data: Array<{ id: string; name: string }> }>("GET", "/tags?limit=250", undefined, signal);
+  },
+
+  createTag(name: string, signal?: AbortSignal) {
+    return request<{ name: string }, { id: string; name: string }>("POST", "/tags", { name }, signal);
+  },
+
+  setWorkflowTags(workflowId: string, tagIds: string[], signal?: AbortSignal) {
+    return request<Array<{ id: string }>, unknown>(
+      "PUT",
+      `/workflows/${encodeURIComponent(workflowId)}/tags`,
+      tagIds.map((id) => ({ id })),
       signal,
     );
   },

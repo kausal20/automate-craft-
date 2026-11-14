@@ -95,6 +95,7 @@ export async function disconnect(
     status: "revoked",
     expiresAt: null,
   });
+  await pauseDependentAutomations(userId, integration);
 }
 
 export async function markExpired(
@@ -102,6 +103,25 @@ export async function markExpired(
   integration: SupportedIntegration,
 ): Promise<void> {
   await updateConnection(userId, integration, { status: "expired" });
+  await pauseDependentAutomations(userId, integration);
+}
+
+/**
+ * A lost connection pauses every agent automation that uses it (plain-language
+ * status + activity entry). Loaded lazily to avoid an import cycle; a failure
+ * here never blocks the disconnect itself.
+ */
+async function pauseDependentAutomations(userId: string, integration: SupportedIntegration): Promise<void> {
+  try {
+    const { onConnectionLost } = await import("@/lib/agent/production");
+    const paused = await onConnectionLost(userId, integration);
+    if (paused > 0) log.info("Paused automations after connection loss.", { integration, paused });
+  } catch (error) {
+    log.error("Could not pause automations after connection loss.", {
+      integration,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 /**

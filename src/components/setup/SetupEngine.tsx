@@ -114,6 +114,15 @@ export default function SetupEngine({ user }: { user: AuthenticatedUser }) {
         const json = await response.json();
         if (!response.ok) throw new Error(json.error || "Generation failed.");
         
+        // The agent returns only a preview while it still has questions; the
+        // legacy setup form needs a full workflow, so show the questions instead.
+        if (!json.workflow && json.agent) {
+          const questions: Array<{ question: string }> = json.agent.questions ?? [];
+          setGlobalError(
+            [json.agent.preview, ...questions.map((q, i) => `${i + 1}. ${q.question}`)].filter(Boolean).join(" "),
+          );
+          return;
+        }
         setResult(json as WorkflowResponse);
         await refreshCredits();
         // Replace URL state to clean it up visually if desired, but retaining it is fine.

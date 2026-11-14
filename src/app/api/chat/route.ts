@@ -31,7 +31,8 @@ import { env } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
 import { withRetry, RETRY_POLICIES } from "@/lib/retry";
 import { upsertChatMessagesForUser } from "@/lib/chat-message-store";
-import { defaultAgentOrchestrator, summarizeRun, type PipelineEvent } from "@/lib/agent";
+import { getAgentService, looksLikeAutomationRequest, previewToChatText } from "@/lib/agent/production";
+import { toUserResponse } from "@/lib/agent/production/errors";
 import { checkRateLimit } from "./rate-limit";
 import {
   CONTEXT_WINDOW_ERROR_MESSAGE,
@@ -412,37 +413,23 @@ export async function POST(req: Request) {
     const stream = createUIMessageStream({
       originalMessages: messages,
       execute: async ({ writer }) => {
-        const events: PipelineEvent[] = [];
-
-        // ── The single production execution path ──────────────────
-        const session = await defaultAgentOrchestrator.run({
-          sessionId,
-          userId: user.id,
-          latestUserText,
-          emit: (event) => {
-            events.push(event);
-            // Deterministic stage events. The UI renders these; it never
-            // infers pipeline state from prose.
-            writer.write({ type: "data-pipeline", data: event });
-          },
-        });
-
-        if (CHAT_DEBUG) {
-          log.info(`[${requestId}] pipeline finished`, {
-            sessionId,
-            state: session.state,
-            events: events.map((e) => `${e.type}:${"stage" in e ? e.stage : ""}`),
-          });
-        }
-
-        // An automation request produces a deterministic summary built from
-        // the artifacts the pipeline actually produced — no model involved,
-        // so it cannot report work that did not happen.
-        const summary = summarizeRun(events);
-        if (summary) {
+        // ── Automation requests go through the production agent ───
+        // Step 1 only: plan + preview + cost + questions. Nothing is built or
+        // switched on from chat; building needs an explicit confirm via
+        // POST /api/agent/drafts/:id/confirm. The planner is the single
+        // planning entry point and every plan passes the catalogue gate.
+        if (await looksLikeAutomationRequest(sessionId, latestUserText)) {
+          let text: string;
+          try {
+            const preview = await getAgentService().preview({ userId: user.id, prompt: latestUserText });
+            writer.write({ type: "data-agent-draft", data: preview });
+            text = previewToChatText(preview);
+          } catch (error) {
+            text = toUserResponse(error).body.error;
+          }
           const textId = crypto.randomUUID();
           writer.write({ type: "text-start", id: textId });
-          for (const delta of splitStreamText(summary)) {
+          for (const delta of splitStreamText(text)) {
             writer.write({ type: "text-delta", id: textId, delta });
           }
           writer.write({ type: "text-end", id: textId });

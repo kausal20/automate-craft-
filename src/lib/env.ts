@@ -23,6 +23,12 @@ export const env = {
   /** Reserved for Phase 2 — Google Gemini provider. */
   googleApiKey: process.env.GOOGLE_API_KEY,
   googleModel: process.env.GOOGLE_MODEL || "gemini-1.5-pro",
+  /** Planner brain (server-side only — never NEXT_PUBLIC). */
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  /** Exact Gemini model id for planning. No default on purpose: confirm the id in Google AI Studio. */
+  geminiPlannerModel: process.env.GEMINI_PLANNER_MODEL,
+  /** Small wording tasks. */
+  geminiLightModel: process.env.GEMINI_LIGHT_MODEL || "gemini-3.1-flash-lite",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
   supabasePublishableKey:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||

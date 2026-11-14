@@ -1,37 +1,25 @@
 /**
  * POST /api/generate-automation
  *
- * Generates a workflow IR from a user prompt. Does NOT persist anything
- * to the database — persistence is deferred to /api/save-automation
- * after the user reviews/edits the generated output.
+ * Now a thin entry into the production agent: the single planner (Gemini →
+ * deterministic fallback, catalogue-gated) produces a PREVIEW. Nothing is
+ * built, charged or deployed here — building is step 2:
+ * POST /api/agent/drafts/:id/confirm.
  *
- * Response shape (Phase 1):
- *   {
- *     workflow:         AutomationWorkflow,    // legacy projection (frontend reads this)
- *     ir:               WorkflowIR,            // canonical IR (new shape)
- *     fieldDefinitions: AutomationSetupField[],// derived from legacy projection
- *     source:           VersionSource,         // "openai" | "fallback" | ...
- *     tier:             "standard" | "ultra",
- *     cost:             number,                // credits charged for generation
- *     planTier:         "starter" | "plus" | "pro",
- *     warnings:         WorkflowWarning[],     // non-fatal validation warnings
- *     metadata:         Record<string, unknown>
- *   }
+ * Response:
+ *   { agent: PreviewResponse }                       // always
+ *   + legacy fields { workflow, ir, fieldDefinitions } // only when the plan has no open questions,
+ *                                                      // so the existing setup screen keeps working
+ * Rejected plans return 422 with a plain-language { error }.
  */
 
 import { z } from "zod";
-import { generateWorkflow } from "@/lib/ai";
-import { handleRouteError } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { deductCredits, getUserCredits } from "@/lib/credit-store";
-import { createLogger } from "@/lib/logger";
-import {
-  calculateGenerationCost,
-  isWorkflowError,
-  projectWorkflowToLegacy,
-  type PlanTier,
-} from "@/lib/workflow";
 import { getWorkflowFieldDefinitions as legacyFieldDefs } from "@/lib/automation";
+import { createLogger } from "@/lib/logger";
+import { projectWorkflowToLegacy } from "@/lib/workflow";
+import { existingBuildPipeline, getAgentService, brainPlanToWorkflowPlan } from "@/lib/agent/production";
+import { AgentUserError, toUserResponse } from "@/lib/agent/production/errors";
 
 const log = createLogger("api/generate-automation");
 
@@ -42,80 +30,44 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    log.info("Request received.");
-
-    /* ── Auth ────────────────────────────────────────────── */
     const user = await getCurrentUser();
-    if (!user) {
-      return handleRouteError(
-        new Error("Authentication required."),
-        "Authentication required.",
-        401,
-      );
-    }
+    if (!user) throw new AgentUserError("unauthorized", 401, "no session");
 
-    /* ── Parse body ─────────────────────────────────────── */
     const body = await request.json().catch(() => null);
-    const { prompt, ultraThinking } = requestSchema.parse(body);
+    const parsed = requestSchema.safeParse(body);
+    if (!parsed.success) throw new AgentUserError("bad_request", 400, "invalid body");
 
-    /* ── Plan + credits ─────────────────────────────────── */
-    const credits = await getUserCredits(user.id);
-    const hasSubscription = credits.hasSubscription;
-    const planTier: PlanTier = hasSubscription ? "plus" : "starter";
+    const service = getAgentService();
+    const preview = await service.preview({ userId: user.id, prompt: parsed.data.prompt });
 
-    const tier = ultraThinking ? "ultra" : "standard";
-    const cost = calculateGenerationCost(tier);
-
-    const modeLabel = ultraThinking
-      ? hasSubscription
-        ? "Ultra Thinking (Plus)"
-        : "Ultra Thinking (Starter)"
-      : "Standard Generation";
-
-    log.info("Deducting credits.", { cost, mode: modeLabel });
-    const deducted = await deductCredits(user.id, cost, modeLabel);
-    if (!deducted) {
-      return handleRouteError(
-        new Error("Not enough credits."),
-        "Not enough credits.",
-        402,
-      );
+    if (preview.status === "rejected") {
+      return Response.json({ error: preview.reason, agent: preview }, { status: 422 });
     }
 
-    /* ── Generate via orchestrator ──────────────────────── */
-    const outcome = await generateWorkflow({
-      prompt,
-      ultraThinking,
-      hasSubscription,
-      plan: planTier,
-    });
+    // Legacy projection for the existing setup screen — only for fully answered plans.
+    if (preview.status !== "needs_input" && preview.draftId) {
+      const draft = await service.getDraft(user.id, preview.draftId);
+      if (draft.plan) {
+        const wp = brainPlanToWorkflowPlan(draft.plan, { sessionId: draft.id, appsRequired: draft.appsRequired, now: Date.now() });
+        const ir = existingBuildPipeline.generate(wp);
+        const workflow = projectWorkflowToLegacy(ir.core);
+        return Response.json({
+          agent: preview,
+          workflow,
+          ir: ir.core,
+          fieldDefinitions: legacyFieldDefs(workflow),
+          source: "agent",
+          cost: preview.costEstimate,
+          warnings: [],
+          metadata: { draftId: draft.id },
+        });
+      }
+    }
 
-    /* ── Project IR → legacy + derive field definitions ── */
-    const legacyWorkflow = projectWorkflowToLegacy(outcome.workflow);
-    const fieldDefinitions = legacyFieldDefs(legacyWorkflow);
-
-    log.info("Workflow generated successfully.", {
-      source: outcome.source,
-      stepCount: outcome.workflow.steps.length,
-      warnings: outcome.warnings.length,
-    });
-
-    return Response.json({
-      workflow: legacyWorkflow,
-      ir: outcome.workflow,
-      fieldDefinitions,
-      source: outcome.source,
-      tier: outcome.tier,
-      cost,
-      planTier,
-      warnings: outcome.warnings,
-      metadata: outcome.metadata,
-    });
+    return Response.json({ agent: preview });
   } catch (error) {
-    log.error("Request failed.", error);
-    if (isWorkflowError(error)) {
-      return Response.json(error.toApiPayload(), { status: error.httpStatus });
-    }
-    return handleRouteError(error, "Could not generate automation.");
+    log.error("Request failed.", { name: error instanceof Error ? error.name : "unknown" });
+    const { status, body } = toUserResponse(error);
+    return Response.json(body, { status });
   }
 }
