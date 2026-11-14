@@ -14,6 +14,7 @@ import { workflowGenerator } from "../generation/index.ts";
 import { workflowValidator } from "../validation/index.ts";
 import { MemoryActivityLog, MemoryAutomationRepo, MemoryCreditLedger, MemoryDraftRepo } from "./memory.ts";
 import { AgentService, type BuildPipeline } from "./service.ts";
+import { runTestCopy, type N8nTestClient } from "./test-copy.ts";
 import type {
   ConnectionDirectory,
   ConnectionSelection,
@@ -78,15 +79,61 @@ export class FakeN8n implements N8nGateway {
     const w = this.workflows.get(id);
     return w ? { id, active: w.active } : null;
   }
-  async testRun(id: string, payload: Record<string, unknown>): Promise<TestRunResult> {
-    this.calls.push(`test:${id}`);
-    this.lastPayload = payload;
-    const nodes = this.workflows.get(id)!.workflow.nodes.map((n) => n.name);
-    const steps = nodes.map((node) =>
-      node === this.failNode ? { node, ok: false, error: `NodeApiError: 401 Unauthorized at ${node} (stack: at x.js:1)` } : { node, ok: true },
-    );
-    return { executionId: `exec_${id}`, finished: true, ok: steps.every((s) => s.ok), steps };
+  /** Uses the REAL test-copy orchestration against an in-memory copy store. */
+  async runTestCopy(input: { userId: string; automationId: string; workflow: N8nWorkflow; payload: Record<string, unknown> }): Promise<TestRunResult> {
+    this.calls.push("test-copy");
+    this.lastTestWorkflow = input.workflow;
+    this.lastPayload = input.payload;
+    return runTestCopy(this.copyClient, { ...input, nonce: `n${++this.copySeq}`, pollIntervalMs: 1, timeoutMs: 50 });
   }
+  /** Test copies currently alive in "n8n" (must always end empty). */
+  copies = new Map<string, { workflow: N8nWorkflow; active: boolean; tags: string[]; executed: boolean }>();
+  /** Simulate a test execution that never finishes. */
+  hang = false;
+  lastTestWorkflow: N8nWorkflow | null = null;
+  private copySeq = 0;
+  private clock = 0;
+  readonly copyClient: N8nTestClient = {
+    create: async (workflow) => {
+      this.calls.push("copy-create");
+      const id = `copy_${this.copySeq}`;
+      this.copies.set(id, { workflow, active: false, tags: [], executed: false });
+      return { id };
+    },
+    tag: async (id, tags) => {
+      this.copies.get(id)!.tags = tags;
+    },
+    activate: async (id) => {
+      this.calls.push("copy-activate");
+      this.copies.get(id)!.active = true;
+    },
+    deactivate: async (id) => {
+      this.calls.push("copy-deactivate");
+      const c = this.copies.get(id);
+      if (c) c.active = false;
+    },
+    remove: async (id) => {
+      this.calls.push("copy-delete");
+      this.copies.delete(id);
+    },
+    postWebhook: async (path) => {
+      this.calls.push(`copy-webhook:${path}`);
+      for (const c of this.copies.values()) if (c.active && JSON.stringify(c.workflow).includes(path)) c.executed = true;
+    },
+    latestExecution: async (id) => {
+      const c = this.copies.get(id);
+      if (!c || !c.executed) return null;
+      const runData = Object.fromEntries(
+        c.workflow.nodes.map((n) => [n.name, [n.name === this.failNode ? { error: { message: `NodeApiError: 401 Unauthorized at ${n.name} (stack: at x.js:1)` } } : {}]]),
+      );
+      if (this.hang) return { id: `exec_${id}`, finished: false, status: "running", runData: {} };
+      return { id: `exec_${id}`, finished: true, status: this.failNode ? "error" : "success", runData };
+    },
+    sleep: async () => {
+      this.clock += 10;
+    },
+    now: () => this.clock,
+  };
   lastPayload: Record<string, unknown> | null = null;
 }
 
@@ -220,7 +267,7 @@ export function noAuthPlan(): BrainPlan {
   };
 }
 
-export const ANSWERS = { "sheets.sheet": "Leads 2026", "email.to": "owner@example.com" };
+export const ANSWERS = { "sheets.sheet": "Leads 2026", "email.to": "owner@example.com", "test.email.to": "me-test@shop.in" };
 
 /** Words that must never reach an owner. */
-export const LEAK = /(n8n|node|stack|\.js|error code|nodeapierror|401|500|exception|save_lead|email_owner|undefined|null)/i;
+export const LEAK = /(n8n|node|stack|\.js|error code|nodeapierror|401|500|exception|save_lead|email_owner|undefined|null|webhook)/i;

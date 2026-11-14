@@ -14,11 +14,12 @@ import type { CredentialAttachmentMap } from "@/lib/adapters/n8n/credentials/map
 import { listConnectionsForUser } from "@/lib/connections";
 import { listCredentialsForUser } from "@/lib/credentials";
 import { getUserCredits } from "@/lib/credit-store";
-import { hasN8nConfigured } from "@/lib/env";
+import { env, hasN8nConfigured } from "@/lib/env";
 import { refundRunCredits, reserveRunCredits } from "@/lib/execution/credits/reserver";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { isSupportedIntegration } from "@/lib/workflow";
 import { logTechnical } from "./errors";
+import { runTestCopy, type ExecutionSnapshot, type N8nTestClient } from "./test-copy";
 import type {
   ActivityEntry,
   ActivityLog,
@@ -287,10 +288,63 @@ export const liveCredentialBinder: CredentialBinder = {
 
 /* ── n8n ──────────────────────────────────────────────────────────── */
 
-const POLL_INTERVAL_MS = 1500;
-const POLL_ATTEMPTS = 40;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * Public webhook base derived from N8N_API_URL (".../api/v1" -> origin + path prefix).
+ * Webhooks live at <base>/webhook/<path>.
+ */
+export function n8nWebhookBase(apiUrl: string): string {
+  return apiUrl.replace(/\/+$/, "").replace(/\/api\/v\d+$/, "");
+}
+
+/** Live low-level client for the test-copy gate: n8n REST + a POST to the copy's webhook. */
+export const liveN8nTestClient: N8nTestClient = {
+  async create(workflow) {
+    const r = await n8nClient.createWorkflow({ ...workflow, active: undefined });
+    return { id: r.id };
+  },
+  async tag(workflowId, tags) {
+    await liveN8nGateway.tag(workflowId, tags);
+  },
+  async activate(workflowId) {
+    await n8nClient.activateWorkflow(workflowId);
+  },
+  async deactivate(workflowId) {
+    await n8nClient.deactivateWorkflow(workflowId);
+  },
+  async remove(workflowId) {
+    await n8nClient.deleteWorkflow(workflowId);
+  },
+  async postWebhook(path, payload, timeoutMs) {
+    const base = n8nWebhookBase(env.n8nApiUrl ?? "");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      await fetch(`${base}/webhook/${encodeURIComponent(path)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+  async latestExecution(workflowId): Promise<ExecutionSnapshot | null> {
+    const res = await n8nClient.listExecutions({ workflowId, limit: 1, includeData: true });
+    const exec = res.data?.[0];
+    if (!exec) return null;
+    return {
+      id: String(exec.id),
+      finished: Boolean(exec.finished),
+      status: exec.status,
+      runData: (exec.data?.resultData?.runData ?? {}) as ExecutionSnapshot["runData"],
+    };
+  },
+  sleep,
+  now: () => Date.now(),
+};
 
 export const liveN8nGateway: N8nGateway = {
   isConfigured() {
@@ -342,23 +396,7 @@ export const liveN8nGateway: N8nGateway = {
       throw error;
     }
   },
-  async testRun(workflowId, payload): Promise<TestRunResult> {
-    const started = await n8nClient.triggerExecution(workflowId, payload);
-    const executionId = started?.executionId ?? null;
-    if (!executionId) return { executionId: null, finished: false, ok: false, steps: [], detail: "no execution id returned" };
-
-    for (let i = 0; i < POLL_ATTEMPTS; i++) {
-      const exec = await n8nClient.getExecution(executionId);
-      if (exec.finished || exec.status === "success" || exec.status === "error" || exec.status === "canceled") {
-        const runData = exec.data?.resultData?.runData ?? {};
-        const steps = Object.entries(runData).map(([node, runs]) => {
-          const err = runs.find((r) => r.error)?.error?.message;
-          return err ? { node, ok: false, error: err } : { node, ok: true };
-        });
-        return { executionId, finished: true, ok: exec.status === "success" && steps.every((s) => s.ok), steps, detail: exec.status };
-      }
-      await sleep(POLL_INTERVAL_MS);
-    }
-    return { executionId, finished: false, ok: false, steps: [], detail: "test run timed out" };
+  async runTestCopy(input): Promise<TestRunResult> {
+    return runTestCopy(liveN8nTestClient, { ...input, nonce: crypto.randomUUID().slice(0, 8) });
   },
 };

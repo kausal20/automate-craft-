@@ -182,6 +182,16 @@ export const n8nClient = {
     );
   },
 
+  /** GET /executions for one workflow, newest first, with per-node run data. */
+  listExecutions(query: { workflowId: string; limit?: number; includeData?: boolean }, signal?: AbortSignal) {
+    const params = new URLSearchParams({
+      workflowId: query.workflowId,
+      limit: String(query.limit ?? 5),
+      includeData: String(query.includeData ?? true),
+    });
+    return request<undefined, { data: N8nExecutionStatus[] }>("GET", `/executions?${params.toString()}`, undefined, signal);
+  },
+
   listTags(signal?: AbortSignal) {
     return request<undefined, { data: Array<{ id: string; name: string }> }>("GET", "/tags?limit=250", undefined, signal);
   },

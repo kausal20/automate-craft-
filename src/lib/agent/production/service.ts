@@ -24,6 +24,8 @@ import type { ValidationReport } from "../models/validation";
 import { applyAnswers, brainPlanToWorkflowPlan } from "./converter";
 import { AgentUserError, logTechnical, normalizeLang, userMessage } from "./errors";
 import { checkConnections } from "./gate";
+import { applyTestRecipients, moneySteps, testRecipientFields, unansweredTestRecipients } from "./safety";
+import { cornerTags } from "./test-copy";
 import type {
   ActivityKind,
   ActivityLog,
@@ -189,7 +191,26 @@ export class AgentService {
     }
 
     const plan = result.plan;
-    const questions = plan.missingFields.map((m) => ({ key: m.key, question: m.question, stepId: m.stepId, param: m.param }));
+
+    // A test run sends for real; a step that takes money cannot be tested safely.
+    if (moneySteps(plan).length > 0) {
+      const reason = userMessage("unsafe_test", plan.language);
+      await this.d.drafts.create({
+        id, userId: input.userId, status: "rejected", language: plan.language, prompt, plan: null, appsRequired: [],
+        questions: [], answers: {}, selections: [], costEstimate: 0, rejectionReason: reason, unsupportedRequests: [],
+        automationId: null, buildAttempt: 0, createdAt: at, updatedAt: at,
+      });
+      return {
+        draftId: id, status: "rejected", language: plan.language, preview: "", steps: [], costEstimate: 0,
+        questions: [], connections: [], unsupportedRequests: [], reason,
+      };
+    }
+
+    const questions = [
+      ...plan.missingFields.map((m) => ({ key: m.key, question: m.question, stepId: m.stepId, param: m.param })),
+      // Owner-only destinations for the test run (asked up front, never guessed).
+      ...testRecipientFields(plan).map((f) => ({ key: f.key, question: f.question, stepId: null, param: f.param })),
+    ];
     const accounts = await this.d.directory.listAccounts(input.userId);
     const gate = checkConnections(result.appsRequired, accounts, []);
     const status = questions.length > 0 ? "needs_input" : gate.ok ? "ready" : "needs_connection";
@@ -243,8 +264,12 @@ export class AgentService {
 
     // Never guess: every question needs an explicit, valid answer.
     const filled = applyAnswers(draft.plan, answers);
-    if (filled.unanswered.length > 0) {
-      const questions = filled.unanswered.map((m) => ({ key: m.key, question: m.question, stepId: m.stepId, param: m.param }));
+    const testOpen = unansweredTestRecipients(draft.plan, answers);
+    if (filled.unanswered.length > 0 || testOpen.length > 0) {
+      const questions = [
+        ...filled.unanswered.map((m) => ({ key: m.key, question: m.question, stepId: m.stepId, param: m.param })),
+        ...testOpen.map((f) => ({ key: f.key, question: f.question, stepId: null, param: f.param })),
+      ];
       await this.d.drafts.update(input.userId, draft.id, { status: "needs_input", answers, questions });
       return {
         status: "needs_input", draftId: draft.id, message: userMessage("needs_input", lang),
@@ -361,20 +386,17 @@ export class AgentService {
       if (!bound.ok) {
         return fail("connection_failed", { app: appLabel(bound.integration) }, workflowId, `credential bind failed for ${bound.integration}`, "build_blocked");
       }
-
-      // 5. Compile and upload INACTIVE, in the user's corner. Retry finds the existing workflow.
       const compiled = this.d.pipeline.compile(ir, bound.attachments);
-      const workflow: N8nWorkflow = { ...compiled, name: cornerName(userId, automationId, plan.name), active: false };
-      if (!workflowId) workflowId = (await this.d.n8n.find({ userId, automationId }))?.id ?? null;
-      const ref = workflowId ? await this.d.n8n.update(workflowId, workflow) : await this.d.n8n.create(workflow);
-      workflowId = ref.id;
-      if (ref.active) await this.d.n8n.deactivate(workflowId);
-      await this.d.n8n.tag(workflowId, [`ac-user-${userId}`, `ac-automation-${automationId}`]);
-      await this.d.automations.update(userId, automationId, { n8nWorkflowId: workflowId });
-      await this.log(userId, automationId, "built", userMessage("build_in_progress", lang));
 
-      // 6. Real test execution. Every step must succeed.
-      const run: TestRunResult = await this.d.n8n.testRun(workflowId, samplePayload(plan));
+      // 5. Test run on a disposable COPY whose every outbound step sends only to the
+      //    owner's own test destinations. The real workflow does not exist yet (or,
+      //    on a retry, stays switched off) until this passes.
+      const testPlan = applyTestRecipients(plan, draft.answers);
+      const testIr = this.d.pipeline.generate(
+        brainPlanToWorkflowPlan(testPlan, { sessionId: draft.id, appsRequired: draft.appsRequired, now: this.now(), version: draft.buildAttempt }),
+      );
+      const testWorkflow = this.d.pipeline.compile(testIr, bound.attachments);
+      const run: TestRunResult = await this.d.n8n.runTestCopy({ userId, automationId, workflow: testWorkflow, payload: samplePayload(plan) });
       await this.d.automations.update(userId, automationId, { testExecutionId: run.executionId });
       const failedStep = run.steps.find((s) => !s.ok);
       if (!run.finished || !run.ok || failedStep) {
@@ -383,11 +405,21 @@ export class AgentService {
           app ? "test_failed_app" : "test_failed",
           app ? { app: appLabel(app) } : {},
           workflowId,
-          `test run ${run.executionId ?? "none"} failed at ${failedStep?.node ?? "unknown"}: ${failedStep?.error ?? run.detail ?? ""}`,
+          `test copy ${run.executionId ?? "none"} failed at ${failedStep?.node ?? "unknown"}: ${failedStep?.error ?? run.detail ?? ""}`,
           "test_failed",
         );
       }
-      await this.log(userId, automationId, "test_passed", userMessage("active", lang));
+      await this.log(userId, automationId, "test_passed", userMessage("test_passed", lang));
+
+      // 6. Only now: upload the REAL workflow inactive, in the user's corner. Retry finds the existing one.
+      const workflow: N8nWorkflow = { ...compiled, name: cornerName(userId, automationId, plan.name), active: false };
+      if (!workflowId) workflowId = (await this.d.n8n.find({ userId, automationId }))?.id ?? null;
+      const ref = workflowId ? await this.d.n8n.update(workflowId, workflow) : await this.d.n8n.create(workflow);
+      workflowId = ref.id;
+      if (ref.active) await this.d.n8n.deactivate(workflowId);
+      await this.d.n8n.tag(workflowId, cornerTags(userId, automationId));
+      await this.d.automations.update(userId, automationId, { n8nWorkflowId: workflowId });
+      await this.log(userId, automationId, "built", userMessage("build_in_progress", lang));
 
       // 7. Only a fully passing test run may switch it on.
       const on = await this.d.n8n.activate(workflowId);

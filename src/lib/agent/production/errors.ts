@@ -29,7 +29,9 @@ export type UserMessageKey =
   | "paused"
   | "resumed"
   | "connection_lost"
-  | "cannot_resume";
+  | "cannot_resume"
+  | "unsafe_test"
+  | "test_passed";
 
 type Lang = "en" | "hi" | "hinglish";
 
@@ -123,6 +125,16 @@ const MESSAGES: Record<UserMessageKey, Record<Lang, string>> = {
     en: "Your {app} connection stopped working, so I paused this automation. Reconnect {app} and switch it back on.",
     hinglish: "Aapka {app} connection band ho gaya, isliye automation rok diya. {app} dobara connect karke chalu karein.",
     hi: "आपका {app} कनेक्शन बंद हो गया, इसलिए ऑटोमेशन रोक दिया। {app} फिर से जोड़कर चालू करें।",
+  },
+  test_passed: {
+    en: "Your automation passed its test run.",
+    hinglish: "Aapka automation test run mein pass ho gaya.",
+    hi: "आपका ऑटोमेशन टेस्ट में पास हो गया।",
+  },
+  unsafe_test: {
+    en: "This automation takes a real payment, and I can't test that safely, so I won't switch it on. Nothing was charged.",
+    hinglish: "Is automation mein asli payment hota hai, jise main safely test nahi kar sakta, isliye chalu nahi karunga. Koi charge nahi laga.",
+    hi: "इस ऑटोमेशन में असली भुगतान होता है, जिसे मैं सुरक्षित रूप से टेस्ट नहीं कर सकता, इसलिए चालू नहीं करूँगा। कोई चार्ज नहीं लगा।",
   },
   cannot_resume: {
     en: "This automation can't be switched on yet. It needs to pass its test first.",

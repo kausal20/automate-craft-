@@ -204,7 +204,17 @@ export interface N8nGateway {
   activate(workflowId: string): Promise<N8nRef>;
   deactivate(workflowId: string): Promise<N8nRef>;
   get(workflowId: string): Promise<N8nRef | null>;
-  testRun(workflowId: string, payload: Record<string, unknown>): Promise<TestRunResult>;
+  /**
+   * Test-run gate on a disposable copy: build a copy with a unique test Webhook
+   * trigger, activate it, POST the payload, poll its executions, and ALWAYS
+   * deactivate + delete the copy. The real workflow is not involved.
+   */
+  runTestCopy(input: {
+    userId: string;
+    automationId: string;
+    workflow: N8nWorkflow;
+    payload: Record<string, unknown>;
+  }): Promise<TestRunResult>;
 }
 
 /* ── Service results (what routes return) ─────────────────────────── */

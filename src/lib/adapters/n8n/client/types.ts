@@ -17,6 +17,8 @@ export type N8nNode = {
   credentials?: Record<string, { id: string; name: string }>;
   /** Disable a node (used for pause). */
   disabled?: boolean;
+  /** Stable webhook id for Webhook trigger nodes. */
+  webhookId?: string;
 
   /* ── Resilience policy (n8n per-node fields) ─────────────────
    * Written by the Deployment Agent's compiler so the IR's retry /

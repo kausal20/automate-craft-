@@ -60,7 +60,8 @@ test("FLOW: broken step -> stays inactive, plain message, refund", async () => {
   assert.match(result.message, /switched off/);
   assert.doesNotMatch(result.message, LEAK);
   assert.equal(await h.credits.balance(USER_A), balance);
-  assert.equal([...h.n8n.workflows.values()][0].active, false);
+  assert.equal(h.n8n.workflows.size, 0, "real workflow never created");
+  assert.equal(h.n8n.copies.size, 0, "test copy cleaned up");
 });
 
 test("FLOW: unknown-app prompt is rejected and nothing is drafted for building", async () => {

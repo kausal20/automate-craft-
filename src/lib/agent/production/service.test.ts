@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { ANSWERS, LEAK, USER_A, USER_B, harness, leadToSheetPlan, noAuthPlan } from "./fakes.test.ts";
 import { AgentUserError, redact, toUserResponse, userMessage } from "./errors.ts";
 import { checkConnections } from "./gate.ts";
+import { cornerTags } from "./test-copy.ts";
 
 async function readyLeadDraft(h: ReturnType<typeof harness>, user = USER_A) {
   h.directory.add(user, "sheets", "ops@shop.in");
@@ -22,7 +23,7 @@ test("preview: missing fields -> needs_input with one plain question each, cost 
   const h = harness({ plan: leadToSheetPlan() });
   const p = await readyLeadDraft(h);
   assert.equal(p.status, "needs_input");
-  assert.deepEqual(p.questions.map((q) => q.key), ["sheets.sheet", "email.to"]);
+  assert.deepEqual(p.questions.map((q) => q.key), ["sheets.sheet", "email.to", "test.email.to"]);
   assert.ok(p.costEstimate > 0);
   assert.match(p.preview, /^I will make this:\n1\. /);
   assert.equal(h.n8n.calls.length, 0);
@@ -30,15 +31,14 @@ test("preview: missing fields -> needs_input with one plain question each, cost 
 });
 
 test("preview: no questions but an app not connected -> needs_connection listing the app", async () => {
+  // Sheets only (no outbound step, so no owner test question): the only gap is the connection.
   const plan = leadToSheetPlan();
-  plan.steps[0].params.sheet = { source: "literal", value: "Leads" };
-  plan.steps[1].params.to = { source: "literal", value: "owner@example.com" };
+  plan.steps = [{ ...plan.steps[0], next: [], params: { ...plan.steps[0].params, sheet: { source: "literal", value: "Leads" } } }];
   plan.missingFields = [];
   const h = harness({ plan });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
-  const p = await h.service.preview({ userId: USER_A, prompt: "save leads and email me" });
+  const p = await h.service.preview({ userId: USER_A, prompt: "save leads to my sheet" });
   assert.equal(p.status, "needs_connection");
-  assert.deepEqual(p.connections.map((c) => [c.integration, c.state]), [["email", "missing"]]);
+  assert.deepEqual(p.connections.map((c) => [c.integration, c.state]), [["sheets", "missing"]]);
 });
 
 test("preview: everything known and connected -> ready", async () => {
@@ -77,7 +77,7 @@ test("confirm never guesses: a missing or invalid answer returns the question ag
   const p = await readyLeadDraft(h);
   const c1 = await h.service.confirm({ userId: USER_A, draftId: p.draftId!, confirm: true, answers: { "sheets.sheet": "Leads" } });
   assert.equal(c1.status, "needs_input");
-  if (c1.status === "needs_input") assert.deepEqual(c1.questions.map((q) => q.key), ["email.to"]);
+  if (c1.status === "needs_input") assert.deepEqual(c1.questions.map((q) => q.key), ["email.to", "test.email.to"]);
   const c2 = await h.service.confirm({ userId: USER_A, draftId: p.draftId!, confirm: true, answers: { "email.to": "not-an-email" } });
   assert.equal(c2.status, "needs_input");
   assert.equal(h.n8n.calls.length, 0);
@@ -92,21 +92,22 @@ test("confirm happy path: reserve -> build INACTIVE in user's corner -> test -> 
   assert.equal(c.status, "active", JSON.stringify(c));
   if (c.status !== "active") return;
 
-  // Created inactive, tested, THEN activated.
-  const createIdx = h.n8n.calls.indexOf("create");
-  const testIdx = h.n8n.calls.findIndex((x) => x.startsWith("test:"));
-  const actIdx = h.n8n.calls.findIndex((x) => x.startsWith("activate:"));
-  assert.ok(createIdx >= 0 && createIdx < testIdx && testIdx < actIdx);
+  // Test copy created, run, deleted — THEN the real workflow is created inactive and activated.
+  const at = (name: string) => h.n8n.calls.findIndex((x) => x.startsWith(name));
+  assert.ok(at("copy-create") >= 0);
+  assert.ok(at("copy-create") < at("copy-delete") && at("copy-delete") < at("create") && at("create") < at("activate:"));
+  assert.equal(h.n8n.copies.size, 0, "test copy is always deleted");
 
   const [wfId, wf] = [...h.n8n.workflows.entries()][0];
   assert.ok(wf.workflow.name.startsWith(`ac:${USER_A}:${c.automationId} |`));
-  assert.deepEqual(wf.tags, [`ac-user-${USER_A}`, `ac-automation-${c.automationId}`]);
+  assert.deepEqual(wf.tags, cornerTags(USER_A, c.automationId));
+  assert.ok(wf.tags.every((t) => t.length <= 24), "n8n tag names are at most 24 characters");
   assert.equal(wf.active, true);
 
   const auto = await h.automations.get(USER_A, c.automationId);
   assert.equal(auto!.status, "active");
   assert.equal(auto!.n8nWorkflowId, wfId);
-  assert.equal(auto!.testExecutionId, `exec_${wfId}`);
+  assert.match(auto!.testExecutionId!, /^exec_copy_/);
 
   // Credits: one reserve + one settle, both referencing the automation id.
   assert.deepEqual(h.credits.entries.map((e) => e.type), ["reserve", "settle"]);
@@ -119,7 +120,7 @@ test("confirm happy path: reserve -> build INACTIVE in user's corner -> test -> 
 
   // Plain activity trail.
   const acts = await h.service.activity(USER_A, c.automationId);
-  assert.deepEqual(acts.map((a) => a.kind), ["built", "test_passed", "turned_on"]);
+  assert.deepEqual(acts.map((a) => a.kind), ["test_passed", "built", "turned_on"]);
   for (const a of acts) assert.doesNotMatch(a.message, LEAK);
 });
 
@@ -247,14 +248,16 @@ test("broken step: stays OFF, failed_test, refund, plain message naming the app 
   assert.match(c.message, /Google Sheets/);
   assert.doesNotMatch(c.message, LEAK);
   assert.ok(!h.n8n.calls.some((x) => x.startsWith("activate:")), "never activated");
-  assert.equal([...h.n8n.workflows.values()][0].active, false);
+  assert.equal(h.n8n.workflows.size, 0, "the real workflow is never even created");
+  assert.equal(h.n8n.copies.size, 0, "test copy deleted after failure");
+  assert.ok(h.n8n.calls.includes("copy-deactivate") && h.n8n.calls.includes("copy-delete"));
   const auto = await h.automations.get(USER_A, c.automationId);
   assert.equal(auto!.status, "failed_test");
   const acts = await h.service.activity(USER_A, c.automationId);
   assert.equal(acts.at(-1)!.kind, "test_failed");
 });
 
-test("retry after a failed test finds the existing workflow instead of creating a duplicate", async () => {
+test("retry after a failed test builds exactly one real workflow, and a second build reuses it", async () => {
   const h = harness({ plan: leadToSheetPlan() });
   const p = await readyLeadDraft(h);
   h.n8n.failNode = "save_lead";
@@ -264,8 +267,9 @@ test("retry after a failed test finds the existing workflow instead of creating 
   const c2 = await h.service.confirm({ userId: USER_A, draftId: p.draftId!, confirm: true });
   assert.equal(c2.status, "active");
   assert.equal(h.n8n.calls.filter((x) => x === "create").length, 1);
-  assert.equal(h.n8n.calls.filter((x) => x === "update").length, 1);
+  assert.equal(h.n8n.calls.filter((x) => x === "update").length, 0);
   assert.equal(h.n8n.workflows.size, 1);
+  assert.equal(h.n8n.copies.size, 0);
   // Two attempts: first reserved+refunded, second reserved+settled.
   assert.deepEqual(h.credits.entries.map((e) => e.type), ["reserve", "refund", "reserve", "settle"]);
 });
@@ -303,7 +307,7 @@ test("pause / resume / status sync, each with a plain activity entry", async () 
   assert.equal((await h.service.status(USER_A, id)).status, "paused");
 
   const kinds = (await h.service.activity(USER_A, id)).map((a) => a.kind);
-  assert.deepEqual(kinds, ["built", "test_passed", "turned_on", "paused", "resumed", "paused"]);
+  assert.deepEqual(kinds, ["test_passed", "built", "turned_on", "paused", "resumed", "paused"]);
 });
 
 test("cannot switch on something that never passed its test", async () => {
