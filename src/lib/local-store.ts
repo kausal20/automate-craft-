@@ -1,3 +1,4 @@
+import { PLAN_IDS, planGrant } from "@/lib/plans";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { UIMessage } from "ai";
@@ -34,6 +35,19 @@ export type UsageLogRecord = {
   action: string;
   creditsUsed: number;
   status: "Success" | "Failed";
+  createdAt: string;
+};
+
+/** Local mirror of credit_transactions (same rules as the Supabase ledger). */
+export type LocalCreditTransactionRecord = {
+  id: string;
+  userId: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  description: string;
+  referenceId: string | null;
+  metadata: Record<string, unknown>;
   createdAt: string;
 };
 
@@ -183,6 +197,7 @@ type LocalDatabase = {
   connections: IntegrationConnectionRecord[];
   consultationRequests: ConsultationRequestRecord[];
   usageLogs: UsageLogRecord[];
+  creditTransactions: LocalCreditTransactionRecord[];
   plans: PlanRecord[];
   subscriptions: UserSubscriptionRecord[];
   workflowRuns: WorkflowRunRecord[];
@@ -220,6 +235,42 @@ function assertWritableRuntime() {
   }
 }
 
+/** Local plan list. Credit amounts come from src/lib/plans.ts; prices are unchanged display strings. */
+const LOCAL_PLAN_PRICES: Record<string, string> = {
+  plan_starter: "₹999",
+  plan_starter_yearly: "₹9990",
+  plan_plus: "₹2000",
+  plan_plus_yearly: "₹20000",
+  plan_pro: "₹3500",
+  plan_pro_yearly: "₹35000",
+};
+const LOCAL_PLAN_FEATURES: Record<string, string[]> = {
+  starter: ["Basic automations", "Email support"],
+  plus: ["WhatsApp + Email + CRM", "Faster execution", "Priority support"],
+  pro: ["Advanced workflows", "Priority execution", "Advanced analytics", "Dedicated support"],
+};
+
+function buildLocalPlans(): PlanRecord[] {
+  const plans: PlanRecord[] = PLAN_IDS.map((id) => {
+    const g = planGrant(id)!;
+    return {
+      id,
+      name: g.name,
+      price: LOCAL_PLAN_PRICES[id],
+      credits: g.credits,
+      features: [`${g.credits} Credits/${g.yearly ? "year" : "month"}`, ...LOCAL_PLAN_FEATURES[g.key]],
+    };
+  });
+  plans.push({
+    id: "plan_enterprise",
+    name: "Enterprise",
+    price: "Let's Talk",
+    credits: 0,
+    features: ["Custom credits", "Unlimited workflows", "Dedicated infrastructure", "Custom integrations", "Account manager"],
+  });
+  return plans;
+}
+
 const emptyDatabase: LocalDatabase = {
   users: [],
   automations: [],
@@ -240,57 +291,8 @@ const emptyDatabase: LocalDatabase = {
   recentChats: [],
   chatMessages: [],
   agentSessions: [],
-  plans: [
-    {
-      id: "plan_starter",
-      name: "Starter",
-      price: "₹999",
-      credits: 500,
-      features: ["500 Credits/month", "Basic automations", "Email support"],
-    },
-    {
-      id: "plan_starter_yearly",
-      name: "Starter (Yearly)",
-      price: "₹9990",
-      credits: 6000,
-      features: ["6000 Credits/year", "Basic automations", "Email support"],
-    },
-    {
-      id: "plan_plus",
-      name: "Plus",
-      price: "₹2000",
-      credits: 1500,
-      features: ["1500 Credits/month", "WhatsApp + Email + CRM", "Faster execution", "Priority support"],
-    },
-    {
-      id: "plan_plus_yearly",
-      name: "Plus (Yearly)",
-      price: "₹20000",
-      credits: 18000,
-      features: ["18000 Credits/year", "WhatsApp + Email + CRM", "Faster execution", "Priority support"],
-    },
-    {
-      id: "plan_pro",
-      name: "Pro",
-      price: "₹3500",
-      credits: 3000,
-      features: ["3000 Credits/month", "Advanced workflows", "Priority execution", "Advanced analytics", "Dedicated support"],
-    },
-    {
-      id: "plan_pro_yearly",
-      name: "Pro (Yearly)",
-      price: "₹35000",
-      credits: 36000,
-      features: ["36000 Credits/year", "Advanced workflows", "Priority execution", "Advanced analytics", "Dedicated support"],
-    },
-    {
-      id: "plan_enterprise",
-      name: "Enterprise",
-      price: "Let's Talk",
-      credits: 0,
-      features: ["Custom credits", "Unlimited workflows", "Dedicated infrastructure", "Custom integrations", "Account manager"],
-    },
-  ],
+  creditTransactions: [],
+  plans: buildLocalPlans(),
   subscriptions: [],
 };
 
@@ -304,7 +306,9 @@ function normalizeLocalDatabase(
     connections: database?.connections ?? [],
     consultationRequests: database?.consultationRequests ?? [],
     usageLogs: database?.usageLogs ?? [],
-    plans: database?.plans && database.plans.length > 0 ? database.plans : emptyDatabase.plans,
+    creditTransactions: database?.creditTransactions ?? [],
+    // Always from the plans config: stale credit numbers in the local file never win.
+    plans: buildLocalPlans(),
     subscriptions: database?.subscriptions ?? [],
     workflowRuns: database?.workflowRuns ?? [],
     stepLogs: database?.stepLogs ?? [],

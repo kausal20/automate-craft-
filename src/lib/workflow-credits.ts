@@ -1,7 +1,5 @@
-import { getUserCredits, deductCredits } from "@/lib/credit-store";
-import { isSupabaseMode } from "@/lib/env";
-import { createSupabaseAdminClient } from "@/lib/supabase";
-import { updateLocalDatabase } from "@/lib/local-store";
+import { getUserCredits } from "@/lib/credit-store";
+import { getCreditService } from "@/lib/credits";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("workflow-credits");
@@ -79,115 +77,26 @@ export async function checkCredits(
 export async function deductWorkflowCredits(input: {
   userId: string;
   cost: number;
-  referenceId: string | null;
+  /** Run id (or another idempotency key). Required: every deduction carries a reference. */
+  referenceId: string;
 }): Promise<CreditDeductionResult> {
   const { userId, cost, referenceId } = input;
-
   log.info("Deducting workflow credits.", { userId, cost, referenceId });
 
-  // --- Guard: skip zero-cost workflows ---
-  if (cost <= 0) {
-    const credits = await getUserCredits(userId);
-    return {
-      success: true,
-      cost: 0,
-      remainingCredits: credits.totalCredits,
-      transactionId: null,
-    };
-  }
-
-  // --- Idempotency check (Supabase only) ---
-  if (isSupabaseMode() && referenceId) {
-    const supabase = createSupabaseAdminClient();
-    const { data: existing } = await supabase
-      .from("credit_transactions")
-      .select("id")
-      .eq("reference_id", referenceId)
-      .eq("type", "usage")
-      .maybeSingle();
-
-    if (existing) {
-      log.info("Deduction already recorded for this run. Skipping.", { referenceId });
-      const credits = await getUserCredits(userId);
-      return {
-        success: true,
-        cost,
-        remainingCredits: credits.totalCredits,
-        transactionId: existing.id as string,
-      };
-    }
-  }
-
-  // --- Deduct using the existing atomic mechanism ---
+  const credits = getCreditService();
   const actionDesc = `Workflow execution (${cost} step${cost === 1 ? "" : "s"})`;
-  const deducted = await deductCredits(userId, cost, actionDesc);
+  // One ledger row (type 'deduct', with this reference) written by the RPC itself.
+  const r = await credits.reserve({ userId, amount: cost, referenceId, description: actionDesc, metadata: { kind: "run-workflow" } });
+  const remainingCredits = await credits.balance(userId);
 
-  if (!deducted) {
-    const credits = await getUserCredits(userId);
+  if (!r.ok) {
     return {
       success: false,
       cost,
-      remainingCredits: credits.totalCredits,
+      remainingCredits,
       transactionId: null,
-      error: "Credit deduction failed. Insufficient balance.",
+      error: r.reason === "insufficient" ? "Credit deduction failed. Insufficient balance." : "Credit deduction failed.",
     };
   }
-
-  // --- Record the transaction with reference_id ---
-  let transactionId: string | null = null;
-
-  if (isSupabaseMode() && referenceId) {
-    try {
-      const supabase = createSupabaseAdminClient();
-      const credits = await getUserCredits(userId);
-
-      const { data: txn } = await supabase
-        .from("credit_transactions")
-        .insert({
-          user_id: userId,
-          type: "usage",
-          amount: -cost,
-          balance_after: credits.totalCredits,
-          description: actionDesc,
-          reference_id: referenceId,
-        })
-        .select("id")
-        .single();
-
-      transactionId = (txn?.id as string) ?? null;
-    } catch (txnError) {
-      log.warn("Could not record credit transaction.", txnError);
-    }
-  } else if (!isSupabaseMode() && referenceId) {
-    // Local mode: store in usageLogs (already handled by deductCredits)
-    // Just capture the reference for the response
-    try {
-      await updateLocalDatabase((database) => {
-        const latestLog = database.usageLogs.find(
-          (entry) => entry.userId === userId && entry.action === actionDesc,
-        );
-        if (latestLog) {
-          transactionId = latestLog.id;
-        }
-      });
-    } catch {
-      // Non-critical
-    }
-  }
-
-  const creditsAfter = await getUserCredits(userId);
-
-  log.info("Credits deducted successfully.", {
-    userId,
-    cost,
-    remaining: creditsAfter.totalCredits,
-    transactionId,
-  });
-
-  return {
-    success: true,
-    cost,
-    remainingCredits: creditsAfter.totalCredits,
-    transactionId,
-  };
+  return { success: true, cost: r.charged, remainingCredits, transactionId: referenceId };
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { buyCredits } from "@/lib/credit-store";
+import { actionReference, getCreditService } from "@/lib/credits";
 
 const PRICE_PER_CREDIT = 1.8;
 const MAX_CUSTOM_PRICE_INR = 100000;
@@ -42,9 +42,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const success = await buyCredits(user.id, creditsToAdd, desc);
+    // Purchases go to the extra purse. Payment handling is unchanged (separate job).
+    const granted = await getCreditService().grant({
+      userId: user.id,
+      amount: creditsToAdd,
+      kind: "purchase",
+      referenceId: actionReference("purchase", request.headers.get("idempotency-key")),
+      description: `Purchased ${desc}`,
+      metadata: { package_id: packageId },
+    });
 
-    if (!success) {
+    if (!granted.ok) {
       return NextResponse.json(
         { error: "Failed to process purchase" },
         { status: 500 }

@@ -25,7 +25,8 @@ import {
   type UIMessage,
 } from "ai";
 import { getCurrentUser } from "@/lib/auth";
-import { deductCredits, getUserCredits } from "@/lib/credit-store";
+import { getCreditService } from "@/lib/credits";
+import { chatChargeFor, chatFreeTestMode } from "@/lib/credits/run-guard";
 import { handleRouteError, jsonError } from "@/lib/api";
 import { env } from "@/lib/env";
 import { createLogger } from "@/lib/logger";
@@ -47,11 +48,9 @@ import {
 
 const log = createLogger("api/chat");
 
-const STANDARD_COST = 5;
-const ULTRA_COST = 10;
 const CHAT_DEBUG = process.env.CHAT_DEBUG === "true" || process.env.NODE_ENV !== "production";
-const CHAT_FREE_TEST_MODE =
-  process.env.CHAT_FREE_TEST_MODE === "true" && process.env.NODE_ENV !== "production";
+// Env only, off by default, never on in production.
+const CHAT_FREE_TEST_MODE = chatFreeTestMode();
 
 function readPositiveIntEnv(name: string, fallback: number) {
   const value = Number.parseInt(process.env[name] ?? "", 10);
@@ -387,17 +386,20 @@ export async function POST(req: Request) {
     // pipeline restore together under one key.
     const sessionId = resolvedChatId ?? `chat:${user.id}`;
 
-    const creditCost = ultraThinking ? ULTRA_COST : STANDARD_COST;
-    await getUserCredits(user.id);
-    const credited = CHAT_FREE_TEST_MODE
-      ? true
-      : await deductCredits(
-          user.id,
-          creditCost,
-          ultraThinking ? "Ultra Chat Generation" : "Chat Generation",
-        );
-    if (!credited) {
-      return handleRouteError(new Error("Not enough credits."), "Not enough credits.", 402);
+    // Decide BEFORE charging: messages the agent handles (preview/draft) are free;
+    // the only charge on that journey is the build at confirm.
+    const isAgentMessage = await looksLikeAutomationRequest(sessionId, latestUserText);
+    const creditCost = chatChargeFor({ isAgentMessage, ultraThinking, freeTestMode: CHAT_FREE_TEST_MODE });
+    if (creditCost > 0) {
+      const charged = await getCreditService().reserve({
+        userId: user.id,
+        amount: creditCost,
+        referenceId: `chat:${requestId}`,
+        description: ultraThinking ? "Ultra Chat Generation" : "Chat Generation",
+      });
+      if (!charged.ok) {
+        return handleRouteError(new Error("Not enough credits."), "Not enough credits.", 402);
+      }
     }
 
     const onFinish = async ({ messages: finishedMessages }: { messages: UIMessage[] }) => {
@@ -418,7 +420,7 @@ export async function POST(req: Request) {
         // switched on from chat; building needs an explicit confirm via
         // POST /api/agent/drafts/:id/confirm. The planner is the single
         // planning entry point and every plan passes the catalogue gate.
-        if (await looksLikeAutomationRequest(sessionId, latestUserText)) {
+        if (isAgentMessage) {
           let text: string;
           try {
             const preview = await getAgentService().preview({ userId: user.id, prompt: latestUserText });

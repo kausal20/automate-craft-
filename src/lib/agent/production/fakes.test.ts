@@ -16,6 +16,7 @@ import { MemoryActivityLog, MemoryAutomationRepo, MemoryCreditLedger, MemoryDraf
 import { AgentService, type BuildPipeline } from "./service.ts";
 import { runTestCopy, type N8nTestClient } from "./test-copy.ts";
 import type {
+  CreditLedger,
   ConnectionDirectory,
   ConnectionSelection,
   CredentialBinder,
@@ -173,7 +174,7 @@ export function geminiReturning(plan: unknown): typeof fetch {
     })) as typeof fetch;
 }
 
-export function harness(opts: { plan?: BrainPlan | null; credits?: Record<string, number>; catalogue?: AppCatalogue } = {}) {
+export function harness(opts: { plan?: BrainPlan | null; credits?: Record<string, number>; catalogue?: AppCatalogue; ledger?: CreditLedger } = {}) {
   const n8n = new FakeN8n();
   const directory = new FakeDirectory();
   const binder = new FakeBinder();
@@ -202,7 +203,7 @@ export function harness(opts: { plan?: BrainPlan | null; credits?: Record<string
     drafts,
     automations,
     activity,
-    credits,
+    credits: opts.ledger ?? credits,
     directory,
     binder,
     n8n,

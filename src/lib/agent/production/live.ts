@@ -13,11 +13,11 @@ import { syncCredentialToN8n } from "@/lib/adapters/n8n/credentials/sync-service
 import type { CredentialAttachmentMap } from "@/lib/adapters/n8n/credentials/mapper";
 import { listConnectionsForUser } from "@/lib/connections";
 import { listCredentialsForUser } from "@/lib/credentials";
-import { getUserCredits } from "@/lib/credit-store";
 import { env, hasN8nConfigured } from "@/lib/env";
-import { refundRunCredits, reserveRunCredits } from "@/lib/execution/credits/reserver";
+import { getCreditService } from "@/lib/credits";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { isSupportedIntegration } from "@/lib/workflow";
+import { creditLedgerFrom } from "./credits";
 import { logTechnical } from "./errors";
 import { runTestCopy, type ExecutionSnapshot, type N8nTestClient } from "./test-copy";
 import type {
@@ -221,32 +221,8 @@ export class SupabaseActivityLog implements ActivityLog {
 
 /* ── Credits ──────────────────────────────────────────────────────── */
 
-export const liveCreditLedger: CreditLedger = {
-  async balance(userId) {
-    const c = await getUserCredits(userId);
-    return c.totalCredits;
-  },
-  async reserve(input) {
-    try {
-      const r = await reserveRunCredits(input);
-      return r.reserved ? { ok: true } : { ok: false, reason: "insufficient" };
-    } catch (error) {
-      logTechnical("Credit reservation failed.", { referenceId: input.referenceId }, error);
-      return { ok: false, reason: "error" };
-    }
-  },
-  async settle() {
-    // The reservation already deducted the credits; settling keeps it. Nothing to move.
-  },
-  async refund(input) {
-    try {
-      return (await refundRunCredits(input)).refunded;
-    } catch (error) {
-      logTechnical("Credit refund failed.", { referenceId: input.referenceId }, error);
-      return false;
-    }
-  },
-};
+/** Agent build charging goes through the one credit service. */
+export const liveCreditLedger: CreditLedger = creditLedgerFrom(getCreditService());
 
 /* ── Connections ──────────────────────────────────────────────────── */
 

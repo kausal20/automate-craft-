@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { createLogger } from "@/lib/logger";
+import { getCurrentUser } from "@/lib/auth";
+import { getCreditService } from "@/lib/credits";
 import { appendRow } from "@/lib/google-sheets";
 import {
   createWorkflowRun,
@@ -144,12 +146,23 @@ export async function POST(request: Request) {
   const stepResults: StepResult[] = [];
   let runRecord: Awaited<ReturnType<typeof createWorkflowRun>> | null = null;
   let creditResult: CreditDeductionResult | null = null;
+  let creditReference: string | null = null;
+  let chargedUserId: string | null = null;
 
   log.info("Request received.");
 
   try {
     const body = requestSchema.parse(await request.json());
     const steps = body.workflow?.steps ?? body.steps ?? [];
+
+    // The user to charge comes from the session, never from the request body:
+    // a body.userId could otherwise spend another user's credits.
+    if (body.userId) {
+      const sessionUser = await getCurrentUser();
+      if (!sessionUser || sessionUser.id !== body.userId) {
+        return Response.json({ success: false, steps: [], error: "Not allowed." }, { status: 403 });
+      }
+    }
 
     log.debug("Workflow execution started.", {
       userId: body.userId ?? "anonymous",
@@ -173,6 +186,7 @@ export async function POST(request: Request) {
       const creditCheck = await checkCredits(body.userId, steps.length);
 
       if (!creditCheck.allowed) {
+        await getCreditService().recordBlocked(body.userId, null);
         log.warn("Workflow blocked: insufficient credits.", {
           userId: body.userId,
           cost: creditCheck.cost,
@@ -202,10 +216,12 @@ export async function POST(request: Request) {
       }
 
       // Deduct credits
+      creditReference = runRecord?.id ?? `run-workflow:${crypto.randomUUID()}`;
+      chargedUserId = body.userId;
       creditResult = await deductWorkflowCredits({
         userId: body.userId,
         cost: creditCheck.cost,
-        referenceId: runRecord?.id ?? null,
+        referenceId: creditReference,
       });
 
       if (!creditResult.success) {
@@ -295,6 +311,17 @@ export async function POST(request: Request) {
           }
         }
 
+        // --- Keep only the completed steps (1 credit each); refund the rest ---
+        if (chargedUserId && creditReference) {
+          const completed = stepResults.filter((r) => r.status === "success").length;
+          await getCreditService().settle({
+            userId: chargedUserId,
+            referenceId: creditReference,
+            completedAmount: calculateWorkflowCost(completed),
+            description: "Refund for workflow steps that did not run",
+          });
+        }
+
         // --- Mark run as failed ---
         if (runRecord) {
           try {
@@ -345,6 +372,15 @@ export async function POST(request: Request) {
           : "Could not run workflow.";
 
     log.error("Workflow request failed.", error);
+
+    // --- Unexpected error: nothing is known to have completed, refund in full ---
+    if (chargedUserId && creditReference) {
+      try {
+        await getCreditService().refund({ userId: chargedUserId, referenceId: creditReference, description: "Refund for a workflow that did not finish" });
+      } catch (refundError) {
+        log.error("Refund after unexpected error failed.", refundError);
+      }
+    }
 
     // --- Mark run as failed on unexpected error ---
     if (runRecord) {

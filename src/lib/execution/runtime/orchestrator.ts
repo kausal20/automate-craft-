@@ -28,7 +28,7 @@ import {
   upsertStepExecution,
 } from "@/lib/execution/logs";
 import { calculateExecutionCost } from "@/lib/workflow";
-import { refundRunCredits, reserveRunCredits } from "@/lib/execution/credits";
+import { refundRunCredits, reserveRunCredits, settleRunCredits } from "@/lib/execution/credits";
 import { publish, runChannel } from "@/lib/realtime";
 import type { RunStatus, RunRef } from "@/lib/adapters";
 
@@ -98,6 +98,8 @@ export async function startRun(input: StartRunInput): Promise<StartRunOutcome> {
       amount: costBreakdown.total,
       referenceId: run.id,
       description: `Run ${run.id} (${costBreakdown.total} credits)`,
+      // Per-step costs let a failed run keep only what actually completed.
+      perStep: Object.fromEntries(costBreakdown.perStep.map((p) => [p.stepId, p.base + p.surcharge])),
     });
     if (!reservation.reserved) {
       runLog.warn("Credit reservation failed — aborting run.");
@@ -237,6 +239,24 @@ export async function applyAdapterCallback(input: CallbackInput): Promise<void> 
     await markRunSucceeded(input.runId);
   } else if (input.status.state === "error") {
     await markRunFailed(input.runId, "Adapter reported run failure.");
+  }
+
+  // Settle the run's reservation (no-op when the run was not charged).
+  // Success keeps it; failure keeps only the completed steps and refunds the rest.
+  if (input.status.state === "success" || input.status.state === "error") {
+    try {
+      const completed = input.status.steps.filter((s) => s.status === "success").map((s) => s.id);
+      const settled = await settleRunCredits({
+        referenceId: input.runId,
+        succeeded: input.status.state === "success",
+        completedStepIds: input.status.steps.length > 0 ? completed : null,
+      });
+      if (settled.refunded > 0) {
+        log.info("Run credits settled.", { runId: input.runId, kept: settled.kept, refunded: settled.refunded });
+      }
+    } catch (error) {
+      log.error("Could not settle run credits.", { runId: input.runId, error });
+    }
   }
 }
 

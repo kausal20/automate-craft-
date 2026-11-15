@@ -10,14 +10,16 @@
  * Credit accounting:
  *   - Deployed path: orchestrator handles reservation + refund via
  *     `manageCredits: true`.
- *   - Legacy path: deductCredits up-front (no refund — old behavior).
+ *   - Legacy path: reserve up front, refund in full if the run fails or throws
+ *     (chargeForRun). Insufficient credits leave a plain note for the owner.
  */
 
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { runAutomationForUser } from "@/lib/execution-engine";
 import { getAutomationByIdForUser } from "@/lib/automation-store";
-import { deductCredits } from "@/lib/credit-store";
+import { getCreditService } from "@/lib/credits";
+import { chargeForRun } from "@/lib/credits/run-guard";
 import { handleRouteError, jsonError } from "@/lib/api";
 import { createLogger } from "@/lib/logger";
 import {
@@ -76,13 +78,22 @@ export async function POST(request: Request) {
     });
 
     if (deployment) {
-      const outcome = await startRun({
-        automationId: body.automationId,
-        userId: user.id,
-        triggerKind: "manual",
-        rawPayload: body.payload,
-        manageCredits: true,
-      });
+      let outcome;
+      try {
+        outcome = await startRun({
+          automationId: body.automationId,
+          userId: user.id,
+          triggerKind: "manual",
+          rawPayload: body.payload,
+          manageCredits: true,
+        });
+      } catch (error) {
+        if (error instanceof Error && /insufficient credits/i.test(error.message)) {
+          await getCreditService().recordBlocked(user.id, automation.workflow.name);
+          return jsonError("Not enough credits.", 402);
+        }
+        throw error;
+      }
       log.info("Manual run handed to orchestrator.", { runId: outcome.runId });
       return Response.json({
         runId: outcome.runId,
@@ -95,16 +106,25 @@ export async function POST(request: Request) {
     log.info("No deployment found — using legacy local executor.");
     try {
       const cost = await estimateLegacyCost(body.automationId);
-      const ok = await deductCredits(user.id, cost, "Executed Automation");
-      if (!ok) return jsonError("Not enough credits.", 402);
-
-      const run = await runAutomationForUser({
+      const charged = await chargeForRun({
         userId: user.id,
-        automationId: body.automationId,
-        payload: body.payload,
-        triggerSource: "manual",
+        amount: cost,
+        referenceId: `legacy-run:${crypto.randomUUID()}`,
+        description: "Executed Automation",
+        automationName: automation.workflow.name,
+        run: () =>
+          runAutomationForUser({
+            userId: user.id,
+            automationId: body.automationId,
+            payload: body.payload,
+            triggerSource: "manual",
+          }),
+        succeeded: (run) => run.status === "success",
       });
-      return Response.json({ run, mode: "legacy" });
+      if (!charged.ok) {
+        return jsonError(charged.reason === "insufficient" ? "Not enough credits." : "Could not reserve credits.", 402);
+      }
+      return Response.json({ run: charged.result, mode: "legacy" });
     } catch (error) {
       if (error instanceof AutomationNotFoundError) {
         return jsonError(error.message, 404);

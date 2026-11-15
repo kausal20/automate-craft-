@@ -190,7 +190,8 @@ async function ensureSupabaseProfile(user: {
     amount: WELCOME_CREDITS,
     balance_after: WELCOME_CREDITS,
     description: "Welcome bonus — 10 free credits",
-    metadata: { source: "signup" },
+    reference_id: `welcome:${user.id}`,
+    metadata: { source: "signup", plan_part: WELCOME_CREDITS, extra_part: 0 },
   });
 
   // Log in usage_logs

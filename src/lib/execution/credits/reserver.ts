@@ -1,29 +1,18 @@
 /**
- * Credit reserve + refund pattern for execution runs.
+ * Credit reserve / settle / refund for execution runs — a thin layer over the
+ * credit service, keyed by the run id.
  *
- * Flow:
- *   reserveRunCredits()
- *     - calls deductCredits() (atomic RPC)
- *     - on success, returns { reserved: true, amount }
- *     - on insufficient balance, returns { reserved: false }
+ *   reserveRunCredits — deduct the estimate up front (ledger row carries the run id,
+ *                       written by the RPC in the same transaction; no post-hoc tagging).
+ *   settleRunCredits  — on the run's final state: keep the cost of the steps that
+ *                       actually completed, refund the rest to the same purses.
+ *   refundRunCredits  — give the whole reservation back (e.g. the adapter never ran).
  *
- *   refundRunCredits()
- *     - reverses a previous reservation (e.g. adapter.execute() threw)
- *     - idempotent via reference_id when Supabase mode is active
- *     - logs a credit_transactions row with type="refund"
- *
- * Idempotency:
- *   The credit_transactions table has a reference_id column (added in
- *   20260425_add_credit_transaction_reference). We tag every reserve
- *   and refund with the same `referenceId` (typically the run id) so
- *   double-fires of either side are safe.
- *
- *   Local mode (dev) skips reference_id idempotency — best-effort only.
+ * All three are idempotent per run id at the database level (unique index on
+ * reference_id + type), in Supabase and local mode alike.
  */
 
-import { isSupabaseMode } from "@/lib/env";
-import { createSupabaseAdminClient } from "@/lib/supabase";
-import { deductCredits } from "@/lib/credit-store";
+import { getCreditService } from "@/lib/credits";
 import { createLogger } from "@/lib/logger";
 
 const log = createLogger("execution/credits/reserver");
@@ -33,6 +22,8 @@ export type ReserveInput = {
   amount: number;
   referenceId: string;
   description?: string;
+  /** Cost of each step, so a failed run can settle only what completed. */
+  perStep?: Record<string, number>;
 };
 
 export type ReserveResult =
@@ -40,49 +31,15 @@ export type ReserveResult =
   | { reserved: false; reason: string };
 
 export async function reserveRunCredits(input: ReserveInput): Promise<ReserveResult> {
-  if (input.amount <= 0) {
-    log.debug("Skipping reservation — zero-cost run.", { referenceId: input.referenceId });
-    return { reserved: true, amount: 0 };
-  }
-
-  // Idempotency check — if a reservation already exists for this run, skip.
-  if (isSupabaseMode()) {
-    const supabase = createSupabaseAdminClient();
-    const { data: existing } = await supabase
-      .from("credit_transactions")
-      .select("id")
-      .eq("reference_id", input.referenceId)
-      .eq("type", "deduct")
-      .maybeSingle();
-
-    if (existing) {
-      log.info("Reservation already exists; skipping duplicate.", {
-        referenceId: input.referenceId,
-      });
-      return { reserved: true, amount: input.amount };
-    }
-  }
-
-  const description = input.description ?? `Run reservation (${input.amount} credits)`;
-  const ok = await deductCredits(input.userId, input.amount, description);
-  if (!ok) {
-    return { reserved: false, reason: "Insufficient balance." };
-  }
-
-  // Attach reference_id post-hoc so refund() can find the row.
-  if (isSupabaseMode()) {
-    const supabase = createSupabaseAdminClient();
-    await supabase
-      .from("credit_transactions")
-      .update({ reference_id: input.referenceId })
-      .eq("user_id", input.userId)
-      .eq("type", "deduct")
-      .is("reference_id", null)
-      .order("created_at", { ascending: false })
-      .limit(1);
-  }
-
-  return { reserved: true, amount: input.amount };
+  const r = await getCreditService().reserve({
+    userId: input.userId,
+    amount: input.amount,
+    referenceId: input.referenceId,
+    description: input.description ?? `Run reservation (${input.amount} credits)`,
+    metadata: input.perStep ? { per_step: input.perStep } : {},
+  });
+  if (r.ok) return { reserved: true, amount: r.charged };
+  return { reserved: false, reason: r.reason === "insufficient" ? "Insufficient balance." : "Could not reserve credits." };
 }
 
 export type RefundInput = {
@@ -97,72 +54,54 @@ export type RefundResult = {
   amount: number;
 };
 
-/**
- * Refund a previously reserved amount. Idempotent — if a refund row
- * with the same reference_id already exists, this is a no-op.
- */
+/** Full refund of the run's reservation, back to the purses it came from. */
 export async function refundRunCredits(input: RefundInput): Promise<RefundResult> {
-  if (input.amount <= 0) {
-    return { refunded: true, amount: 0 };
-  }
-
-  if (isSupabaseMode()) {
-    const supabase = createSupabaseAdminClient();
-
-    // Idempotency: skip if a refund for this reference already exists.
-    const { data: existing } = await supabase
-      .from("credit_transactions")
-      .select("id")
-      .eq("reference_id", input.referenceId)
-      .eq("type", "refund")
-      .maybeSingle();
-
-    if (existing) {
-      log.info("Refund already recorded; skipping.", {
-        referenceId: input.referenceId,
-      });
-      return { refunded: true, amount: input.amount };
-    }
-
-    const description = input.description ?? `Refund for ${input.referenceId}`;
-    const { data, error } = await supabase.rpc("add_credits_atomic", {
-      p_user_id: input.userId,
-      p_amount: input.amount,
-      p_type: "refund",
-      p_description: description,
-    });
-    if (error) {
-      log.error("Refund RPC failed.", error);
-      return { refunded: false, amount: 0 };
-    }
-    const result = data as { success: boolean };
-    if (!result?.success) {
-      log.warn("Refund RPC returned non-success.", { result });
-      return { refunded: false, amount: 0 };
-    }
-
-    // Tag with reference_id for future idempotency checks.
-    await supabase
-      .from("credit_transactions")
-      .update({ reference_id: input.referenceId })
-      .eq("user_id", input.userId)
-      .eq("type", "refund")
-      .is("reference_id", null)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    log.info("Credits refunded.", {
-      userId: input.userId,
-      amount: input.amount,
-      referenceId: input.referenceId,
-    });
-    return { refunded: true, amount: input.amount };
-  }
-
-  // Local mode — best-effort. Use buyCredits-style addition via direct mutate.
-  log.info("Local-mode refund noted (not persisted).", {
+  if (input.amount <= 0) return { refunded: true, amount: 0 };
+  const r = await getCreditService().refund({
+    userId: input.userId,
     referenceId: input.referenceId,
-    amount: input.amount,
+    description: input.description ?? `Refund for ${input.referenceId}`,
   });
-  return { refunded: true, amount: input.amount };
+  if (r.ok) return { refunded: true, amount: r.refunded };
+  if (r.reason === "no_reservation") return { refunded: true, amount: 0 };
+  log.error("Refund failed.", { referenceId: input.referenceId });
+  return { refunded: false, amount: 0 };
+}
+
+export type SettleInput = {
+  /** Owner; defaults to the reservation's owner. */
+  userId?: string;
+  referenceId: string;
+  /** Final run state. */
+  succeeded: boolean;
+  /**
+   * Step ids that completed successfully. When known, a failed run keeps the
+   * cost of exactly these steps (from the reservation's per-step costs) and
+   * refunds the rest. When unknown, a failed run is refunded in full.
+   */
+  completedStepIds?: string[] | null;
+};
+
+export async function settleRunCredits(input: SettleInput): Promise<{ kept: number; refunded: number }> {
+  const credits = getCreditService();
+  const reservation = await credits.findReservation(input.referenceId);
+  if (!reservation) return { kept: 0, refunded: 0 }; // nothing was charged for this run
+  const userId = input.userId ?? reservation.userId;
+  if (input.succeeded) {
+    const r = await credits.settle({ userId, referenceId: input.referenceId });
+    return { kept: r.ok ? r.kept ?? 0 : 0, refunded: 0 };
+  }
+
+  let completedAmount = 0;
+  const perStep = (reservation?.metadata.per_step ?? null) as Record<string, number> | null;
+  if (input.completedStepIds && perStep) {
+    completedAmount = input.completedStepIds.reduce((sum, id) => sum + (Number(perStep[id]) || 0), 0);
+  }
+  const r = await credits.settle({
+    userId,
+    referenceId: input.referenceId,
+    completedAmount,
+    description: `Refund for failed run ${input.referenceId}`,
+  });
+  return { kept: r.ok ? r.kept ?? 0 : 0, refunded: r.ok ? r.refunded : 0 };
 }

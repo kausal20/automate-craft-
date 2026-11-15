@@ -2,6 +2,8 @@ import { isSupabaseMode } from "@/lib/env";
 import { readLocalDatabase, updateLocalDatabase, type UsageLogRecord } from "@/lib/local-store";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { createLogger } from "@/lib/logger";
+import { ensureLocalCreditUser, getCreditService } from "@/lib/credits";
+import { planGrant } from "@/lib/plans";
 
 const log = createLogger("credit-store");
 
@@ -11,6 +13,10 @@ export type UserCredits = {
   totalCredits: number;
   monthlyUsage: number;
   hasSubscription: boolean;
+  /** Active plan id, if any. */
+  planId: string | null;
+  /** Monthly allowance of the active plan (0 without a plan). */
+  monthlyGrant: number;
 };
 
 export type CreditTransaction = {
@@ -22,35 +28,6 @@ export type CreditTransaction = {
   description: string;
   createdAt: string;
 };
-
-async function ensureLocalCreditUser(userId: string) {
-  if (userId === "guest-user") return;
-
-  await updateLocalDatabase((database) => {
-    const existingUser = database.users.find((user) => user.id === userId);
-    if (existingUser) return;
-
-    database.users.push({
-      id: userId,
-      email: `${userId}@supabase.local`,
-      name: "Supabase User",
-      passwordHash: "supabase-auth-managed",
-      createdAt: new Date().toISOString(),
-      planCredits: 10,
-      extraCredits: 0,
-      onboarded: true,
-    });
-
-    database.usageLogs.unshift({
-      id: crypto.randomUUID(),
-      userId,
-      action: "Welcome bonus - 10 free credits",
-      creditsUsed: 0,
-      status: "Success",
-      createdAt: new Date().toISOString(),
-    });
-  });
-}
 
 // ─── Get User Credits ─────────────────────────────────────────────
 
@@ -64,6 +41,8 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
       totalCredits: 10,
       monthlyUsage: 0,
       hasSubscription: false,
+      planId: null,
+      monthlyGrant: 0,
     };
   }
 
@@ -105,15 +84,17 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
     // Check active subscription
     const { data: activeSub } = await supabase
       .from("subscriptions")
-      .select("id")
+      .select("id, plan_id")
       .eq("user_id", userId)
       .eq("status", "active")
       .limit(1)
       .maybeSingle();
 
     const hasSubscription = !!activeSub;
+    const planId = (activeSub?.plan_id as string | undefined) ?? null;
+    const monthlyGrant = planId ? planGrant(planId)?.monthlyCredits ?? 0 : 0;
 
-    return { planCredits, extraCredits, totalCredits, monthlyUsage, hasSubscription };
+    return { planCredits, extraCredits, totalCredits, monthlyUsage, hasSubscription, planId, monthlyGrant };
   }
 
   log.debug("Using local database to get user credits.");
@@ -138,9 +119,10 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
     )
     .reduce((sum, entry) => sum + entry.creditsUsed, 0);
 
-  const hasSubscription = database.subscriptions.some(
-    (s) => s.userId === userId && s.status === "active"
-  );
+  const activeSub = database.subscriptions.find((s) => s.userId === userId && s.status === "active");
+  const hasSubscription = !!activeSub;
+  const planId = activeSub?.planId ?? null;
+  const monthlyGrant = planId ? planGrant(planId)?.monthlyCredits ?? 0 : 0;
 
   const planCredits = user.planCredits ?? 10;
   const extraCredits = user.extraCredits ?? 0;
@@ -152,262 +134,83 @@ export async function getUserCredits(userId: string): Promise<UserCredits> {
     totalCredits,
     monthlyUsage,
     hasSubscription,
+    planId,
+    monthlyGrant,
   };
 }
 
-// ─── Deduct Credits (Atomic) ──────────────────────────────────────
-
-export async function deductCredits(userId: string, amount: number, actionDesc: string): Promise<boolean> {
-  log.info("Deducting credits for user:", userId, "amount:", amount);
-
-  if (userId === "guest-user") {
-    log.info("Skipping credit deduction for guest open-access user.");
-    return true;
-  }
-
-  if (isSupabaseMode()) {
-    const supabase = createSupabaseAdminClient();
-
-    // Use the atomic database function to prevent race conditions
-    const { data, error } = await supabase.rpc("deduct_credits_atomic", {
-      p_user_id: userId,
-      p_amount: amount,
-      p_action: actionDesc,
-      p_description: actionDesc,
-    });
-
-    if (error) {
-      log.error("Atomic deduction RPC failed", error);
-      return false;
-    }
-
-    const result = data as { success: boolean; error?: string };
-
-    if (!result.success) {
-      log.warn("Credit deduction failed:", result.error);
-      return false;
-    }
-
-    log.info("Credits deducted successfully via atomic RPC");
-    return true;
-  }
-
-  await ensureLocalCreditUser(userId);
-  return updateLocalDatabase((database) => {
-    const user = database.users.find((u) => u.id === userId);
-    if (!user) return false;
-
-    const currentPlan = user.planCredits ?? 10;
-    const currentExtra = user.extraCredits ?? 0;
-
-    if (currentPlan + currentExtra < amount) {
-      database.usageLogs.unshift({
-        id: crypto.randomUUID(),
-        userId,
-        action: actionDesc,
-        creditsUsed: amount,
-        status: "Failed",
-        createdAt: new Date().toISOString(),
-      });
-      return false;
-    }
-
-    let newPlan = currentPlan;
-    let newExtra = currentExtra;
-
-    if (newPlan >= amount) {
-      newPlan -= amount;
-    } else {
-      const remainder = amount - newPlan;
-      newPlan = 0;
-      newExtra -= remainder;
-    }
-
-    user.planCredits = newPlan;
-    user.extraCredits = newExtra;
-
-    database.usageLogs.unshift({
-      id: crypto.randomUUID(),
-      userId,
-      action: actionDesc,
-      creditsUsed: amount,
-      status: "Success",
-      createdAt: new Date().toISOString(),
-    });
-
-    return true;
-  });
-}
-
-// ─── Buy Credits ──────────────────────────────────────────────────
-
-export async function buyCredits(userId: string, amount: number, packageDesc: string): Promise<boolean> {
-  log.info("Buying extra credits for user:", userId, "amount:", amount);
-
-  if (isSupabaseMode()) {
-    const supabase = createSupabaseAdminClient();
-
-    // Use the atomic database function for safe credit addition
-    const { data, error } = await supabase.rpc("add_credits_atomic", {
-      p_user_id: userId,
-      p_amount: amount,
-      p_type: "purchase",
-      p_description: `Purchased ${packageDesc}`,
-    });
-
-    if (error) {
-      log.error("Atomic credit addition RPC failed", error);
-      return false;
-    }
-
-    const result = data as { success: boolean; error?: string };
-
-    if (!result.success) {
-      log.warn("Credit purchase failed:", result.error);
-      return false;
-    }
-
-    log.info("Credits purchased successfully via atomic RPC");
-    return true;
-  }
-
-  await ensureLocalCreditUser(userId);
-  return updateLocalDatabase((database) => {
-    const user = database.users.find((u) => u.id === userId);
-    if (!user) return false;
-
-    user.extraCredits = (user.extraCredits ?? 0) + amount;
-
-    database.usageLogs.unshift({
-      id: crypto.randomUUID(),
-      userId,
-      action: `Purchased ${packageDesc}`,
-      creditsUsed: 0,
-      status: "Success",
-      createdAt: new Date().toISOString(),
-    });
-
-    return true;
-  });
-}
+// Deductions, refunds and purchases live in the credit service (@/lib/credits).
+// Nothing here moves credits directly any more.
 
 // ─── Grant Subscription Credits ───────────────────────────────────
 
-export async function grantSubscriptionCredits(
-  userId: string,
-  planId: string,
-  planName: string,
-  credits: number,
-): Promise<boolean> {
-  log.info("Granting subscription credits for user:", userId, "plan:", planName, "credits:", credits);
+/** Calendar month (UTC) the grant belongs to, e.g. "2026-11". */
+export function grantMonth(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 7);
+}
+
+export function subscriptionGrantReference(userId: string, planId: string, now: Date = new Date()): string {
+  return `subscription:${userId}:${planId}:${grantMonth(now)}`;
+}
+
+/**
+ * Subscribe + grant the plan's credits. Idempotent per user + plan + calendar
+ * month: a second call in the same month changes nothing and returns true.
+ * Credit amounts come from src/lib/plans.ts. Renewal / rollover is later work.
+ */
+export async function grantSubscriptionCredits(userId: string, planId: string, now: Date = new Date()): Promise<boolean> {
+  const plan = planGrant(planId);
+  if (!plan) return false;
+  const credits = getCreditService();
+  const referenceId = subscriptionGrantReference(userId, planId, now);
+
+  if (await credits.isGranted(referenceId, "subscription")) {
+    log.info("Subscription grant already applied this month; skipping.", { planId });
+    return true;
+  }
 
   if (isSupabaseMode()) {
     const supabase = createSupabaseAdminClient();
-
-    // 1. Cancel any existing active subscriptions
-    await supabase
-      .from("subscriptions")
-      .update({ status: "canceled" })
-      .eq("user_id", userId)
-      .eq("status", "active");
-
-    // 2. Create the new subscription record
-    const expiresAt = new Date();
+    await supabase.from("subscriptions").update({ status: "canceled" }).eq("user_id", userId).eq("status", "active");
+    const expiresAt = new Date(now);
     expiresAt.setMonth(expiresAt.getMonth() + 1);
-
     const { error: subError } = await supabase.from("subscriptions").insert({
       user_id: userId,
       plan_id: planId,
-      plan_name: planName,
-      credits_granted: credits,
+      plan_name: plan.name,
+      credits_granted: plan.credits,
       status: "active",
       expires_at: expiresAt.toISOString(),
     });
-
     if (subError) {
       log.error("Failed to create subscription", subError);
       return false;
     }
-
-    // 3. Add credits to the user's plan_credits
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("plan_credits, extra_credits")
-      .eq("id", userId)
-      .single();
-
-    if (!profile) return false;
-
-    const newPlanCredits = (profile.plan_credits ?? 0) + credits;
-    const totalAfter = newPlanCredits + (profile.extra_credits ?? 0);
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ plan_credits: newPlanCredits })
-      .eq("id", userId);
-
-    if (updateError) {
-      log.error("Failed to update plan credits for subscription", updateError);
-      return false;
-    }
-
-    // 4. Log the transaction
-    await supabase.from("credit_transactions").insert({
-      user_id: userId,
-      type: "subscription",
-      amount: credits,
-      balance_after: totalAfter,
-      description: `Subscribed to ${planName} — +${credits} credits`,
-      metadata: { plan_id: planId, plan_name: planName },
-    });
-
-    await supabase.from("usage_logs").insert({
-      user_id: userId,
-      action: `Subscribed to ${planName} Plan`,
-      credits_used: 0,
-      status: "Success",
-    });
-
-    log.info("Subscription credits granted successfully");
-    return true;
-  }
-
-  // Local mode fallback
-  await ensureLocalCreditUser(userId);
-  return updateLocalDatabase((database) => {
-    const user = database.users.find((u) => u.id === userId);
-    const plan = database.plans.find((p) => p.id === planId);
-
-    if (!user || !plan) return false;
-
-    // Cancel existing active subs
-    database.subscriptions
-      .filter((s) => s.userId === userId && s.status === "active")
-      .forEach((s) => { s.status = "canceled"; });
-
-    database.subscriptions.push({
-      id: crypto.randomUUID(),
-      userId,
-      planId: plan.id,
-      startDate: new Date().toISOString(),
-      status: "active",
-    });
-
-    user.planCredits = (user.planCredits ?? 0) + plan.credits;
-
-    if (plan.credits > 0) {
-      database.usageLogs.unshift({
+  } else {
+    await ensureLocalCreditUser(userId);
+    await updateLocalDatabase((database) => {
+      database.subscriptions
+        .filter((s) => s.userId === userId && s.status === "active")
+        .forEach((s) => { s.status = "canceled"; });
+      database.subscriptions.push({
         id: crypto.randomUUID(),
         userId,
-        action: `Subscribed to ${plan.name} Plan`,
-        creditsUsed: 0,
-        status: "Success",
-        createdAt: new Date().toISOString(),
+        planId,
+        startDate: now.toISOString(),
+        status: "active",
       });
-    }
+    });
+  }
 
-    return true;
+  const granted = await credits.grant({
+    userId,
+    amount: plan.credits,
+    kind: "subscription",
+    referenceId,
+    description: `Subscribed to ${plan.name} — +${plan.credits} credits`,
+    metadata: { plan_id: planId, plan_name: plan.name, month: grantMonth(now) },
   });
+  return granted.ok;
 }
 
 // ─── List Usage Logs ──────────────────────────────────────────────
@@ -483,19 +286,19 @@ export async function listCreditTransactions(userId: string): Promise<CreditTran
     }));
   }
 
-  // Local mode — derive transactions from usage logs
+  // Local mode — the local ledger mirrors credit_transactions, balanceAfter included.
   const database = await readLocalDatabase();
-  return database.usageLogs
-    .filter((entry) => entry.userId === userId)
+  return database.creditTransactions
+    .filter((t) => t.userId === userId)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .slice(0, 100)
-    .map((entry) => ({
-      id: entry.id,
-      userId: entry.userId,
-      type: entry.creditsUsed > 0 ? "deduct" as const : "grant" as const,
-      amount: entry.creditsUsed,
-      balanceAfter: 0, // Not tracked in local mode
-      description: entry.action,
-      createdAt: entry.createdAt,
+    .map((t) => ({
+      id: t.id,
+      userId: t.userId,
+      type: t.type as CreditTransaction["type"],
+      amount: t.amount,
+      balanceAfter: t.balanceAfter,
+      description: t.description,
+      createdAt: t.createdAt,
     }));
 }

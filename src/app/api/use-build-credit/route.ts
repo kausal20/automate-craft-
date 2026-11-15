@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { deductCredits } from "@/lib/credit-store";
+import { actionReference, getCreditService } from "@/lib/credits";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
 
@@ -10,9 +10,14 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const success = await deductCredits(user.id, 5, "Build automation");
+    const r = await getCreditService().reserve({
+      userId: user.id,
+      amount: 5,
+      referenceId: actionReference("build", request.headers.get("idempotency-key")),
+      description: "Build automation",
+    });
 
-    if (!success) {
+    if (!r.ok) {
       return NextResponse.json(
         { error: "Not enough build credits" },
         { status: 402 } // Payment Required

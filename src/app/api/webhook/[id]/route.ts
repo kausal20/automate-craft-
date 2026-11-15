@@ -16,7 +16,8 @@
 
 import { findAutomationByWebhookId } from "@/lib/automation-store";
 import { handleRouteError, jsonError } from "@/lib/api";
-import { deductCredits } from "@/lib/credit-store";
+import { getCreditService } from "@/lib/credits";
+import { chargeForRun } from "@/lib/credits/run-guard";
 import { createLogger } from "@/lib/logger";
 import { enforceRateLimit, RateLimitError } from "@/lib/security";
 import {
@@ -99,15 +100,6 @@ export async function POST(
     const cost = version
       ? calculateExecutionCost(version.workflow).total
       : legacyCost(automation);
-    const deducted = await deductCredits(
-      automation.userId,
-      cost,
-      "Webhook Executed Automation",
-    );
-    if (!deducted) {
-      return jsonError("Not enough credits to run automation.", 402);
-    }
-
     /* ── Deployment-driven path (Phase 2) or legacy fallback ─ */
     const deployment = await getActiveDeployment({
       automationId: automation.id,
@@ -115,24 +107,42 @@ export async function POST(
     });
 
     if (deployment && version) {
-      // Phase 2: hand off to runtime orchestrator (returns immediately).
-      const outcome = await startRun({
-        automationId: automation.id,
-        userId: automation.userId,
-        triggerKind: "webhook",
-        rawPayload: parsedBody,
-      });
+      // Phase 2: hand off to the runtime orchestrator. It reserves credits under
+      // the run id and settles on the final state (completed steps kept, rest refunded).
+      let outcome;
+      try {
+        outcome = await startRun({
+          automationId: automation.id,
+          userId: automation.userId,
+          triggerKind: "webhook",
+          rawPayload: parsedBody,
+          manageCredits: true,
+        });
+      } catch (error) {
+        if (error instanceof Error && /insufficient credits/i.test(error.message)) {
+          await getCreditService().recordBlocked(automation.userId, automation.workflow.name);
+          return jsonError("Not enough credits to run automation.", 402);
+        }
+        throw error;
+      }
       log.info("Webhook handed to orchestrator.", { runId: outcome.runId });
       return Response.json({ ok: true, runId: outcome.runId, mode: "deployed" });
     }
 
-    /* Legacy local executor (no n8n deployment yet). */
-    const run = await runAutomation({
-      automation,
-      payload: parsedBody,
-      triggerSource: "webhook",
+    /* Legacy local executor (no n8n deployment yet): full refund if it fails. */
+    const charged = await chargeForRun({
+      userId: automation.userId,
+      amount: cost,
+      referenceId: `webhook-run:${crypto.randomUUID()}`,
+      description: "Webhook Executed Automation",
+      automationName: automation.workflow.name,
+      run: () => runAutomation({ automation, payload: parsedBody, triggerSource: "webhook" }),
+      succeeded: (run) => run.status === "success",
     });
-    return Response.json({ ok: true, run, mode: "legacy" });
+    if (!charged.ok) {
+      return jsonError("Not enough credits to run automation.", 402);
+    }
+    return Response.json({ ok: true, run: charged.result, mode: "legacy" });
   } catch (error) {
     log.error("Webhook handling failed.", error);
     return handleRouteError(error, "Could not handle webhook.");

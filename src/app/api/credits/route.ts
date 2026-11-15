@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getUserCredits, listUsageLogsForUser } from "@/lib/credit-store";
+import { creditState, usagePercent } from "@/lib/credits";
 
 export async function GET() {
   try {
@@ -21,6 +22,10 @@ export async function GET() {
       totalCredits: credits.totalCredits,
       monthlyUsage: credits.monthlyUsage,
       hasSubscription: credits.hasSubscription,
+      planId: credits.planId,
+      monthlyGrant: credits.monthlyGrant,
+      usagePercent: usagePercent(credits.monthlyUsage, credits.monthlyGrant),
+      creditState: creditState(credits.totalCredits, credits.monthlyGrant),
       usageHistory, // Added for the Usage History Table
     });
   } catch (error) {

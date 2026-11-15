@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { deductCredits } from "@/lib/credit-store";
+import { actionReference, getCreditService } from "@/lib/credits";
 
 export async function POST(request: Request) {
   try {
@@ -24,9 +24,14 @@ export async function POST(request: Request) {
       actionDesc = "Email Sent";
     }
 
-    const success = await deductCredits(user.id, creditsToDeduct, actionDesc);
+    const r = await getCreditService().reserve({
+      userId: user.id,
+      amount: creditsToDeduct,
+      referenceId: actionReference("run-credit", request.headers.get("idempotency-key")),
+      description: actionDesc,
+    });
 
-    if (!success) {
+    if (!r.ok) {
       return NextResponse.json(
         { error: "Not enough run credits" },
         { status: 402 }

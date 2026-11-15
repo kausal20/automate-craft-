@@ -1,16 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { grantSubscriptionCredits } from "@/lib/credit-store";
-
-// Plan configuration — credits granted per plan
-const PLAN_CONFIG: Record<string, { name: string; credits: number }> = {
-  plan_starter: { name: "Starter", credits: 500 },
-  plan_starter_yearly: { name: "Starter (Yearly)", credits: 6000 },
-  plan_plus: { name: "Plus", credits: 1500 },
-  plan_plus_yearly: { name: "Plus (Yearly)", credits: 18000 },
-  plan_pro: { name: "Pro", credits: 3000 },
-  plan_pro_yearly: { name: "Pro (Yearly)", credits: 36000 },
-};
+import { planGrant } from "@/lib/plans";
 
 export async function POST(request: Request) {
   try {
@@ -26,20 +17,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing planId" }, { status: 400 });
     }
 
-    // Look up plan configuration
-    const config = PLAN_CONFIG[planId];
+    // Credit amounts come from the one plans config (src/lib/plans.ts).
+    const config = typeof planId === "string" ? planGrant(planId) : null;
     if (!config) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
     const planName = config.name;
     const planCredits = config.credits;
 
-    const success = await grantSubscriptionCredits(
-      user.id,
-      planId,
-      planName,
-      planCredits,
-    );
+    // Idempotent per user + plan + calendar month.
+    const success = await grantSubscriptionCredits(user.id, planId);
 
     if (!success) {
       return NextResponse.json({ error: "Subscription failed" }, { status: 400 });

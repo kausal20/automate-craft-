@@ -11,6 +11,8 @@ export {
 export {
   reserveRunCredits,
   refundRunCredits,
+  settleRunCredits,
+  type SettleInput,
   type ReserveInput,
   type ReserveResult,
   type RefundInput,
