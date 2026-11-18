@@ -13,7 +13,7 @@
 import type { N8nWorkflow } from "@/lib/adapters/n8n/client/types";
 import type { CredentialAttachmentMap } from "@/lib/adapters/n8n/credentials/mapper";
 import { calculateExecutionCost, calculateGenerationCost, type WorkflowIR } from "@/lib/workflow";
-import type { AppCatalogue } from "../brain/catalogue";
+import { withCustomApps, type AppCatalogue, type CatalogueApp } from "../brain/catalogue";
 import { appLabel } from "../brain/catalogue";
 import type { BrainPlan } from "../brain/plan-schema";
 import type { Planner } from "../brain/planner";
@@ -21,9 +21,10 @@ import type { WorkflowPlan } from "../models/plan";
 import type { AgentWorkflowIR } from "../models/workflow-ir";
 import type { KnownConnection } from "../models/session";
 import type { ValidationReport } from "../models/validation";
-import { applyAnswers, brainPlanToWorkflowPlan } from "./converter";
+import { applyAnswers, brainPlanToWorkflowPlan, type McpLowering } from "./converter";
 import { AgentUserError, logTechnical, normalizeLang, userMessage } from "./errors";
 import { checkConnections } from "./gate";
+import { accountFor, storeAccount } from "@/lib/connections/store";
 import { applyTestRecipients, moneySteps, testRecipientFields, unansweredTestRecipients } from "./safety";
 import { cornerTags } from "./test-copy";
 import type {
@@ -58,6 +59,13 @@ export interface BuildPipeline {
 export interface AgentDeps {
   planner: Planner;
   catalogue: () => AppCatalogue;
+  /** This user's own approved custom MCP tools as catalogue apps (never another user's). */
+  customApps?: (userId: string) => Promise<CatalogueApp[]>;
+  /** Resolve + sign a custom tool step for this user, at build time. */
+  mcp?: {
+    resolve(userId: string, slug: string, operation: string): Promise<{ connectorId: string; tool: { name: string; inputMap: Record<string, string> } } | null>;
+    sign(claims: { userId: string; connectorId: string; tool: string; automationId: string | null }): string;
+  };
   drafts: DraftRepo;
   automations: AutomationRepo;
   activity: ActivityLog;
@@ -171,7 +179,7 @@ export class AgentService {
     const prompt = input.prompt.trim();
     if (prompt.length < 3 || prompt.length > 4000) throw new AgentUserError("bad_request", 400, "prompt length");
 
-    const catalogue = this.d.catalogue();
+    const catalogue = withCustomApps(this.d.catalogue(), (await this.d.customApps?.(input.userId)) ?? []);
     const result = await this.d.planner.plan({ prompt, catalogue });
     const id = this.d.newId();
     const at = this.iso();
@@ -373,7 +381,19 @@ export class AgentService {
     let workflowId: string | null = existing?.n8nWorkflowId ?? null;
     try {
       // 3. Plan -> WorkflowPlan -> IR (existing generator) -> preflight (existing validator).
-      const wp = brainPlanToWorkflowPlan(plan, { sessionId: draft.id, appsRequired: draft.appsRequired, now: this.now(), version: draft.buildAttempt });
+      //    Custom MCP tool steps are re-resolved for THIS user (still approved?) and signed.
+      const mcp: Record<string, McpLowering> = {};
+      for (const s of plan.steps.filter((x) => x.integration?.startsWith("mcp_"))) {
+        const hit = this.d.mcp ? await this.d.mcp.resolve(userId, s.integration!, s.operation) : null;
+        if (!hit) return fail("build_failed", {}, workflowId, `custom tool ${s.integration}/${s.operation} not approved or not found`, "build_blocked");
+        mcp[s.id] = {
+          connectorId: hit.connectorId,
+          toolName: hit.tool.name,
+          inputMap: hit.tool.inputMap,
+          token: this.d.mcp!.sign({ userId, connectorId: hit.connectorId, tool: hit.tool.name, automationId }),
+        };
+      }
+      const wp = brainPlanToWorkflowPlan(plan, { sessionId: draft.id, appsRequired: draft.appsRequired, now: this.now(), version: draft.buildAttempt, mcp });
       const ir = this.d.pipeline.generate(wp);
       const known: KnownConnection[] = draft.appsRequired.map((integration) => ({ integration, status: "connected" }));
       const preflight = this.d.pipeline.validate({ sessionId: draft.id, ir, knownConnections: known });
@@ -393,7 +413,7 @@ export class AgentService {
       //    on a retry, stays switched off) until this passes.
       const testPlan = applyTestRecipients(plan, draft.answers);
       const testIr = this.d.pipeline.generate(
-        brainPlanToWorkflowPlan(testPlan, { sessionId: draft.id, appsRequired: draft.appsRequired, now: this.now(), version: draft.buildAttempt }),
+        brainPlanToWorkflowPlan(testPlan, { sessionId: draft.id, appsRequired: draft.appsRequired, now: this.now(), version: draft.buildAttempt, mcp }),
       );
       const testWorkflow = this.d.pipeline.compile(testIr, bound.attachments);
       const run: TestRunResult = await this.d.n8n.runTestCopy({ userId, automationId, workflow: testWorkflow, payload: samplePayload(plan) });
@@ -512,8 +532,10 @@ export class AgentService {
 
   /** Called when a connection is disconnected/expired: pause every automation that uses it. */
   async onConnectionLost(userId: string, integration: string): Promise<number> {
+    // A lost account pauses every automation using any app on it (google -> gmail, sheets, ...).
+    const lost = accountFor(integration);
     const affected = (await this.d.automations.list(userId)).filter(
-      (a) => a.status === "active" && a.appsRequired.includes(integration),
+      (a) => a.status === "active" && a.appsRequired.some((app) => app === integration || accountFor(app) === lost),
     );
     for (const a of affected) {
       try {
@@ -521,7 +543,8 @@ export class AgentService {
       } catch (error) {
         logTechnical("Could not pause after connection loss.", { automationId: a.id }, error);
       }
-      const message = userMessage("connection_lost", a.language, { app: appLabel(integration) });
+      // Name the ACCOUNT the user signed in to ("Google"), not one app on it.
+      const message = userMessage("connection_lost", a.language, { app: storeAccount(lost)?.displayName ?? appLabel(integration) });
       await this.d.automations.update(userId, a.id, { status: "needs_attention", lastMessage: message });
       await this.log(userId, a.id, "connection_lost", message);
     }

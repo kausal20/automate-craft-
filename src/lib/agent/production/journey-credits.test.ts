@@ -69,7 +69,7 @@ test("agent journey: a failed test run refunds the build to the same purses", as
   const user = fakes.USER_B;
   const h = fakes.harness({ plan: fakes.leadToSheetPlan(), ledger: ledger.creditLedgerFrom(service) });
   await service.grant({ userId: user, amount: 50, kind: "purchase", referenceId: "journey-b-topup", description: "top-up" });
-  h.directory.add(user, "sheets", "ops@shop.in");
+  h.directory.add(user, "google", "ops@shop.in");
   h.directory.add(user, "email", "owner@shop.in");
   const before_ = (await local.readLocalDatabase()).users.find((u) => u.id === user)!;
   const plan0 = before_.planCredits;

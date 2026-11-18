@@ -13,13 +13,14 @@ import type { BeginOAuthInput, ProviderCapabilities, TokenSet } from "../types";
 
 export class DiscordOAuthProvider extends AbstractOAuth2Provider {
   readonly capabilities: ProviderCapabilities = {
-    integration: "webhook", // Discord categorized as webhook integration for now.
+    integration: "discord",
     displayName: "Discord",
     grantType: "authorization_code",
-    defaultScopes: ["identify", "guilds", "webhook.incoming"],
+    defaultScopes: ["identify", "webhook.incoming"],
     supportsRefresh: true,
     refreshSkewSeconds: 300,
-    n8nCredentialType: "discordOAuth2Api",
+    // Posting goes through the channel webhook Discord returns at consent time.
+    n8nCredentialType: "discordWebhookApi",
   };
 
   protected readonly authorizationUrl = "https://discord.com/api/oauth2/authorize";

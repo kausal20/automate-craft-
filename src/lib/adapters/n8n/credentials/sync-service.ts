@@ -25,6 +25,8 @@
  * has already verified readiness for actual deploys.
  */
 
+import { accountFor } from "@/lib/connections/store";
+import { toN8nCredentialData } from "./data-mapper";
 import {
   hasN8nConfigured,
 } from "@/lib/env";
@@ -53,11 +55,13 @@ export type SyncCredentialOutcome =
   | { synced: false; reason: string };
 
 export async function syncCredentialToN8n(
-  input: SyncCredentialInput,
+  rawInput: SyncCredentialInput,
 ): Promise<SyncCredentialOutcome> {
   if (!hasN8nConfigured()) {
     return { synced: false, reason: "n8n adapter not configured." };
   }
+  // Apps share their account's ONE connection + credential (gmail -> google).
+  const input = { ...rawInput, integration: accountFor(rawInput.integration) as SupportedIntegration };
 
   const connection = await getConnection(input.userId, input.integration);
   if (!connection) {
@@ -101,7 +105,7 @@ export async function syncCredentialToN8n(
       response = await n8nClient.updateCredential(existingId, {
         name: n8nCredentialName,
         type: n8nCredentialType,
-        data: cred.payload,
+        data: toN8nCredentialData(n8nCredentialType, cred.payload, connection.scopes),
       });
     } else {
       log.info("Creating new n8n credential.", {
@@ -111,7 +115,7 @@ export async function syncCredentialToN8n(
       response = await n8nClient.createCredential({
         name: n8nCredentialName,
         type: n8nCredentialType,
-        data: cred.payload,
+        data: toN8nCredentialData(n8nCredentialType, cred.payload, connection.scopes),
       });
     }
   } catch (error) {

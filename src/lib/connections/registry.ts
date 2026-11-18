@@ -12,124 +12,64 @@
  * is one entry here + one provider file.
  */
 
-import type { SupportedIntegration } from "@/lib/workflow";
+import { SUPPORTED_INTEGRATIONS, type SupportedIntegration } from "@/lib/workflow";
+import { listStoreAccounts, listStoreApps, storeAccount } from "./store";
 
-export type IntegrationAuthKind = "oauth2" | "api_key" | "no_auth";
+export type IntegrationAuthKind = "oauth2" | "api_key" | "bot_token" | "no_auth";
 
 export type IntegrationMetadata = {
   integration: SupportedIntegration;
   displayName: string;
   tagline: string;
   authKind: IntegrationAuthKind;
-  /** Default vault credential name used by deploy resolver. */
   defaultCredentialName: string;
-  /** OAuth scopes requested when authKind="oauth2". */
   defaultScopes: readonly string[];
-  /** Documentation URL — shown in UI. */
   docsUrl?: string;
+  /** The account (one sign-in) this app runs on, e.g. gmail -> google. */
+  account: SupportedIntegration;
+  /** True for sign-in accounts that are not planned with directly (microsoft, meta). */
+  accountOnly: boolean;
 };
 
-const REGISTRY: Record<SupportedIntegration, IntegrationMetadata> = {
-  google: {
-    integration: "google",
-    displayName: "Google",
-    tagline: "Google Workspace — Drive, Forms, Sheets.",
-    authKind: "oauth2",
-    defaultCredentialName: "default",
-    defaultScopes: [
-      "https://www.googleapis.com/auth/drive.readonly",
-      "https://www.googleapis.com/auth/forms.responses.readonly",
-    ],
-  },
-  whatsapp: {
-    integration: "whatsapp",
-    displayName: "WhatsApp Business",
-    tagline: "Send messages and templates via the WhatsApp Business API.",
-    authKind: "api_key",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-  email: {
-    integration: "email",
-    displayName: "Email",
-    tagline: "Transactional email via SMTP or provider API.",
-    authKind: "api_key",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-  slack: {
-    integration: "slack",
-    displayName: "Slack",
-    tagline: "Post messages and react to events in Slack workspaces.",
-    authKind: "oauth2",
-    defaultCredentialName: "default",
-    defaultScopes: ["chat:write", "channels:read"],
-  },
-  hubspot: {
-    integration: "hubspot",
-    displayName: "HubSpot",
-    tagline: "Sync contacts and deals with HubSpot CRM.",
-    authKind: "oauth2",
-    defaultCredentialName: "default",
-    defaultScopes: ["crm.objects.contacts.read", "crm.objects.contacts.write"],
-  },
-  salesforce: {
-    integration: "salesforce",
-    displayName: "Salesforce",
-    tagline: "Sync leads and opportunities with Salesforce.",
-    authKind: "oauth2",
-    defaultCredentialName: "default",
-    defaultScopes: ["api", "refresh_token"],
-  },
-  razorpay: {
-    integration: "razorpay",
-    displayName: "Razorpay",
-    tagline: "Accept payments and trigger workflows on Razorpay events.",
-    authKind: "api_key",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-  stripe: {
-    integration: "stripe",
-    displayName: "Stripe",
-    tagline: "Accept payments and react to Stripe events.",
-    authKind: "api_key",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-  webhook: {
-    integration: "webhook",
-    displayName: "Webhooks",
-    tagline: "Inbound and outbound HTTP webhooks.",
-    authKind: "no_auth",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-  forms: {
-    integration: "forms",
-    displayName: "Forms",
-    tagline: "Capture form submissions from any provider.",
-    authKind: "no_auth",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-  sheets: {
-    integration: "sheets",
-    displayName: "Google Sheets",
-    tagline: "Read and write rows in Google Sheets.",
-    authKind: "oauth2",
-    defaultCredentialName: "default",
-    defaultScopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  },
-  crm: {
-    integration: "crm",
-    displayName: "Generic CRM",
-    tagline: "Connect any CRM via standard contact and deal endpoints.",
-    authKind: "api_key",
-    defaultCredentialName: "default",
-    defaultScopes: [],
-  },
-};
+/** Built from the connector store (src/lib/connections/store.ts) — one entry per slug. */
+function buildRegistry(): Record<SupportedIntegration, IntegrationMetadata> {
+  const out = {} as Record<SupportedIntegration, IntegrationMetadata>;
+  const apps = new Map(listStoreApps().map((a) => [a.slug, a]));
+  for (const account of listStoreAccounts()) {
+    if (apps.has(account.slug)) continue;
+    out[account.slug] = {
+      integration: account.slug,
+      displayName: account.displayName,
+      tagline: account.tagline,
+      authKind: account.authKind,
+      defaultCredentialName: "default",
+      defaultScopes: account.scopes,
+      docsUrl: account.docsUrl,
+      account: account.slug,
+      accountOnly: true,
+    };
+  }
+  for (const app of apps.values()) {
+    const account = storeAccount(app.account)!;
+    out[app.slug] = {
+      integration: app.slug,
+      displayName: app.displayName,
+      tagline: app.tagline,
+      authKind: account.authKind,
+      defaultCredentialName: "default",
+      defaultScopes: account.scopes,
+      docsUrl: account.docsUrl,
+      account: account.slug,
+      accountOnly: false,
+    };
+  }
+  for (const slug of SUPPORTED_INTEGRATIONS) {
+    if (!out[slug]) throw new Error(`Connector store has no entry for "${slug}".`);
+  }
+  return out;
+}
+
+const REGISTRY = buildRegistry();
 
 export function getIntegrationMetadata(
   integration: SupportedIntegration,

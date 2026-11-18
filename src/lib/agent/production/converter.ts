@@ -74,11 +74,30 @@ export function applyAnswers(plan: BrainPlan, answers: Record<string, string>): 
 
 /* ── Converter ────────────────────────────────────────────────────── */
 
+/** How one approved custom MCP tool step is lowered (resolved + signed by the service beforehand). */
+export interface McpLowering {
+  connectorId: string;
+  toolName: string;
+  /** Plan param name -> real tool input name. */
+  inputMap: Record<string, string>;
+  /** Signed token bound to user + connector + tool. */
+  token: string;
+}
+
 export interface ConvertOptions {
   sessionId: string;
   appsRequired: string[];
   now: number;
   version?: number;
+  /** step id -> lowering, for steps on a user's own MCP connector (app slug "mcp_..."). */
+  mcp?: Record<string, McpLowering>;
+}
+
+export class UnresolvedCustomToolError extends Error {
+  constructor(stepId: string) {
+    super(`Custom tool step "${stepId}" could not be resolved for this user.`);
+    this.name = "UnresolvedCustomToolError";
+  }
 }
 
 export function brainPlanToWorkflowPlan(plan: BrainPlan, opts: ConvertOptions): WorkflowPlan {
@@ -88,7 +107,29 @@ export function brainPlanToWorkflowPlan(plan: BrainPlan, opts: ConvertOptions): 
     config: { ...plan.trigger.config },
   };
 
-  const steps: PlannedStep[] = plan.steps.map((s) => ({
+  const steps: PlannedStep[] = plan.steps.map((s) => {
+    if (s.integration?.startsWith("mcp_")) {
+      // A user's own tool runs through our backend (signed step), never as an n8n app node.
+      const low = opts.mcp?.[s.id];
+      if (!low) throw new UnresolvedCustomToolError(s.id);
+      return {
+        id: s.id,
+        label: s.label,
+        kind: "action" as const,
+        integration: null,
+        operation: "mcp_call",
+        params: {
+          ...structuredClone(s.params),
+          connector_id: { source: "literal" as const, value: low.connectorId },
+          tool: { source: "literal" as const, value: low.toolName },
+          token: { source: "literal" as const, value: low.token },
+          input_map: { source: "literal" as const, value: JSON.stringify(low.inputMap) },
+        },
+        next: [...s.next],
+        errorPolicy: s.errorPolicy,
+      };
+    }
+    return {
     id: s.id,
     label: s.label,
     kind: s.kind,
@@ -98,7 +139,8 @@ export function brainPlanToWorkflowPlan(plan: BrainPlan, opts: ConvertOptions): 
     next: [...s.next],
     errorPolicy: s.errorPolicy,
     ...(s.errorPolicy === "retry" ? { maxRetries: 3 } : {}),
-  }));
+    };
+  });
 
   // Graph: trigger -> every step nobody points to, plus each step's next[].
   const pointedTo = new Set(steps.flatMap((s) => s.next));
@@ -131,7 +173,8 @@ export function brainPlanToWorkflowPlan(plan: BrainPlan, opts: ConvertOptions): 
     issues.push({ code: "CIRCULAR_DEPENDENCY", severity: "error", message: "Plan graph has a cycle.", recommendation: "Re-plan." });
   }
 
-  const integrations = [...opts.appsRequired].sort() as SupportedIntegration[];
+  // Custom MCP connectors are not n8n integrations (no credential, called via our backend).
+  const integrations = opts.appsRequired.filter((a) => !a.startsWith("mcp_")).sort() as SupportedIntegration[];
 
   return {
     sessionId: opts.sessionId,

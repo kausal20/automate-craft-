@@ -35,6 +35,31 @@ export const SUPPORTED_INTEGRATIONS = [
   "forms",
   "sheets",
   "crm",
+  // ── Google apps backed by the one "google" connection ──
+  "gmail",
+  "google_calendar",
+  "google_forms",
+  // ── Microsoft: one sign-in ("microsoft" account) for Outlook mail + calendar ──
+  "microsoft",
+  "outlook",
+  "outlook_calendar",
+  // ── Meta: one sign-in ("meta" account) for Pages, Lead Ads, Instagram ──
+  "meta",
+  "facebook_pages",
+  "facebook_lead_ads",
+  "instagram",
+  // ── Other first-class apps ──
+  "notion",
+  "airtable",
+  "discord",
+  "telegram",
+  "zoho_crm",
+  "pipedrive",
+  "trello",
+  "asana",
+  "github",
+  "shopify",
+  "woocommerce",
 ] as const;
 
 export const integrationSchema = z.enum(SUPPORTED_INTEGRATIONS);

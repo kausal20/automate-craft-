@@ -22,6 +22,7 @@ import {
   liveN8nGateway,
 } from "./live";
 import { MemoryActivityLog, MemoryAutomationRepo, MemoryDraftRepo } from "./memory";
+import { signToolCall } from "@/lib/mcp/signing";
 
 export * from "./types";
 export { AgentService, estimateBuildCost, samplePayload, type AgentDeps, type BuildPipeline } from "./service";
@@ -53,6 +54,11 @@ export function getAgentService(): AgentService {
     n8n: liveN8nGateway,
     pipeline: existingBuildPipeline,
     newId: () => crypto.randomUUID(),
+    customApps: async (userId) => (await import("@/lib/mcp")).getMcpService().catalogueApps(userId),
+    mcp: {
+      resolve: async (userId, slug, operation) => (await import("@/lib/mcp")).getMcpService().resolve(userId, slug, operation),
+      sign: (claims) => signToolCall(claims, process.env.MCP_EXEC_SECRET ?? ""),
+    },
   };
   instance = new AgentService(deps);
   return instance;

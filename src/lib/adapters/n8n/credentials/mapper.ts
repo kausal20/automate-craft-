@@ -17,6 +17,7 @@ import {
 } from "@/lib/connections";
 import { getOAuthProvider } from "@/lib/oauth";
 import type { SupportedIntegration } from "@/lib/workflow";
+import { accountFor } from "@/lib/connections/store";
 import type { N8nNodeCredentialAttachment } from "./types";
 
 export type CredentialAttachmentMap = Record<string, N8nNodeCredentialAttachment>;
@@ -32,7 +33,9 @@ export async function buildCredentialAttachments(input: {
 }): Promise<CredentialAttachmentMap> {
   const attachments: CredentialAttachmentMap = {};
 
-  for (const integration of input.integrations) {
+  // Apps share their account's credential (gmail + sheets -> one google credential).
+  const accounts = [...new Set(input.integrations.map((i) => accountFor(i) as SupportedIntegration))];
+  for (const integration of accounts) {
     const connection = await getConnection(input.userId, integration);
     const n8nCredentialId =
       (connection?.metadata?.n8nCredentialId as string | undefined) ?? null;

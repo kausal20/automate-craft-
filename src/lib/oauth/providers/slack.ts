@@ -17,7 +17,7 @@ export class SlackOAuthProvider extends AbstractOAuth2Provider {
     integration: "slack",
     displayName: "Slack",
     grantType: "authorization_code",
-    defaultScopes: ["chat:write", "channels:read", "users:read"],
+    defaultScopes: ["chat:write", "channels:read", "channels:history", "users:read"],
     supportsRefresh: false, // Slack V2 bot tokens are long-lived; no rotation by default.
     refreshSkewSeconds: 0,
     n8nCredentialType: "slackApi",

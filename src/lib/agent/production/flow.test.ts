@@ -17,7 +17,7 @@ const HINGLISH =
 
 test("FLOW: prompt -> preview -> answers -> confirm -> build -> test pass -> active", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
+  h.directory.add(USER_A, "google", "ops@shop.in");
   h.directory.add(USER_A, "email", "owner@shop.in");
 
   const preview = await h.service.preview({ userId: USER_A, prompt: "When a new lead comes in, save it to my sheet and email me" });
@@ -37,7 +37,7 @@ test("FLOW: prompt -> preview -> answers -> confirm -> build -> test pass -> act
   const list = await h.service.list(USER_A);
   assert.equal(list.length, 1);
   assert.equal(list[0].status, "active");
-  assert.deepEqual(list[0].apps, ["Email", "Google Sheets"]);
+  assert.deepEqual(list[0].apps, ["Email (SMTP)", "Google Sheets"]);
 
   // Test payload was built from what the plan reads; marked as a test run.
   assert.equal((h.n8n.lastPayload as { automatecraft_test_run: boolean }).automatecraft_test_run, true);
@@ -49,7 +49,7 @@ test("FLOW: prompt -> preview -> answers -> confirm -> build -> test pass -> act
 
 test("FLOW: broken step -> stays inactive, plain message, refund", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
+  h.directory.add(USER_A, "google", "ops@shop.in");
   h.directory.add(USER_A, "email", "owner@shop.in");
   const preview = await h.service.preview({ userId: USER_A, prompt: "save leads to sheet and email me" });
   h.n8n.failNode = "email_owner";

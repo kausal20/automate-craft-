@@ -11,7 +11,10 @@
 
 import type { SupportedIntegration } from "@/lib/workflow";
 
-export const INTEGRATION_LATENCY_MS: Record<SupportedIntegration, number> = {
+/** Estimated per-call latency. Apps not listed use DEFAULT_INTEGRATION_LATENCY_MS. */
+export const DEFAULT_INTEGRATION_LATENCY_MS = 600;
+
+export const INTEGRATION_LATENCY_MS: Partial<Record<SupportedIntegration, number>> = {
   forms: 100,
   webhook: 250,
   slack: 300,
@@ -39,5 +42,5 @@ export const LONG_CHAIN_THRESHOLD = 5;
 export const SLOW_WORKFLOW_THRESHOLD_MS = 5_000;
 
 export function estimateNodeMs(integration: SupportedIntegration | null): number {
-  return integration ? INTEGRATION_LATENCY_MS[integration] : BUILTIN_LATENCY_MS;
+  return integration ? INTEGRATION_LATENCY_MS[integration] ?? DEFAULT_INTEGRATION_LATENCY_MS : BUILTIN_LATENCY_MS;
 }

@@ -15,7 +15,7 @@ import type { ProviderCapabilities, TokenSet } from "../types";
 
 export class AirtableOAuthProvider extends AbstractOAuth2Provider {
   readonly capabilities: ProviderCapabilities = {
-    integration: "webhook", // Wired under generic webhook category until first-class slug added.
+    integration: "airtable",
     displayName: "Airtable",
     grantType: "authorization_code",
     defaultScopes: [

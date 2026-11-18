@@ -13,7 +13,7 @@ import { compileIrToN8n } from "../deployment/compiler.ts";
 import { workflowGenerator } from "../generation/index.ts";
 import { workflowValidator } from "../validation/index.ts";
 import { MemoryActivityLog, MemoryAutomationRepo, MemoryCreditLedger, MemoryDraftRepo } from "./memory.ts";
-import { AgentService, type BuildPipeline } from "./service.ts";
+import { AgentService, type AgentDeps, type BuildPipeline } from "./service.ts";
 import { runTestCopy, type N8nTestClient } from "./test-copy.ts";
 import type {
   CreditLedger,
@@ -174,7 +174,7 @@ export function geminiReturning(plan: unknown): typeof fetch {
     })) as typeof fetch;
 }
 
-export function harness(opts: { plan?: BrainPlan | null; credits?: Record<string, number>; catalogue?: AppCatalogue; ledger?: CreditLedger } = {}) {
+export function harness(opts: { plan?: BrainPlan | null; credits?: Record<string, number>; catalogue?: AppCatalogue; ledger?: CreditLedger; customApps?: AgentDeps["customApps"]; mcp?: AgentDeps["mcp"] } = {}) {
   const n8n = new FakeN8n();
   const directory = new FakeDirectory();
   const binder = new FakeBinder();
@@ -204,6 +204,8 @@ export function harness(opts: { plan?: BrainPlan | null; credits?: Record<string
     automations,
     activity,
     credits: opts.ledger ?? credits,
+    customApps: opts.customApps,
+    mcp: opts.mcp,
     directory,
     binder,
     n8n,

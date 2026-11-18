@@ -7,6 +7,7 @@
  * usable accounts for that app.
  */
 
+import { accountFor, storeAccount } from "@/lib/connections/store";
 import { appLabel } from "../brain/catalogue";
 import type { ConnectionNeed, ConnectionSelection, SavedAccount } from "./types";
 
@@ -25,10 +26,15 @@ export function checkConnections(
   const needs: ConnectionNeed[] = [];
   const chosen: ConnectionSelection[] = [];
 
-  for (const app of appsRequired) {
-    if (NO_AUTH_APPS.has(app)) continue;
+  // Apps run on accounts: Gmail + Sheets + Calendar all need the ONE Google connection.
+  const required = [...new Set(appsRequired.map((app) => accountFor(app)))];
+  for (const app of required) {
+    if (NO_AUTH_APPS.has(app) || storeAccount(app)?.authKind === "no_auth") continue;
     const usable = accounts.filter((a) => a.integration === app && a.usable);
-    const label = appLabel(app);
+    const label =
+      storeAccount(app)?.displayName ??
+      usable[0]?.label ??
+      (app.startsWith("mcp_") ? "your custom connector" : appLabel(app));
 
     if (usable.length === 0) {
       needs.push({ integration: app, label, state: "missing", options: [] });

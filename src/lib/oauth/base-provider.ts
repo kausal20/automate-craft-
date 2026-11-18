@@ -80,6 +80,25 @@ export abstract class AbstractOAuth2Provider implements OAuthProvider {
   }
 
   /** Format scopes for the auth URL — default: space-separated. */
+  /** Extra headers on token requests (e.g. GitHub needs Accept: application/json). */
+  protected tokenRequestHeaders(): Record<string, string> {
+    return {};
+  }
+
+  /** Some providers (Pipedrive) require client credentials as HTTP Basic auth. */
+  protected readonly clientAuthStyle: "body" | "basic" = "body";
+
+  private tokenHeaders(clientId: string, clientSecret: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...this.tokenRequestHeaders(),
+    };
+    if (this.clientAuthStyle === "basic") {
+      headers.Authorization = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`;
+    }
+    return headers;
+  }
+
   protected formatScopes(scopes: readonly string[]): string {
     return scopes.join(" ");
   }
@@ -175,7 +194,7 @@ export abstract class AbstractOAuth2Provider implements OAuthProvider {
     try {
       response = await fetch(this.tokenUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: this.tokenHeaders(clientId, clientSecret),
         body,
       });
     } catch (error) {
@@ -231,7 +250,7 @@ export abstract class AbstractOAuth2Provider implements OAuthProvider {
 
     const response = await fetch(this.tokenUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: this.tokenHeaders(clientId, clientSecret),
       body,
     });
 

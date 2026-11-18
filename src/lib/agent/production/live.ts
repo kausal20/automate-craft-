@@ -18,6 +18,7 @@ import { getCreditService } from "@/lib/credits";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import { isSupportedIntegration } from "@/lib/workflow";
 import { creditLedgerFrom } from "./credits";
+import { ensureConnectionFresh } from "@/lib/connections/health-live";
 import { logTechnical } from "./errors";
 import { runTestCopy, type ExecutionSnapshot, type N8nTestClient } from "./test-copy";
 import type {
@@ -228,10 +229,16 @@ export const liveCreditLedger: CreditLedger = creditLedgerFrom(getCreditService(
 
 export const liveConnectionDirectory: ConnectionDirectory = {
   async listAccounts(userId) {
-    const [creds, conns] = await Promise.all([listCredentialsForUser(userId), listConnectionsForUser(userId)]);
+    const [creds, conns, custom] = await Promise.all([
+      listCredentialsForUser(userId),
+      listConnectionsForUser(userId),
+      import("@/lib/mcp").then((m) => m.getMcpService().list(userId)),
+    ]);
+    // The user's own MCP connectors count as accounts for their own "mcp_..." app.
+    const customAccounts: SavedAccount[] = custom.map((c) => ({ connectionId: c.id, integration: c.slug, label: c.displayName, usable: c.status === "connected" }));
     const statusBy = new Map(conns.map((c) => [c.integration as string, c.status]));
     const nameBy = new Map(conns.map((c) => [c.integration as string, c.displayName]));
-    return creds.map((c): SavedAccount => {
+    return [...customAccounts, ...creds.filter((c) => c.integration !== "custom_mcp").map((c): SavedAccount => {
       const status = statusBy.get(c.integration);
       return {
         connectionId: c.id,
@@ -240,7 +247,7 @@ export const liveConnectionDirectory: ConnectionDirectory = {
         // A credential exists; the connection row (if any) must not be expired/revoked.
         usable: status === undefined || status === "connected",
       };
-    });
+    })];
   },
 };
 
@@ -249,6 +256,11 @@ export const liveCredentialBinder: CredentialBinder = {
     const creds = await listCredentialsForUser(userId);
     const attachments: CredentialAttachmentMap = {};
     for (const sel of selections) {
+      // A user's own MCP connector has no n8n credential: it is called through our backend.
+      if (sel.integration.startsWith("mcp_")) continue;
+      // Refresh-on-use: a token about to expire is refreshed silently; a broken one stops the build in plain words.
+      const fresh = await ensureConnectionFresh(userId, sel.integration);
+      if (!fresh.ok) return { ok: false, integration: sel.integration };
       const cred = creds.find((c) => c.id === sel.connectionId && c.integration === sel.integration);
       if (!cred || !isSupportedIntegration(sel.integration)) return { ok: false, integration: sel.integration };
       const outcome = await syncCredentialToN8n({ userId, integration: sel.integration, credentialName: cred.name });

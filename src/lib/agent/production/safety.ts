@@ -24,6 +24,9 @@ const OUTBOUND: Record<string, string> = {
   "slack:post_message": "channel",
   "slack:post_thread": "channel",
   "webhook:send_request": "url",
+  "gmail:send_email": "to",
+  "outlook:send_email": "to",
+  "telegram:send_message": "chat_id",
 };
 
 /** Steps that take or move real money. Never test-run, never built for now. */
@@ -51,6 +54,21 @@ const Q: Record<string, Record<"en" | "hi" | "hinglish", string>> = {
     en: "For the test run, which of YOUR OWN Slack channels should get the test message?",
     hinglish: "Test ke liye, aapka APNA kaunsa Slack channel test message lega?",
     hi: "टेस्ट के लिए, आपका अपना कौन सा Slack चैनल टेस्ट संदेश पाएगा?",
+  },
+  "gmail:to": {
+    en: "For the test run, which of YOUR OWN email addresses should get the test email?",
+    hinglish: "Test ke liye, aapka APNA kaunsa email test email lega?",
+    hi: "टेस्ट के लिए, आपका अपना कौन सा ईमेल टेस्ट ईमेल पाएगा?",
+  },
+  "outlook:to": {
+    en: "For the test run, which of YOUR OWN email addresses should get the test email?",
+    hinglish: "Test ke liye, aapka APNA kaunsa email test email lega?",
+    hi: "टेस्ट के लिए, आपका अपना कौन सा ईमेल टेस्ट ईमेल पाएगा?",
+  },
+  "telegram:chat_id": {
+    en: "For the test run, what is YOUR OWN Telegram chat ID that should get the test message?",
+    hinglish: "Test ke liye, aapka APNA Telegram chat ID kya hai jo test message lega?",
+    hi: "टेस्ट के लिए, आपकी अपनी Telegram chat ID क्या है जो टेस्ट संदेश पाएगी?",
   },
   "webhook:url": {
     en: "For the test run, which of YOUR OWN web addresses should receive the test request?",
@@ -80,7 +98,8 @@ export function testRecipientFields(plan: BrainPlan): TestRecipientField[] {
 
 function validFor(field: TestRecipientField, value: string): boolean {
   if (field.integration === "whatsapp") return /^\+?[0-9][0-9\s-]{7,16}$/.test(value);
-  if (field.integration === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  if (field.integration === "email" || field.integration === "gmail" || field.integration === "outlook") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  if (field.integration === "telegram") return /^-?\d{3,20}$/.test(value);
   if (field.integration === "webhook") return /^https:\/\/[^\s]+$/.test(value);
   return value.length > 0 && value.length <= 200;
 }

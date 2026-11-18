@@ -213,6 +213,8 @@ type LocalDatabase = {
   recentChats: LocalRecentChatRecord[];
   chatMessages: LocalChatMessageRecord[];
   agentSessions: AgentSession[];
+  /** Per-user custom MCP connectors (local mode). Secrets live in credentialsVault. */
+  customMcpConnectors: Array<Record<string, unknown> & { id: string; userId: string }>;
 };
 
 const STORAGE_DIR = path.join(process.cwd(), "data");
@@ -291,6 +293,7 @@ const emptyDatabase: LocalDatabase = {
   recentChats: [],
   chatMessages: [],
   agentSessions: [],
+  customMcpConnectors: [],
   creditTransactions: [],
   plans: buildLocalPlans(),
   subscriptions: [],
@@ -323,6 +326,7 @@ function normalizeLocalDatabase(
     recentChats: database?.recentChats ?? [],
     chatMessages: database?.chatMessages ?? [],
     agentSessions: database?.agentSessions ?? [],
+    customMcpConnectors: database?.customMcpConnectors ?? [],
   };
 
   if (

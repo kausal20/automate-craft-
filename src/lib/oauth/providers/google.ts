@@ -10,6 +10,7 @@
 
 import { env } from "@/lib/env";
 import { AbstractOAuth2Provider, type ProviderEnvConfig } from "../base-provider";
+import { GOOGLE_SCOPES } from "@/lib/connections/store";
 import type { BeginOAuthInput, ProviderCapabilities, TokenSet } from "../types";
 
 export class GoogleOAuthProvider extends AbstractOAuth2Provider {
@@ -17,14 +18,7 @@ export class GoogleOAuthProvider extends AbstractOAuth2Provider {
     integration: "google",
     displayName: "Google",
     grantType: "authorization_code",
-    defaultScopes: [
-      "https://www.googleapis.com/auth/drive.readonly",
-      "https://www.googleapis.com/auth/spreadsheets",
-      "https://www.googleapis.com/auth/forms.responses.readonly",
-      "openid",
-      "email",
-      "profile",
-    ],
+    defaultScopes: GOOGLE_SCOPES,
     supportsRefresh: true,
     refreshSkewSeconds: 120,
     n8nCredentialType: "googleOAuth2Api",

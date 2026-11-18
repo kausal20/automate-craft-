@@ -1,5 +1,6 @@
 "use client";
 
+import ConnectorStore from "@/components/dashboard/ConnectorStore";
 import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2, Loader2, Search, ArrowUpRight, Cable, Plus, Activity, Zap, Database, BrainCircuit, Cloud, Layout, MessageSquare, Terminal, Key, Clock, ShieldCheck, X, RefreshCw, Server
@@ -257,6 +258,9 @@ export default function ConnectedAppsPage() {
             Securely manage credentials and instantly unlock new capabilities for your autonomous workflows.
           </p>
         </div>
+
+        {/* Connect once: one card per account + add your own (MCP link) */}
+        <ConnectorStore />
 
         {/* Suggested Banner */}
         {connectedCount === 0 && !loading && (

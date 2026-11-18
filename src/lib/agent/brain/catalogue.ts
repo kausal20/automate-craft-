@@ -7,6 +7,7 @@
  * per-user connection state) can pass their own.
  */
 
+import { isAccountOnly, storeAccount, storeApp } from "@/lib/connections/store";
 import {
   SUPPORTED_INTEGRATIONS,
   allOperations,
@@ -19,6 +20,8 @@ export interface CatalogueOperation {
   kinds: readonly StepKind[];
   requiredParams: readonly string[];
   description: string;
+  /** Text from an untrusted source (a user's own MCP server): never shown to the model. */
+  untrusted?: boolean;
 }
 
 export interface CatalogueApp {
@@ -53,6 +56,8 @@ const LABELS: Record<string, string> = {
 };
 
 export function appLabel(slug: string): string {
+  const fromStore = storeApp(slug)?.displayName ?? storeAccount(slug)?.displayName;
+  if (fromStore) return fromStore;
   if (LABELS[slug]) return LABELS[slug];
   return slug
     .replace(/[_-]+/g, " ")
@@ -76,13 +81,16 @@ export function buildProductionCatalogue(): AppCatalogue {
     description: o.description,
   });
   cached = {
-    apps: SUPPORTED_INTEGRATIONS.map((slug) => ({
+    // Sign-in-only accounts (microsoft, meta) are never planned with directly.
+    apps: SUPPORTED_INTEGRATIONS.filter((slug) => !isAccountOnly(slug)).map((slug) => ({
       slug,
       label: appLabel(slug),
-      triggerKinds: INTEGRATION_TRIGGER_KINDS,
+      // Only the June apps have a trigger path today; new store apps are actions only.
+      triggerKinds: storeApp(slug)?.legacy ? INTEGRATION_TRIGGER_KINDS : [],
       operations: ops.filter((o) => o.integration === slug).map(toOp),
     })),
-    builtins: ops.filter((o) => o.integration === null).map(toOp),
+    // mcp_call is internal (created by the converter for approved custom tools), never offered to the model.
+    builtins: ops.filter((o) => o.integration === null && o.operation !== "mcp_call").map(toOp),
   };
   return cached;
 }
@@ -93,8 +101,9 @@ export function findApp(catalogue: AppCatalogue, slug: string): CatalogueApp | u
 
 /** Compact text of the catalogue for the model prompt. */
 export function catalogueToPromptText(catalogue: AppCatalogue): string {
+  // Descriptions from a user's own MCP server are untrusted: name + params only.
   const line = (o: CatalogueOperation) =>
-    `    - ${o.operation} [${o.kinds.join("|")}] needs: ${o.requiredParams.join(", ") || "nothing"} — ${o.description}`;
+    `    - ${o.operation} [${o.kinds.join("|")}] needs: ${o.requiredParams.join(", ") || "nothing"}${o.untrusted ? "" : ` — ${o.description}`}`;
   const apps = catalogue.apps
     .map((a) => {
       const trig = a.triggerKinds.length ? ` (can start a workflow: ${a.triggerKinds.join(", ")})` : "";
@@ -102,4 +111,10 @@ export function catalogueToPromptText(catalogue: AppCatalogue): string {
     })
     .join("\n");
   return `APPS:\n${apps}\n\nBUILT-IN STEPS (no app):\n${catalogue.builtins.map(line).join("\n")}`;
+}
+
+/** The production catalogue plus this user's own approved custom MCP tools (never another user's). */
+export function withCustomApps(base: AppCatalogue, custom: readonly CatalogueApp[]): AppCatalogue {
+  if (custom.length === 0) return base;
+  return { ...base, apps: [...base.apps, ...custom] };
 }

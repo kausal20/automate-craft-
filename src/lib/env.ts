@@ -104,6 +104,32 @@ export const env = {
       clientId: process.env.SALESFORCE_CLIENT_ID,
       clientSecret: process.env.SALESFORCE_CLIENT_SECRET,
     },
+    microsoft: {
+      clientId: process.env.MICROSOFT_CLIENT_ID,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+    },
+    meta: {
+      clientId: process.env.META_APP_ID,
+      clientSecret: process.env.META_APP_SECRET,
+    },
+    zoho: {
+      clientId: process.env.ZOHO_CLIENT_ID,
+      clientSecret: process.env.ZOHO_CLIENT_SECRET,
+      /** Data-centre domain, e.g. "zoho.in" for India, "zoho.com" for US. */
+      domain: process.env.ZOHO_DOMAIN || "zoho.com",
+    },
+    pipedrive: {
+      clientId: process.env.PIPEDRIVE_CLIENT_ID,
+      clientSecret: process.env.PIPEDRIVE_CLIENT_SECRET,
+    },
+    asana: {
+      clientId: process.env.ASANA_CLIENT_ID,
+      clientSecret: process.env.ASANA_CLIENT_SECRET,
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    },
   },
 } as const;
 

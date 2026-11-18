@@ -11,7 +11,7 @@ import { checkConnections } from "./gate.ts";
 import { cornerTags } from "./test-copy.ts";
 
 async function readyLeadDraft(h: ReturnType<typeof harness>, user = USER_A) {
-  h.directory.add(user, "sheets", "ops@shop.in");
+  h.directory.add(user, "google", "ops@shop.in");
   h.directory.add(user, "email", "owner@shop.in");
   const p = await h.service.preview({ userId: user, prompt: "When a new lead arrives save it to a sheet and email me" });
   return p;
@@ -38,7 +38,7 @@ test("preview: no questions but an app not connected -> needs_connection listing
   const h = harness({ plan });
   const p = await h.service.preview({ userId: USER_A, prompt: "save leads to my sheet" });
   assert.equal(p.status, "needs_connection");
-  assert.deepEqual(p.connections.map((c) => [c.integration, c.state]), [["sheets", "missing"]]);
+  assert.deepEqual(p.connections.map((c) => [c.integration, c.state]), [["google", "missing"]]);
 });
 
 test("preview: everything known and connected -> ready", async () => {
@@ -151,7 +151,7 @@ test("confirm is idempotent under concurrency: parallel confirms -> one workflow
 
 test("picker: two accounts for one app -> choose, never silent; valid pick is stored and used", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
+  h.directory.add(USER_A, "google", "ops@shop.in");
   h.directory.add(USER_A, "email", "owner@shop.in");
   const second = h.directory.add(USER_A, "email", "sales@shop.in");
   const p = await h.service.preview({ userId: USER_A, prompt: "save leads and email me" });
@@ -175,7 +175,7 @@ test("picker: two accounts for one app -> choose, never silent; valid pick is st
 
 test("picker: another user's account id is never honoured", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "a-sheets");
+  h.directory.add(USER_A, "google", "a-sheets");
   h.directory.add(USER_A, "email", "a1");
   h.directory.add(USER_A, "email", "a2");
   const foreign = h.directory.add(USER_B, "email", "b-email");
@@ -189,7 +189,7 @@ test("picker: another user's account id is never honoured", async () => {
 
 test("connect once: two automations needing the same apps both build without a new connection step", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
+  h.directory.add(USER_A, "google", "ops@shop.in");
   h.directory.add(USER_A, "email", "owner@shop.in");
   for (const prompt of ["first: save leads and email me", "second: save leads and email me"]) {
     const p = await h.service.preview({ userId: USER_A, prompt });
@@ -326,7 +326,7 @@ test("connection lost: dependent automations pause with a plain status", async (
   assert.equal(await h.service.onConnectionLost(USER_A, "email"), 1);
   const v = await h.service.get(USER_A, id);
   assert.equal(v.status, "needs_attention");
-  assert.match(v.message!, /Email connection stopped working/);
+  assert.match(v.message!, /Email \(SMTP\) connection stopped working/);
   assert.equal([...h.n8n.workflows.values()][0].active, false);
   // Resume refuses while the connection is still missing.
   h.directory.accounts = h.directory.accounts.filter((a) => a.integration !== "email");

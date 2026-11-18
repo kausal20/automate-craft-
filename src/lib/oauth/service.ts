@@ -38,6 +38,7 @@ import type {
   TokenSet,
 } from "./types";
 import type { SupportedIntegration } from "@/lib/workflow";
+import { accountFor } from "@/lib/connections/store";
 
 const log = createLogger("oauth/service");
 
@@ -53,14 +54,22 @@ export type BeginConnectionInput = {
 export async function beginConnection(
   input: BeginConnectionInput,
 ): Promise<BeginOAuthOutput> {
-  const provider = getOAuthProvider(input.providerSlug);
+  // Connecting "gmail" means connecting the one Google account.
+  const accountSlug = accountFor(input.providerSlug);
+  const provider = getOAuthProvider(accountSlug);
+  // Incremental consent: ask for everything already granted PLUS the account's
+  // current scope set, so an existing connection upgrades in place.
+  const existing = await getConnection(input.userId, provider.capabilities.integration);
+  const scopes =
+    input.scopes ??
+    Array.from(new Set([...(existing?.scopes ?? []), ...provider.capabilities.defaultScopes]));
   log.info("Begin OAuth flow.", {
     userId: input.userId,
     provider: input.providerSlug,
   });
   return provider.beginOAuthFlow({
     userId: input.userId,
-    scopes: input.scopes,
+    scopes,
     redirectUri: input.redirectUri,
   });
 }
@@ -86,7 +95,7 @@ export type CompleteConnectionOutcome = {
 export async function completeConnection(
   input: CompleteConnectionInput,
 ): Promise<CompleteConnectionOutcome> {
-  const provider = getOAuthProvider(input.providerSlug);
+  const provider = getOAuthProvider(accountFor(input.providerSlug));
   const log2 = log.withContext({
     userId: input.userId,
     provider: input.providerSlug,
@@ -103,7 +112,10 @@ export async function completeConnection(
   });
 
   const integration = provider.capabilities.integration;
-  const credentialName = "default";
+  // Reconnect / upgrade lands on the SAME row, SAME vault credential name and
+  // SAME n8n credential id (kept from existing metadata) — never a duplicate.
+  const existing = await getConnection(input.userId, integration);
+  const credentialName = (existing?.metadata.credentialName as string | undefined) ?? "default";
 
   await putCredential({
     userId: input.userId,
@@ -119,9 +131,11 @@ export async function completeConnection(
     displayName: result.accountLabel ?? provider.capabilities.displayName,
     scopes: result.tokens.scopes ?? Array.from(provider.capabilities.defaultScopes),
     metadata: {
+      ...(existing?.metadata ?? {}),
       ...(result.accountMetadata ?? {}),
       credentialName,
-      providerSlug: input.providerSlug,
+      providerSlug: integration,
+      broken: null,
     },
     expiresAt: result.tokens.expiresAt ?? null,
   });
@@ -142,6 +156,7 @@ export async function refreshConnection(input: {
   userId: string;
   integration: SupportedIntegration;
 }): Promise<TokenSet> {
+  input = { ...input, integration: accountFor(input.integration) as SupportedIntegration };
   const connection = await getConnection(input.userId, input.integration);
   if (!connection) {
     throw new OAuthRefreshFailedError(`No connection for "${input.integration}".`, {
@@ -205,6 +220,7 @@ export async function revokeConnection(input: {
   userId: string;
   integration: SupportedIntegration;
 }): Promise<void> {
+  input = { ...input, integration: accountFor(input.integration) as SupportedIntegration };
   const connection = await getConnection(input.userId, input.integration);
   if (!connection) return;
 
@@ -249,6 +265,7 @@ export async function validateConnection(input: {
   userId: string;
   integration: SupportedIntegration;
 }): Promise<{ ok: boolean; reason?: string }> {
+  input = { ...input, integration: accountFor(input.integration) as SupportedIntegration };
   const connection = await getConnection(input.userId, input.integration);
   if (!connection || connection.status !== "connected") {
     return { ok: false, reason: "Connection not active." };

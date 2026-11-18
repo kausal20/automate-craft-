@@ -24,6 +24,8 @@ import {
   isOAuthError,
 } from "@/lib/oauth";
 import { connect, type ConnectInput } from "@/lib/connections";
+import { accountFor } from "@/lib/connections/store";
+import { ApiKeyProvider } from "@/lib/oauth/providers/configured";
 import {
   integrationSchema,
 } from "@/lib/workflow";
@@ -63,7 +65,9 @@ export async function POST(
       throw error;
     }
 
-    const { integration } = await context.params;
+    const { integration: requested } = await context.params;
+    // Connecting an app (gmail, sheets, outlook...) connects its ONE account (google, microsoft...).
+    const integration = accountFor(requested);
     const provider = getOAuthProvider(integration);
 
     /* ── API-key providers (WhatsApp) — store inline ───────────── */
@@ -76,6 +80,12 @@ export async function POST(
           "API-key provider requires a `credentialPayload` body.",
           400,
         );
+      }
+      if (provider instanceof ApiKeyProvider) {
+        const missing = provider.missingFields(body.credentialPayload);
+        if (missing.length > 0) {
+          return jsonError(`Please fill in: ${missing.join(", ")}.`, 400);
+        }
       }
       const integrationSlug = integrationSchema.parse(
         provider.capabilities.integration,

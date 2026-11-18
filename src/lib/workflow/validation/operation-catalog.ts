@@ -16,6 +16,7 @@
  */
 
 import type { StepKind, SupportedIntegration } from "../schema";
+import { CONNECTOR_OPERATIONS } from "./connector-operations";
 
 export type OperationDefinition = {
   /** Logical operation verb (matches `step.operation` regex). */
@@ -282,34 +283,22 @@ const INTEGRATION_OPERATIONS: readonly OperationDefinition[] = [
     requiredParams: ["email"],
     description: "Create a Stripe customer.",
   },
-  // generic crm (legacy, no specific provider)
-  {
-    operation: "create_contact",
-    integration: "crm",
-    kinds: ["save", "action"],
-    requiredParams: ["name"],
-    description: "Create a contact in the connected CRM.",
-  },
-  {
-    operation: "update_contact",
-    integration: "crm",
-    kinds: ["save", "action"],
-    requiredParams: ["id"],
-    description: "Update a contact in the connected CRM.",
-  },
+  // generic crm: no operations. Its old create/update steps compiled to an
+  // n8n Set node that did nothing, so they were placeholders and are removed.
   // google (umbrella for Drive-level ops)
   {
     operation: "drive_upload",
     integration: "google",
     kinds: ["save", "action"],
-    requiredParams: ["folder_id", "filename", "content"],
-    description: "Upload a file to a Google Drive folder.",
+    requiredParams: ["filename", "content"],
+    description: "Save a new text file to Google Drive (optional folder_id of a folder this app created).",
   },
 ];
 
 const ALL_OPERATIONS: readonly OperationDefinition[] = [
   ...BUILTIN_OPERATIONS,
   ...INTEGRATION_OPERATIONS,
+  ...CONNECTOR_OPERATIONS,
 ];
 
 /**

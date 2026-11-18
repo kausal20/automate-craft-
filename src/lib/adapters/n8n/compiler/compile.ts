@@ -22,6 +22,7 @@ import {
 import { buildN8nConnections } from "./graph-builder";
 import type { CredentialAttachmentMap } from "../credentials/mapper";
 import { getOAuthProvider } from "@/lib/oauth";
+import { accountFor } from "@/lib/connections/store";
 
 export type CompileOptions = {
   /**
@@ -76,7 +77,8 @@ function attachCredentialToNode(
 ): void {
   let credentialType: string | undefined;
   try {
-    credentialType = getOAuthProvider(integration).capabilities.n8nCredentialType;
+    // Apps run on their account's ONE credential (gmail, sheets -> google).
+    credentialType = getOAuthProvider(accountFor(integration)).capabilities.n8nCredentialType;
   } catch {
     return; // No OAuth provider — node likely uses no credentials.
   }

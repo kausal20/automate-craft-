@@ -18,6 +18,7 @@
 import type { Step, StepKind } from "@/lib/workflow";
 import { compileParamRefToN8n } from "./param-compiler";
 import type { N8nNode, N8nNodeParameters } from "../client/types";
+import { CONNECTOR_STEP_MAPPINGS, NODE_AUTH_OVERRIDES } from "./connector-steps";
 
 type N8nNodeMapping = {
   type: string;
@@ -29,7 +30,7 @@ type N8nNodeMapping = {
   paramsAdjust?: (params: N8nNodeParameters) => N8nNodeParameters;
 };
 
-const STEP_MAPPINGS: Record<string, N8nNodeMapping> = {
+const BASE_STEP_MAPPINGS: Record<string, N8nNodeMapping> = {
   // ─── Built-ins (integration: null) ────────────────────────────────
   "(builtin)::extract_fields": {
     type: "n8n-nodes-base.set",
@@ -317,6 +318,9 @@ const STEP_MAPPINGS: Record<string, N8nNodeMapping> = {
   },
 };
 
+/** Connector store mappings override the June ones where both exist (Sheets, Drive now run on the one Google credential). */
+const STEP_MAPPINGS: Record<string, N8nNodeMapping> = { ...BASE_STEP_MAPPINGS, ...CONNECTOR_STEP_MAPPINGS };
+
 const POSITION_X_START = 480;
 const POSITION_Y_DEFAULT = 300;
 const POSITION_X_STEP = 220;
@@ -347,9 +351,10 @@ export function mapStepToN8nNode(step: Step, index: number): N8nNode {
     };
   }
 
-  const adjusted = mapping.paramsAdjust
-    ? mapping.paramsAdjust(compiledParams)
-    : compiledParams;
+  const adjusted = {
+    ...(mapping.paramsAdjust ? mapping.paramsAdjust(compiledParams) : compiledParams),
+    ...(NODE_AUTH_OVERRIDES[mapping.type] ?? {}),
+  };
 
   return {
     name: step.id,

@@ -181,7 +181,7 @@ test("the test plan sends ONLY to the owner; the real plan keeps its real recipi
 
 test("service: the compiled test copy carries the owner's test address, the real workflow the real one", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
+  h.directory.add(USER_A, "google", "ops@shop.in");
   h.directory.add(USER_A, "email", "owner@shop.in");
   const p = await h.service.preview({ userId: USER_A, prompt: "save leads and email me" });
   const c = await h.service.confirm({ userId: USER_A, draftId: p.draftId!, confirm: true, answers: ANSWERS });
@@ -195,7 +195,7 @@ test("service: the compiled test copy carries the owner's test address, the real
 
 test("service: TIMEOUT in the test copy -> failed_test, real workflow never created, refund, plain message", async () => {
   const h = harness({ plan: leadToSheetPlan() });
-  h.directory.add(USER_A, "sheets", "ops@shop.in");
+  h.directory.add(USER_A, "google", "ops@shop.in");
   h.directory.add(USER_A, "email", "owner@shop.in");
   const p = await h.service.preview({ userId: USER_A, prompt: "save leads and email me" });
   h.n8n.hang = true;

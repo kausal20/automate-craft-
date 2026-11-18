@@ -23,7 +23,7 @@ import { verifyAndConsumeState } from "../state";
 
 export class NotionOAuthProvider extends AbstractOAuth2Provider {
   readonly capabilities: ProviderCapabilities = {
-    integration: "webhook", // No first-class slug for Notion yet — wire under "webhook" category.
+    integration: "notion",
     displayName: "Notion",
     grantType: "authorization_code",
     defaultScopes: [],
