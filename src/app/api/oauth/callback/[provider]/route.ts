@@ -84,7 +84,8 @@ function redirectToConnections(
   reason?: string,
 ): Response {
   const base = env.publicSiteUrl.replace(/\/+$/, "");
-  const target = new URL(`${base}/connections`);
+  // Back to the Connected Apps page, which reloads the real status from the server.
+  const target = new URL(`${base}/dashboard/apps`);
   target.searchParams.set("provider", provider);
   target.searchParams.set("status", status);
   if (reason) target.searchParams.set("reason", reason);

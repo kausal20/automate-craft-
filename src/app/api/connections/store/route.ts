@@ -15,11 +15,15 @@ export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "Please sign in to continue." }, { status: 401 });
   const check = new URL(request.url).searchParams.get("check") === "1";
+  // Open-access guests have no stored connections (and no UUID the database accepts).
+  const guest = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
   try {
     const view = await listConnectedApps(
-      { listConnections: listConnectionsForUser, health: liveHealthDeps, listCustom: (userId) => getMcpService().list(userId) },
+      guest
+        ? { listConnections: async () => [], listCustom: async () => [] }
+        : { listConnections: listConnectionsForUser, health: liveHealthDeps, listCustom: (userId) => getMcpService().list(userId) },
       user.id,
-      { check },
+      { check: check && !guest },
     );
     return Response.json(view);
   } catch {

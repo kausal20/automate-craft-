@@ -3,17 +3,19 @@
 import ConnectorStore from "@/components/dashboard/ConnectorStore";
 import { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2, Loader2, Search, ArrowUpRight, Cable, Plus, Activity, Zap, Database, BrainCircuit, Cloud, Layout, MessageSquare, Terminal, Key, Clock, ShieldCheck, X, RefreshCw, Server
+  CheckCircle2, Loader2, Search, Cable, Plus, Activity, Zap, Database, BrainCircuit, Cloud, Layout, MessageSquare, Terminal, Key, ShieldCheck, X, Server
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { loadIntegrations, requestConnect, requestDisconnect, type IntegrationEntry } from "@/lib/connections/connect-client";
+import { accountFor, storeAccount } from "@/lib/connections/store";
 
-type ConnectionStatus = "connected" | "disconnected" | "error";
+/** Apps that connect with a pasted key (no sign-in page). The key form lives in "Your apps — connect once". */
+function connectsWithKey(id: string): boolean {
+  const kind = storeAccount(accountFor(id))?.authKind;
+  return kind === "api_key" || kind === "bot_token";
+}
 
-type IntegrationEntry = {
-  integration: string;
-  status: ConnectionStatus;
-  updatedAt: string | null;
-};
+const KEY_APP_NOTE = "This app connects with an API key, not a sign-in page. Enter the key in the \u201cYour apps \u2014 connect once\u201d section at the top of this page.";
 
 /* ── Brand SVG Logos (inline, tiny) ── */
 function GoogleLogo({ className }: { className?: string }) { return <svg className={className} viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59A14.5 14.5 0 0 1 9.5 24c0-1.59.28-3.14.76-4.59l-7.98-6.19A23.94 23.94 0 0 0 0 24c0 3.77.9 7.35 2.56 10.51l7.97-5.92z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 5.92C6.51 42.62 14.62 48 24 48z"/></svg>; }
@@ -73,12 +75,14 @@ function AppCard({
   entry,
   meta,
   connecting,
+  notice,
   onConnect,
   onOpenDrawer
 }: {
   entry: IntegrationEntry;
   meta: typeof integrationMeta[keyof typeof integrationMeta];
   connecting: string | null;
+  notice: string | null;
   onConnect: (id: string, e: React.MouseEvent) => void;
   onOpenDrawer: (id: string) => void;
 }) {
@@ -88,7 +92,7 @@ function AppCard({
   const stats = getAppStats(entry.integration);
 
   return (
-    <div 
+    <div
       onClick={() => onOpenDrawer(entry.integration)}
       className="group relative flex flex-col h-full rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-[#111114] cursor-pointer hover:-translate-y-0.5 shadow-lg hover:shadow-2xl"
     >
@@ -96,7 +100,7 @@ function AppCard({
         <div className={`flex h-12 w-12 items-center justify-center rounded-[14px] border border-white/[0.04] p-2.5 ${meta.bgColor}`}>
           <Logo className="h-full w-full" />
         </div>
-        
+
         {connected ? (
           <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2 py-1 text-[10px] font-semibold tracking-wide text-emerald-400 uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -112,6 +116,12 @@ function AppCard({
       <div className="mt-5 flex-1">
         <h3 className="text-[15px] font-semibold text-white/90 group-hover:text-white transition-colors">{meta.title}</h3>
         <p className="mt-1.5 text-[13px] leading-relaxed text-white/40 line-clamp-2">{meta.description}</p>
+        {entry.status === "error" && !notice && (
+          <p className="mt-2 text-[12px] leading-relaxed text-amber-300">This connection stopped working. Open it to reconnect.</p>
+        )}
+        {notice && (
+          <p role="alert" className="mt-2 text-[12px] leading-relaxed text-amber-300">{notice}</p>
+        )}
       </div>
 
       <div className="mt-5 flex items-center justify-between border-t border-white/[0.04] pt-4">
@@ -157,58 +167,90 @@ export default function ConnectedAppsPage() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [drawerAppId, setDrawerAppId] = useState<string | null>(null);
 
-  // Extend initial API list with more mock integrations for the marketplace feel
+  const [loadError, setLoadError] = useState<string | null>(null);
+  /** Plain-language message per app (connect / disconnect problems). */
+  const [notices, setNotices] = useState<Record<string, string>>({});
+  const setNotice = (id: string, text: string | null) =>
+    setNotices((prev) => {
+      const next = { ...prev };
+      if (text) next[id] = text;
+      else delete next[id];
+      return next;
+    });
+
+  // Statuses come ONLY from the server. Catalogue-only apps are always "not connected".
+  // A failed load shows an honest error and never made-up statuses.
   const load = async () => {
     setLoading(true);
-    try {
-      const res = await fetch("/api/integrations", { cache: "no-store" });
-      const json = await res.json();
-      
-      let fetched = json.integrations ?? [];
-      
-      // Inject extra mock apps if they aren't provided by the API
-      const existingIds = new Set(fetched.map((i: any) => i.integration));
-      Object.keys(integrationMeta).forEach(id => {
-        if (!existingIds.has(id)) {
-          fetched.push({ integration: id, status: "disconnected", updatedAt: null });
-        }
-      });
-      
-      setIntegrations(fetched);
-    } catch (e) {
-      // Graceful fallback to pure mock data if API fails to hide raw DB errors
-      const mockList = Object.keys(integrationMeta).map(id => ({
-        integration: id,
-        status: (id === "slack" || id === "github") ? "connected" : "disconnected",
-        updatedAt: id === "slack" ? new Date().toISOString() : null
-      }));
-      setIntegrations(mockList as any);
-    } finally {
-      setLoading(false);
+    setLoadError(null);
+    const out = await loadIntegrations(Object.keys(integrationMeta));
+    if (out.ok) {
+      setIntegrations(out.entries);
+    } else {
+      setIntegrations([]);
+      setLoadError(out.message);
     }
+    setLoading(false);
   };
 
   useEffect(() => { void load(); }, []);
 
   const handleConnect = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    setNotice(id, null);
+    if (connectsWithKey(id)) {
+      setNotice(id, KEY_APP_NOTE);
+      return;
+    }
+    const name = (integrationMeta[id] ?? defaultMeta).title;
     setConnecting(id);
     try {
-      // Simulate OAuth flow / API delay
-      await new Promise(r => setTimeout(r, 1000));
-      setIntegrations(prev => prev.map(i => i.integration === id ? { ...i, status: "connected", updatedAt: new Date().toISOString() } : i));
-    } catch (e) {
-      // Handle silently in UI for premium feel
+      const out = await requestConnect(id, name);
+      if (out.kind === "redirect") {
+        // Full-page redirect: the provider's real sign-in page opens. The callback
+        // returns the user to /dashboard/apps, where the new status is loaded from the server.
+        window.location.href = out.url;
+        return;
+      }
+      if (out.kind === "connected") {
+        await load();
+        return;
+      }
+      setNotice(id, out.message);
     } finally {
       setConnecting(null);
     }
   };
 
+  const handleDisconnect = async (id: string) => {
+    setNotice(id, null);
+    const name = (integrationMeta[id] ?? defaultMeta).title;
+    setConnecting(id);
+    try {
+      const out = await requestDisconnect(id, name);
+      if (!out.ok) setNotice(id, out.message);
+      await load();
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  // After the OAuth callback (?provider=...&status=error) say what happened. Success needs no message:
+  // the status itself is reloaded from the server.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const provider = params.get("provider");
+    if (provider && params.get("status") === "error") {
+      const reason = params.get("reason");
+      setNotice(provider, `${(integrationMeta[provider] ?? defaultMeta).title} sign-in did not finish${reason ? ` (${reason})` : ""}. Nothing was connected.`);
+    }
+  }, []);
+
   const categories = ["All", "Communication", "CRM", "Databases", "AI Models", "Storage", "Developer Tools", "Productivity"];
 
   const filtered = useMemo(() => {
     let list = integrations;
-    
+
     if (activeCategory !== "All") {
       list = list.filter(e => {
         const m = integrationMeta[e.integration] ?? defaultMeta;
@@ -223,7 +265,7 @@ export default function ConnectedAppsPage() {
         return e.integration.includes(q) || m.title.toLowerCase().includes(q) || m.category.toLowerCase().includes(q);
       });
     }
-    
+
     // Sort connected apps first
     return list.sort((a, b) => {
       if (a.status === "connected" && b.status !== "connected") return -1;
@@ -233,18 +275,20 @@ export default function ConnectedAppsPage() {
   }, [integrations, query, activeCategory]);
 
   const connectedCount = integrations.filter(i => i.status === "connected").length;
-  
+
   const drawerEntry = integrations.find(i => i.integration === drawerAppId);
   const drawerMeta = drawerAppId ? (integrationMeta[drawerAppId] ?? defaultMeta) : null;
   const drawerStats = drawerAppId ? getAppStats(drawerAppId) : null;
 
   return (
-    <div className="relative w-full p-6 lg:p-10 min-h-screen bg-[#050505]">
+    // The dashboard shell is fixed-height with overflow hidden, so this page owns its scroll area.
+    <div className="relative h-full w-full overflow-y-auto bg-[#050505]">
+     <div className="relative w-full p-6 lg:p-10">
       {/* Cinematic Glow */}
       <div className="pointer-events-none fixed top-0 right-0 w-[800px] h-[600px] bg-accent/5 blur-[120px] rounded-full z-0" />
 
       <div className="relative z-10 flex flex-col gap-10 w-full">
-        
+
         {/* Header section */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-3">
@@ -254,7 +298,7 @@ export default function ConnectedAppsPage() {
             </span>
           </h1>
           <p className="text-[14px] text-white/40 max-w-2xl">
-            Connect your favorite tools, databases, and AI models to AutomateCraft. 
+            Connect your favorite tools, databases, and AI models to AutomateCraft.
             Securely manage credentials and instantly unlock new capabilities for your autonomous workflows.
           </p>
         </div>
@@ -283,10 +327,10 @@ export default function ConnectedAppsPage() {
         )}
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          
+
           {/* Sidebar Filters */}
           <div className="w-full lg:w-64 shrink-0 flex flex-col gap-6 sticky top-6">
-            
+
             <div className="relative group">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30 group-focus-within:text-white/70 transition-colors" />
               <input
@@ -306,8 +350,8 @@ export default function ConnectedAppsPage() {
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all ${
-                      isActive 
-                        ? "bg-white/[0.08] text-white shadow-sm" 
+                      isActive
+                        ? "bg-white/[0.08] text-white shadow-sm"
                         : "text-white/50 hover:bg-white/[0.03] hover:text-white/80"
                     }`}
                   >
@@ -335,7 +379,14 @@ export default function ConnectedAppsPage() {
 
           {/* Main Grid */}
           <div className="flex-1 w-full min-w-0">
-            {loading ? (
+            {loadError ? (
+              <div role="alert" className="flex h-64 flex-col items-center justify-center gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-6 text-center">
+                <p className="text-[14px] text-amber-200">{loadError} Your apps were not changed.</p>
+                <button onClick={() => void load()} className="h-9 rounded-lg border border-white/10 bg-white/[0.06] px-4 text-[13px] font-semibold text-white hover:bg-white/[0.1]">
+                  Retry
+                </button>
+              </div>
+            ) : loading ? (
               <div className="flex h-64 items-center justify-center rounded-2xl border border-white/[0.06] bg-[#0A0A0A]">
                 <div className="flex items-center gap-3 text-white/40 text-[14px]">
                   <Loader2 className="h-5 w-5 animate-spin" /> Fetching marketplace data...
@@ -346,9 +397,9 @@ export default function ConnectedAppsPage() {
                 <Cable className="h-10 w-10 text-white/10 mb-4" />
                 <h2 className="text-[16px] font-semibold text-white/80">No integration found</h2>
                 <p className="mt-2 text-[13px] text-white/40 max-w-sm text-center">
-                  We couldn't find any app matching your search criteria. Try adjusting your filters.
+                  We couldn&apos;t find any app matching your search criteria. Try adjusting your filters.
                 </p>
-                <button 
+                <button
                   onClick={() => { setQuery(""); setActiveCategory("All"); }}
                   className="mt-6 text-[13px] text-white/50 hover:text-white transition-colors"
                 >
@@ -363,6 +414,7 @@ export default function ConnectedAppsPage() {
                     entry={entry}
                     meta={integrationMeta[entry.integration] ?? defaultMeta}
                     connecting={connecting}
+                    notice={notices[entry.integration] ?? null}
                     onConnect={handleConnect}
                     onOpenDrawer={setDrawerAppId}
                   />
@@ -377,12 +429,12 @@ export default function ConnectedAppsPage() {
       <AnimatePresence>
         {drawerAppId && drawerEntry && drawerMeta && drawerStats && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setDrawerAppId(null)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             />
-            <motion.div 
+            <motion.div
               initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed right-0 top-0 h-full w-[450px] bg-[#0A0A0A] border-l border-white/[0.08] shadow-2xl z-50 flex flex-col overflow-y-auto"
@@ -400,7 +452,7 @@ export default function ConnectedAppsPage() {
               </div>
 
               <div className="p-6 flex-1 flex flex-col gap-8">
-                
+
                 {/* Status Banner */}
                 <div className="flex items-center justify-between p-4 rounded-xl border border-white/[0.06] bg-white/[0.02]">
                   <div>
@@ -415,14 +467,33 @@ export default function ConnectedAppsPage() {
                       </div>
                     )}
                   </div>
-                  <button 
-                    onClick={(e) => handleConnect(drawerEntry.integration, e)}
-                    disabled={drawerEntry.status === "connected" || connecting === drawerEntry.integration}
-                    className="px-4 py-2 rounded-lg bg-white text-black text-[13px] font-semibold hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {connecting === drawerEntry.integration ? "Connecting..." : drawerEntry.status === "connected" ? "Manage Auth" : "Connect Account"}
-                  </button>
+                  {drawerEntry.status === "connected" ? (
+                    <button
+                      onClick={() => void handleDisconnect(drawerEntry.integration)}
+                      disabled={connecting === drawerEntry.integration}
+                      className="px-4 py-2 rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 text-[13px] font-semibold hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {connecting === drawerEntry.integration ? "Disconnecting..." : "Disconnect"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => handleConnect(drawerEntry.integration, e)}
+                      disabled={connecting === drawerEntry.integration}
+                      className="px-4 py-2 rounded-lg bg-white text-black text-[13px] font-semibold hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {connecting === drawerEntry.integration
+                        ? "Connecting..."
+                        : connectsWithKey(drawerEntry.integration)
+                          ? "Connects with an API key"
+                          : drawerEntry.status === "error" ? "Reconnect" : "Connect Account"}
+                    </button>
+                  )}
                 </div>
+                {notices[drawerEntry.integration] && (
+                  <p role="alert" className="-mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-[13px] leading-relaxed text-amber-200">
+                    {notices[drawerEntry.integration]}
+                  </p>
+                )}
 
                 {/* API Details */}
                 <div>
@@ -473,6 +544,7 @@ export default function ConnectedAppsPage() {
         )}
       </AnimatePresence>
 
+     </div>
     </div>
   );
 }
